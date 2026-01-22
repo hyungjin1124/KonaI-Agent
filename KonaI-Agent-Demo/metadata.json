@@ -1,0 +1,7 @@
+{
+  "name": "KonaAgent_v3.7",
+  "description": "로그인, 사용자 관리, 대화 히스토리 기능 구현 완료",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
