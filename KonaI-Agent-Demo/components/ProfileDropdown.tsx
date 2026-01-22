@@ -113,6 +113,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       {/* Profile Button Trigger */}
       <button
         ref={buttonRef}
+        data-testid="profile-button"
         onClick={toggleDropdown}
         className={`flex items-center gap-2 pl-4 border-l border-[#E5E7EB] cursor-pointer group transition-colors ${
           isOpen ? 'bg-gray-50' : 'hover:bg-gray-50'
@@ -147,6 +148,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       {isOpen && (
         <div
           ref={menuRef}
+          data-testid="profile-dropdown"
           className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden py-1 z-50 animate-fade-in-up"
           role="menu"
           aria-orientation="vertical"

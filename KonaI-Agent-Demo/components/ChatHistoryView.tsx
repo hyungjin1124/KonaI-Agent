@@ -246,7 +246,7 @@ const ChatHistoryView: React.FC = () => {
 
   // --- Render: List View ---
   return (
-    <div className="h-full flex flex-col bg-[#F7F9FB] animate-fade-in-up">
+    <div data-testid="chat-history-view" className="h-full flex flex-col bg-[#F7F9FB] animate-fade-in-up">
       {/* Header */}
       <div className="px-8 py-8 shrink-0">
         <div className="max-w-5xl mx-auto">

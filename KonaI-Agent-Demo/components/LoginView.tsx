@@ -30,7 +30,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="flex w-full h-screen bg-white overflow-hidden animate-fade-in-up">
+    <div data-testid="login-view" className="flex w-full h-screen bg-white overflow-hidden animate-fade-in-up">
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-[#0A0A0A] relative flex-col justify-between p-12 text-white overflow-hidden">
         {/* Background Pattern */}
@@ -86,7 +86,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             <p className="mt-2 text-sm text-gray-500">계정에 로그인하여 대시보드에 접속하세요.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
             <div className="space-y-4">
               {/* Email Input */}
               <div>
@@ -101,6 +101,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                     onChange={(e) => setEmail(e.target.value)}
                     className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:border-[#FF3C42] focus:ring-1 focus:ring-[#FF3C42] transition-all bg-gray-50 focus:bg-white"
                     placeholder="name@company.com"
+                    data-testid="email-input"
                   />
                 </div>
               </div>
@@ -118,6 +119,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:border-[#FF3C42] focus:ring-1 focus:ring-[#FF3C42] transition-all bg-gray-50 focus:bg-white"
                     placeholder="••••••••"
+                    data-testid="password-input"
                   />
                   <button
                     type="button"
@@ -131,7 +133,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             </div>
 
             {error && (
-              <div className="text-xs text-red-500 font-medium flex items-center gap-1 animate-pulse">
+              <div className="text-xs text-red-500 font-medium flex items-center gap-1 animate-pulse" data-testid="error-message">
                 <ShieldCheck size={12} /> {error}
               </div>
             )}
@@ -160,6 +162,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
               type="submit"
               disabled={isLoading}
               className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-[#1A1A1A] hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all disabled:opacity-70 disabled:cursor-not-allowed group"
+              data-testid="login-button"
             >
               {isLoading ? (
                 <>

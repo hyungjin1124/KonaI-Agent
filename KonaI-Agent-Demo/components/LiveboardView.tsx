@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ComposedChart, Area, Cell, ReferenceLine, LabelList, AreaChart, PieChart, Pie
@@ -30,6 +30,7 @@ import {
   LineDotRenderProps
 } from '../types';
 import { storageService } from '../services';
+import { useCaptureStateInjection, StateInjectionHandlers } from '../hooks';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -233,11 +234,12 @@ interface ChartWidgetProps {
   className?: string;
   insightSummary?: string;
   insightDetail?: React.ReactNode;
+  expandTestId?: string;
 }
 
-const ChartWidget: React.FC<ChartWidgetProps> = ({ 
-    title, subtitle, children, height = 220, headerRight, drillPath, 
-    onBreadcrumbClick, className = '', insightSummary, insightDetail 
+const ChartWidget: React.FC<ChartWidgetProps> = ({
+    title, subtitle, children, height = 220, headerRight, drillPath,
+    onBreadcrumbClick, className = '', insightSummary, insightDetail, expandTestId
 }) => {
     const [showInsight, setShowInsight] = useState(false);
 
@@ -260,7 +262,8 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({
             
             {/* AI Insight & Action Footer - Compact */}
             {insightSummary && (
-                <div 
+                <div
+                    data-testid={expandTestId}
                     onClick={() => setShowInsight(true)}
                     className="border-t border-gray-100 bg-blue-50/30 py-1.5 px-3 flex items-center justify-between cursor-pointer hover:bg-blue-50 transition-colors group"
                 >
@@ -274,7 +277,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({
 
             {/* AI Insight Overlay Modal */}
             {showInsight && (
-                <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col p-6 animate-fade-in-up">
+                <div data-testid="widget-modal" className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col p-6 animate-fade-in-up">
                     <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
                         <div className="flex items-center gap-2">
                             <div className="p-2 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-200">
@@ -645,6 +648,15 @@ const LiveboardView: React.FC<LiveboardViewProps> = ({ onAskAgent }) => {
   // Refs
   const chatEndRef = useRef<HTMLDivElement>(null);
   const dashboardEndRef = useRef<HTMLDivElement>(null);
+
+  // 캡처 자동화용 상태 주입 핸들러
+  const stateInjectionHandlers = useMemo<StateInjectionHandlers>(() => ({
+    setActiveDashboardTab,
+    setIsEditMode,
+  }), []);
+
+  // 외부 상태 주입 훅 사용 (Puppeteer 캡처 자동화 지원)
+  useCaptureStateInjection(stateInjectionHandlers);
   const inputRef = useRef<HTMLTextAreaElement>(null); 
 
   // Load Saved Dashboard on Mount or Tab Change
@@ -1323,7 +1335,7 @@ const LiveboardView: React.FC<LiveboardViewProps> = ({ onAskAgent }) => {
 
     // Level 1: Monthly Trend (Default) - Task 1: Bug Fix with robust handler and safe checks
     return (
-      <ChartWidget 
+      <ChartWidget
         title="메탈카드 월별 매출" subtitle="2025년 4분기 (단위: 억 원)" height={220}
         drillPath={metalDrill.path} onBreadcrumbClick={(idx) => handleBack(setMetalDrill, idx)}
         headerRight={
@@ -1334,6 +1346,7 @@ const LiveboardView: React.FC<LiveboardViewProps> = ({ onAskAgent }) => {
         }
         className="relative overflow-hidden" // Ensure popup stays within bounds
         insightSummary="12월 매출 급증 (+13.5%) 및 성장 동력 분석"
+        expandTestId="widget-expand-revenue"
         insightDetail={
             <div className="space-y-4">
                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
@@ -1554,7 +1567,7 @@ const LiveboardView: React.FC<LiveboardViewProps> = ({ onAskAgent }) => {
 
   if (showFullDashboard) {
     return (
-      <div className="flex w-full h-full bg-[#F7F9FB] overflow-hidden animate-fade-in-up">
+      <div data-testid="liveboard-container" className="flex w-full h-full bg-[#F7F9FB] overflow-hidden animate-fade-in-up">
         {/* Main Dashboard Content - Task 2: Split Layout (Flex 1) */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar relative">
             <div className="max-w-7xl mx-auto w-full">
@@ -1642,7 +1655,8 @@ const LiveboardView: React.FC<LiveboardViewProps> = ({ onAskAgent }) => {
                                     </button>
                                 </>
                             ) : (
-                                <button 
+                                <button
+                                    data-testid="edit-mode-toggle"
                                     onClick={handleEditToggle}
                                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-black hover:bg-white rounded-lg transition-colors border border-transparent hover:border-gray-200"
                                 >

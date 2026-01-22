@@ -300,7 +300,7 @@ const ChatInterface: React.FC = () => {
           );
         } else if (pptStatus === 'generating') {
            return (
-             <div className="flex gap-4 mb-2 animate-fade-in-up">
+             <div data-testid="ppt-generating-indicator" className="flex gap-4 mb-2 animate-fade-in-up">
                <div className="w-8 h-8 rounded bg-[#FF3C42] flex items-center justify-center shrink-0 mt-1 shadow-sm">
                  <span className="text-white font-bold text-xs">K</span>
                </div>
@@ -461,7 +461,7 @@ const ChatInterface: React.FC = () => {
   // 1. Result View (Split Layout)
   if (showDashboard) {
     return (
-        <div className="flex w-full h-full animate-fade-in-up overflow-hidden">
+        <div data-testid="ppt-chat-interface" className="flex w-full h-full animate-fade-in-up overflow-hidden">
              {/* Left Panel: User Query & Agent Analysis */}
              <div className="w-1/2 h-full flex flex-col border-r border-gray-200 bg-white">
                  <div ref={leftPanelRef} className="flex-1 overflow-y-auto p-6 custom-scrollbar scroll-smooth">
@@ -548,7 +548,7 @@ const ChatInterface: React.FC = () => {
 
   // 2. Initial Home View
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full max-w-3xl mx-auto px-6 pb-20 animate-fade-in-up">
+    <div data-testid="ppt-chat-interface" className="flex flex-col items-center justify-center w-full h-full max-w-3xl mx-auto px-6 pb-20 animate-fade-in-up">
       {/* Title */}
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold text-[#000000] tracking-tight">

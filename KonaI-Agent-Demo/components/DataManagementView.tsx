@@ -116,7 +116,7 @@ const DataManagementView: React.FC = () => {
   const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 
   return (
-    <div className="flex flex-col h-full bg-[#F7F9FB] animate-fade-in-up">
+    <div data-testid="data-management-view" className="flex flex-col h-full bg-[#F7F9FB] animate-fade-in-up">
       {/* Top Toolbar */}
       <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 z-10">
         <div className="flex items-center gap-4">

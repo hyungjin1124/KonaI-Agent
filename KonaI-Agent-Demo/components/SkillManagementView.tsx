@@ -147,7 +147,7 @@ const SkillManagementView: React.FC = () => {
   const exampleSkills = filteredSkills.filter(s => s.type === 'example');
 
   return (
-    <div className="h-full flex flex-col bg-[#F7F9FB] animate-fade-in-up overflow-hidden">
+    <div data-testid="skills-management-view" className="h-full flex flex-col bg-[#F7F9FB] animate-fade-in-up overflow-hidden">
       {/* Header */}
       <div className="px-8 py-6 bg-white border-b border-gray-200 shrink-0">
         <div className="w-full max-w-4xl mx-auto flex items-center justify-between">
@@ -172,7 +172,8 @@ const SkillManagementView: React.FC = () => {
             />
           </div>
           
-          <button 
+          <button
+            data-testid="add-skill-button"
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] hover:bg-black text-white rounded-lg text-sm font-bold transition-colors shadow-sm"
           >

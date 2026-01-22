@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import SampleInterface from './components/SampleInterface';
@@ -7,8 +7,11 @@ import SkillManagementView from './components/SkillManagementView';
 import AdminView from './components/AdminView';
 import ChatHistoryView from './components/ChatHistoryView';
 import LoginView from './components/LoginView';
+import PPTChatInterface from './components/PPTChatInterface';
+import LiveboardView from './components/LiveboardView';
 import { ViewType, SampleInterfaceContext, AppViewMode } from './types';
 import { NotificationProvider, Anomaly, ToastProvider } from './context';
+import { useCaptureStateInjection, StateInjectionHandlers } from './hooks';
 
 // Scenario trigger data type
 interface ScenarioTriggerData {
@@ -24,6 +27,16 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
   const [viewMode, setViewMode] = useState<AppViewMode>('landing');
   const [agentContext, setAgentContext] = useState<SampleInterfaceContext | null>(null);
   const [agentQuery, setAgentQuery] = useState<string | undefined>(undefined);
+
+  // 캡처 자동화용 상태 주입 핸들러
+  const stateInjectionHandlers = useMemo<StateInjectionHandlers>(() => ({
+    setViewMode,
+    setAgentContext,
+    setAgentQuery,
+  }), []);
+
+  // 외부 상태 주입 훅 사용 (Puppeteer 캡처 자동화 지원)
+  useCaptureStateInjection(stateInjectionHandlers);
 
   const handleSidebarNavigate = (view: ViewType) => {
     // If user clicks "Data Management"
@@ -136,13 +149,19 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
              <AdminView />
            ) : viewMode === 'history_view' ? (
              <ChatHistoryView />
+           ) : viewMode === 'liveboard' ? (
+             <LiveboardView />
+           ) : viewMode === 'scenario_ppt' ? (
+             <PPTChatInterface
+                initialQuery={agentQuery}
+             />
            ) : viewMode === 'landing' ? (
-             <ChatInterface 
+             <ChatInterface
                 onScenarioTrigger={() => handleScenarioTrigger('scenario_ppt')}
                 onAskAgent={(data) => handleScenarioTrigger('scenario_analysis', data)}
              />
            ) : (
-             <SampleInterface 
+             <SampleInterface
                 initialQuery={agentQuery}
                 initialContext={viewMode === 'scenario_analysis' ? agentContext : undefined}
              />
@@ -156,6 +175,14 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
 const App: React.FC = () => {
   // Login State Management
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // 캡처 자동화용 상태 주입 핸들러 (로그인 상태 제어)
+  const loginInjectionHandlers = useMemo<StateInjectionHandlers>(() => ({
+    setIsLoggedIn,
+  }), []);
+
+  // 외부 상태 주입 훅 사용 (Puppeteer에서 로그인 상태 직접 제어 가능)
+  useCaptureStateInjection(loginInjectionHandlers);
 
   const handleLogout = () => {
     setIsLoggedIn(false);

@@ -61,7 +61,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onScenarioTrigger, onAskA
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-[#F7F9FB]">
+    <div data-testid="dashboard-container" className="flex flex-col w-full h-full bg-[#F7F9FB]">
       {/* Top Input Section */}
       <div className="w-full bg-white border-b border-gray-200 px-6 py-4 shrink-0 z-10">
         <div className="max-w-4xl mx-auto">

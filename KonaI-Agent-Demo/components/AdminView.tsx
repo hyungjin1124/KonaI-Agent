@@ -261,7 +261,7 @@ const AdminView: React.FC = () => {
   );
 
   return (
-    <div className="h-full flex flex-col bg-[#F7F9FB] animate-fade-in-up overflow-hidden">
+    <div data-testid="admin-view" className="h-full flex flex-col bg-[#F7F9FB] animate-fade-in-up overflow-hidden">
       {/* Header */}
       <div className="px-8 py-6 bg-white border-b border-gray-200 shrink-0">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between">

@@ -38,7 +38,8 @@ export type AppViewMode =
   | 'data_management'
   | 'skills_management'
   | 'admin_management'
-  | 'history_view';
+  | 'history_view'
+  | 'liveboard';
 
 // Suggestion Item for SampleInterface
 export interface SuggestionItem {

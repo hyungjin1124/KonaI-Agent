@@ -4,12 +4,22 @@
   "title": "화면 명세서 스키마",
   "description": "한국 SI 표준 화면 명세서 JSON 스키마",
   "type": "object",
-  "required": ["header", "overview", "layout"],
+  "required": [
+    "header",
+    "overview",
+    "layout",
+    "inputFields",
+    "buttons",
+    "gridColumns",
+    "events",
+    "messages",
+    "changeHistory"
+  ],
   "properties": {
     "header": {
       "type": "object",
       "description": "문서 헤더 정보",
-      "required": ["screenId", "screenName", "version", "createdAt", "createdBy"],
+      "required": ["screenId", "version", "createdAt", "createdBy"],
       "properties": {
         "screenId": {
           "type": "string",
@@ -52,7 +62,7 @@
     "overview": {
       "type": "object",
       "description": "화면 개요",
-      "required": ["description"],
+      "required": ["description", "accessPath", "relatedScreens"],
       "properties": {
         "description": {
           "type": "string",
@@ -95,6 +105,7 @@
     "layout": {
       "type": "object",
       "description": "화면 레이아웃 정보",
+      "required": ["screenshotPath", "areas"],
       "properties": {
         "screenshotPath": {
           "type": "string",
@@ -140,7 +151,7 @@
       "description": "입력 항목 정의",
       "items": {
         "type": "object",
-        "required": ["fieldId", "fieldName", "fieldNameEn", "dataType"],
+        "required": ["fieldName", "fieldNameEn", "dataType", "length", "required", "defaultValue", "validation"],
         "properties": {
           "fieldId": {
             "type": "string",
@@ -172,10 +183,6 @@
           },
           "defaultValue": {
             "description": "기본값"
-          },
-          "placeholder": {
-            "type": "string",
-            "description": "입력 힌트"
           },
           "validation": {
             "type": "object",
@@ -210,6 +217,10 @@
                 "description": "커스텀 유효성 규칙 설명"
               }
             }
+          },
+          "placeholder": {
+            "type": "string",
+            "description": "입력 힌트"
           },
           "selectOptions": {
             "type": "array",
@@ -249,7 +260,7 @@
       "description": "버튼/액션 정의",
       "items": {
         "type": "object",
-        "required": ["buttonId", "buttonName", "action"],
+        "required": ["buttonName", "eventType", "action", "permissions"],
         "properties": {
           "buttonId": {
             "type": "string",
@@ -310,7 +321,7 @@
       "description": "그리드 컬럼 정의",
       "items": {
         "type": "object",
-        "required": ["columnId", "columnName", "columnNameEn", "dataType"],
+        "required": ["columnName", "columnNameEn", "dataType", "align", "remarks"],
         "properties": {
           "columnId": {
             "type": "string",

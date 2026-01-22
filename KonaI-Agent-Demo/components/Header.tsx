@@ -11,7 +11,7 @@ const Header: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="p-2 text-[#848383] hover:text-[#FF3C42] hover:bg-gray-100 rounded-full transition-colors">
+        <button data-testid="notification-bell" className="p-2 text-[#848383] hover:text-[#FF3C42] hover:bg-gray-100 rounded-full transition-colors">
           <Bell size={18} />
         </button>
         <div className="flex items-center gap-2 ml-2 pl-4 border-l border-[#E5E7EB]">

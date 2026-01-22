@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Plus, Mic, ArrowUp, FileText, Globe, Box, Palette, MoreHorizontal,
   TrendingUp, PieChart, Users, RotateCcw, MonitorPlay, FileImage, Sparkles, Check, ChevronDown, Wand2, Paperclip, X,
@@ -7,6 +7,7 @@ import {
 import Dashboard from './Dashboard';
 import PPTGenPanel from './PPTGenPanel';
 import { SampleInterfaceContext, PPTConfig, SuggestionItem, QuickActionChip } from '../types';
+import { useCaptureStateInjection, StateInjectionHandlers } from '../hooks';
 
 const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: SampleInterfaceContext }> = ({
   initialQuery,
@@ -37,6 +38,14 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
 
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 캡처 자동화용 상태 주입 핸들러
+  const stateInjectionHandlers = useMemo<StateInjectionHandlers>(() => ({
+    setShowDashboard,
+  }), []);
+
+  // 외부 상태 주입 훅 사용 (Puppeteer 캡처 자동화 지원)
+  useCaptureStateInjection(stateInjectionHandlers);
 
   // Auto-trigger if initialQuery is provided
   useEffect(() => {
@@ -656,7 +665,7 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
   // 1. Result View (Split Layout)
   if (showDashboard) {
     return (
-        <div className="flex w-full h-full animate-fade-in-up overflow-hidden">
+        <div data-testid="analysis-view" className="flex w-full h-full animate-fade-in-up overflow-hidden">
              {/* Left Panel: User Query & Agent Analysis */}
              <div className="w-1/2 h-full flex flex-col border-r border-gray-200 bg-white">
                  <div ref={leftPanelRef} className="flex-1 overflow-y-auto p-6 custom-scrollbar scroll-smooth">
@@ -714,7 +723,7 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
              </div>
 
              {/* Right Panel: Visualization Dashboard */}
-             <div className={`h-full overflow-y-auto bg-gray-50 custom-scrollbar ${dashboardType === 'ppt' ? 'w-1/2 p-0' : 'w-1/2 p-6'}`}>
+             <div data-testid="analysis-result" className={`h-full overflow-y-auto bg-gray-50 custom-scrollbar ${dashboardType === 'ppt' ? 'w-1/2 p-0' : 'w-1/2 p-6'}`}>
                 {/* Switch between Generation Panel and Final Dashboard */}
                 {(dashboardType === 'ppt' && pptStatus !== 'done') ? (
                   <PPTGenPanel 
@@ -739,7 +748,7 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
 
   // 2. Initial Home View
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full max-w-3xl mx-auto px-6 pb-20 animate-fade-in-up">
+    <div data-testid="analysis-view" className="flex flex-col items-center justify-center w-full h-full max-w-3xl mx-auto px-6 pb-20 animate-fade-in-up">
       {/* Title */}
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold text-[#000000] tracking-tight">

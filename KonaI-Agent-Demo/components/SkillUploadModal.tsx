@@ -43,7 +43,7 @@ const SkillUploadModal: React.FC<SkillUploadModalProps> = ({ isOpen, onClose, on
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in-up">
-      <div className="bg-[#1A1A1A] w-[500px] rounded-xl border border-gray-700 shadow-2xl overflow-hidden text-gray-200">
+      <div data-testid="skill-upload-modal" className="bg-[#1A1A1A] w-[500px] rounded-xl border border-gray-700 shadow-2xl overflow-hidden text-gray-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-700">
           <h3 className="text-lg font-bold text-white">스킬 업로드</h3>
           <button 

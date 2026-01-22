@@ -29,7 +29,7 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ isOpen, onClose, 
   };
 
   return (
-    <div className="absolute top-16 right-6 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-fade-in-up overflow-hidden">
+    <div data-testid="notification-popup" className="absolute top-16 right-6 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-fade-in-up overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 backdrop-blur-sm">
         <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">

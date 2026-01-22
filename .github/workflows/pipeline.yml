@@ -1,0 +1,352 @@
+name: KonaI Automation Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'KonaI-Agent-Demo/**'
+      - 'scripts/**'
+      - 'config/**'
+      - 'templates/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      locale:
+        description: '로케일'
+        required: true
+        default: 'ko-KR'
+        type: choice
+        options:
+          - ko-KR
+          - en-US
+      run_capture:
+        description: '스크린샷 캡처 실행'
+        type: boolean
+        default: true
+      run_generate:
+        description: '문서 생성 실행'
+        type: boolean
+        default: true
+      run_validate:
+        description: '접근성 검증 실행'
+        type: boolean
+        default: true
+
+env:
+  NODE_VERSION: '20'
+  LOCALE: ${{ github.event.inputs.locale || 'ko-KR' }}
+
+jobs:
+  build:
+    name: Build Demo App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install demo app dependencies
+        run: cd KonaI-Agent-Demo && npm ci
+
+      - name: Build demo app
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-build
+          path: KonaI-Agent-Demo/dist
+          retention-days: 7
+
+  capture:
+    name: Capture Screenshots
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event.inputs.run_capture != 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: demo-build
+          path: KonaI-Agent-Demo/dist
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd KonaI-Agent-Demo && npm ci
+
+      - name: Install Puppeteer dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgbm1 \
+            libasound2 \
+            libatk1.0-0 \
+            libatk-bridge2.0-0 \
+            libcups2 \
+            libdrm2 \
+            libxkbcommon0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxfixes3 \
+            libxrandr2 \
+            libpango-1.0-0 \
+            libcairo2
+
+      - name: Start preview server
+        run: |
+          npm run preview &
+          sleep 5
+        working-directory: KonaI-Agent-Demo
+
+      - name: Wait for server
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:4173 > /dev/null; then
+              echo "Server is ready"
+              break
+            fi
+            echo "Waiting for server... ($i)"
+            sleep 1
+          done
+
+      - name: Capture screenshots (ko-KR)
+        run: |
+          npx tsx scripts/capture/index.ts \
+            --scenarios all \
+            --locale ko-KR \
+            --url http://localhost:4173 \
+            --output outputs/screenshots \
+            --headless true
+        continue-on-error: true
+
+      - name: Capture screenshots (en-US)
+        if: ${{ env.LOCALE == 'en-US' || github.event_name == 'push' }}
+        run: |
+          npx tsx scripts/capture/index.ts \
+            --scenarios all \
+            --locale en-US \
+            --url http://localhost:4173 \
+            --output outputs/screenshots \
+            --headless true
+        continue-on-error: true
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: outputs/screenshots
+          retention-days: 30
+
+  generate:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    needs: capture
+    if: ${{ github.event.inputs.run_generate != 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshots
+          path: outputs/screenshots
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate documents (ko-KR)
+        run: |
+          npx tsx scripts/generate/index.ts \
+            --type spec \
+            --locale ko-KR \
+            --format md,docx \
+            --output outputs/documents \
+            --screenshots outputs/screenshots
+
+      - name: Generate documents (en-US)
+        if: ${{ env.LOCALE == 'en-US' || github.event_name == 'push' }}
+        run: |
+          npx tsx scripts/generate/index.ts \
+            --type spec \
+            --locale en-US \
+            --format md,docx \
+            --output outputs/documents \
+            --screenshots outputs/screenshots
+        continue-on-error: true
+
+      - name: Upload documents
+        uses: actions/upload-artifact@v4
+        with:
+          name: documents
+          path: outputs/documents
+          retention-days: 30
+
+  validate:
+    name: Accessibility Validation
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event.inputs.run_validate != 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: demo-build
+          path: KonaI-Agent-Demo/dist
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd KonaI-Agent-Demo && npm ci
+
+      - name: Install Puppeteer dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgbm1 \
+            libasound2 \
+            libatk1.0-0 \
+            libatk-bridge2.0-0 \
+            libcups2 \
+            libdrm2 \
+            libxkbcommon0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxfixes3 \
+            libxrandr2 \
+            libpango-1.0-0 \
+            libcairo2
+
+      - name: Start preview server
+        run: |
+          npm run preview &
+          sleep 5
+        working-directory: KonaI-Agent-Demo
+
+      - name: Wait for server
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:4173 > /dev/null; then
+              echo "Server is ready"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run accessibility validation
+        run: |
+          npx tsx scripts/validate/accessibility.ts \
+            --url http://localhost:4173 \
+            --output outputs/reports
+        continue-on-error: true
+
+      - name: Upload accessibility report
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessibility-report
+          path: outputs/reports
+          retention-days: 30
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = 'outputs/reports/accessibility-report.md';
+
+            if (fs.existsSync(reportPath)) {
+              const report = fs.readFileSync(reportPath, 'utf8');
+
+              // 기존 코멘트 찾기
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number
+              });
+
+              const botComment = comments.find(c =>
+                c.user.type === 'Bot' &&
+                c.body.includes('접근성 검증 리포트')
+              );
+
+              const body = `## 접근성 검증 리포트\n\n${report}`;
+
+              if (botComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body
+                });
+              }
+            }
+
+  summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [capture, generate, validate]
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate summary
+        run: |
+          echo "## 🚀 KonaI Pipeline 실행 결과" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 단계 | 상태 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 빌드 | ✅ 완료 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 스크린샷 캡처 | ${{ needs.capture.result == 'success' && '✅ 완료' || '⚠️ 일부 실패' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 문서 생성 | ${{ needs.generate.result == 'success' && '✅ 완료' || '⚠️ 일부 실패' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 접근성 검증 | ${{ needs.validate.result == 'success' && '✅ 준수' || '⚠️ 위반 발견' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 생성된 아티팩트" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **screenshots**: 화면별 스크린샷" >> $GITHUB_STEP_SUMMARY
+          echo "- **documents**: 화면 명세서 (MD, DOCX)" >> $GITHUB_STEP_SUMMARY
+          echo "- **accessibility-report**: 접근성 검증 리포트" >> $GITHUB_STEP_SUMMARY
