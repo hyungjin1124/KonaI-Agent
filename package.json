@@ -1,0 +1,23 @@
+{
+  "name": "kona-agent-specs",
+  "version": "1.0.0",
+  "description": "KonaI Agent specifications and demo management system",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "kona",
+    "agent",
+    "specs",
+    "automation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^23.11.1",
+    "docx": "^9.0.3",
+    "dotenv": "^16.4.7"
+  }
+}
