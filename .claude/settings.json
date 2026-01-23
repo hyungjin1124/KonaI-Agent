@@ -1,0 +1,23 @@
+{
+  "projectName": "KonaI-Agent",
+  "description": "데모 화면 개발 및 화면명세서 자동 생성 시스템",
+  "conventions": {
+    "codeStyle": "typescript-strict",
+    "componentPattern": "functional-with-hooks",
+    "namingConvention": {
+      "components": "PascalCase",
+      "files": "kebab-case",
+      "screenIds": "SCR-XXX"
+    }
+  },
+  "workflows": {
+    "defaultBranch": "main",
+    "featureBranchPrefix": "feature/screen-",
+    "commitMessageFormat": "[{type}] {screenId}: {description}"
+  },
+  "outputDirectories": {
+    "screenshots": "outputs/screenshots",
+    "specs": "outputs/specs",
+    "logs": "outputs/logs"
+  }
+}

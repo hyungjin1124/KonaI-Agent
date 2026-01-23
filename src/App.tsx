@@ -7,7 +7,6 @@ import SkillManagementView from './components/SkillManagementView';
 import AdminView from './components/AdminView';
 import ChatHistoryView from './components/ChatHistoryView';
 import LoginView from './components/LoginView';
-import PPTChatInterface from './components/PPTChatInterface';
 import LiveboardView from './components/LiveboardView';
 import { ViewType, SampleInterfaceContext, AppViewMode } from './types';
 import { NotificationProvider, Anomaly, ToastProvider } from './context';
@@ -152,7 +151,7 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
            ) : viewMode === 'liveboard' ? (
              <LiveboardView />
            ) : viewMode === 'scenario_ppt' ? (
-             <PPTChatInterface
+             <SampleInterface
                 initialQuery={agentQuery}
              />
            ) : viewMode === 'landing' ? (

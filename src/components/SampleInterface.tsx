@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Plus, Mic, ArrowUp, FileText, Globe, Box, Palette, MoreHorizontal,
   TrendingUp, PieChart, Users, RotateCcw, MonitorPlay, FileImage, Sparkles, Check, ChevronDown, Wand2, Paperclip, X,
-  ArrowRight
+  ArrowRight, PanelRightClose, PanelRightOpen, GripVertical
 } from 'lucide-react';
 import Dashboard from './Dashboard';
 import PPTGenPanel from './PPTGenPanel';
@@ -38,6 +38,14 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
 
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // --- 우측 패널 상태 ---
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const [rightPanelWidth, setRightPanelWidth] = useState(50); // 퍼센트 단위
+  const [isResizing, setIsResizing] = useState(false);
+  const MIN_PANEL_WIDTH = 25; // 최소 25%
+  const MAX_PANEL_WIDTH = 70; // 최대 70%
 
   // 캡처 자동화용 상태 주입 핸들러
   const stateInjectionHandlers = useMemo<StateInjectionHandlers>(() => ({
@@ -75,6 +83,53 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [inputValue, showDashboard]);
+
+  // --- 리사이즈 핸들러 ---
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing || !containerRef.current) return;
+
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+      const mouseX = e.clientX - containerRect.left;
+
+      // 좌측 패널 비율 계산 (마우스 위치 기준)
+      const leftPanelPercent = (mouseX / containerWidth) * 100;
+      const rightPanelPercent = 100 - leftPanelPercent;
+
+      // 범위 제한
+      if (rightPanelPercent >= MIN_PANEL_WIDTH && rightPanelPercent <= MAX_PANEL_WIDTH) {
+        setRightPanelWidth(rightPanelPercent);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH]);
+
+  const toggleRightPanel = useCallback(() => {
+    setIsRightPanelCollapsed(prev => !prev);
+  }, []);
 
   // Handle PPT Generation Simulation
   useEffect(() => {
@@ -664,10 +719,16 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
 
   // 1. Result View (Split Layout)
   if (showDashboard) {
+    const leftPanelWidthStyle = isRightPanelCollapsed ? '100%' : `${100 - rightPanelWidth}%`;
+    const rightPanelWidthStyle = isRightPanelCollapsed ? '0%' : `${rightPanelWidth}%`;
+
     return (
-        <div data-testid="analysis-view" className="flex w-full h-full animate-fade-in-up overflow-hidden">
+        <div ref={containerRef} data-testid="analysis-view" className="flex w-full h-full animate-fade-in-up overflow-hidden relative">
              {/* Left Panel: User Query & Agent Analysis */}
-             <div className="w-1/2 h-full flex flex-col border-r border-gray-200 bg-white">
+             <div
+               className="h-full flex flex-col border-r border-gray-200 bg-white transition-all duration-300"
+               style={{ width: leftPanelWidthStyle }}
+             >
                  <div ref={leftPanelRef} className="flex-1 overflow-y-auto p-6 custom-scrollbar scroll-smooth">
                      
                      {/* User Query Bubble */}
@@ -722,21 +783,67 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
                  </div>
              </div>
 
+             {/* Resize Handle */}
+             {!isRightPanelCollapsed && (
+               <div
+                 className="w-1 h-full bg-gray-200 hover:bg-[#FF3C42] cursor-col-resize flex items-center justify-center group transition-colors relative z-10"
+                 onMouseDown={handleResizeStart}
+               >
+                 <div className="absolute w-4 h-12 flex items-center justify-center">
+                   <GripVertical size={12} className="text-gray-400 group-hover:text-white transition-colors" />
+                 </div>
+               </div>
+             )}
+
              {/* Right Panel: Visualization Dashboard */}
-             <div data-testid="analysis-result" className={`h-full overflow-y-auto bg-gray-50 custom-scrollbar ${dashboardType === 'ppt' ? 'w-1/2 p-0' : 'w-1/2 p-6'}`}>
-                {/* Switch between Generation Panel and Final Dashboard */}
-                {(dashboardType === 'ppt' && pptStatus !== 'done') ? (
-                  <PPTGenPanel 
-                    status={pptStatus === 'idle' ? 'setup' : pptStatus as 'setup'|'generating'} 
-                    config={pptConfig}
-                    progress={pptProgress}
-                    currentStageIndex={pptCurrentStage}
-                    onCancel={handleReset}
-                  />
-                ) : (
-                  <Dashboard type={dashboardType} scenario={dashboardScenario} />
+             <div
+               data-testid="analysis-result"
+               className={`h-full bg-gray-50 custom-scrollbar transition-all duration-300 relative ${
+                 isRightPanelCollapsed ? 'overflow-hidden' : 'overflow-y-auto'
+               } ${dashboardType === 'ppt' && !isRightPanelCollapsed ? 'p-0' : isRightPanelCollapsed ? 'p-0' : 'p-6'}`}
+               style={{ width: rightPanelWidthStyle }}
+             >
+                {/* Panel Toggle Button */}
+                <button
+                  onClick={toggleRightPanel}
+                  className={`absolute top-4 z-20 p-2 rounded-lg bg-white border border-gray-200 shadow-md hover:bg-gray-50 hover:border-[#FF3C42] hover:text-[#FF3C42] transition-all ${
+                    isRightPanelCollapsed ? 'right-4' : 'left-4'
+                  }`}
+                  title={isRightPanelCollapsed ? '패널 펼치기' : '패널 접기'}
+                >
+                  {isRightPanelCollapsed ? <PanelRightOpen size={18} /> : <PanelRightClose size={18} />}
+                </button>
+
+                {/* Panel Content */}
+                {!isRightPanelCollapsed && (
+                  <>
+                    {/* Switch between Generation Panel and Final Dashboard */}
+                    {(dashboardType === 'ppt' && pptStatus !== 'done') ? (
+                      <PPTGenPanel
+                        status={pptStatus === 'idle' ? 'setup' : pptStatus as 'setup'|'generating'}
+                        config={pptConfig}
+                        progress={pptProgress}
+                        currentStageIndex={pptCurrentStage}
+                        onCancel={handleReset}
+                      />
+                    ) : (
+                      <Dashboard type={dashboardType} scenario={dashboardScenario} />
+                    )}
+                  </>
                 )}
              </div>
+
+             {/* Floating Toggle Button when panel is collapsed (appears on left panel) */}
+             {isRightPanelCollapsed && (
+               <button
+                 onClick={toggleRightPanel}
+                 className="absolute top-4 right-4 z-20 p-2 rounded-lg bg-[#FF3C42] text-white border border-[#FF3C42] shadow-md hover:bg-[#E63338] transition-all flex items-center gap-2"
+                 title="우측 패널 펼치기"
+               >
+                 <PanelRightOpen size={18} />
+                 <span className="text-sm font-medium">패널 열기</span>
+               </button>
+             )}
         </div>
     );
   }
