@@ -40,3 +40,38 @@ export interface PPTGenerationState {
   currentStage: number;
   config: PPTConfig;
 }
+
+// Slide Types for PPT Generation
+export type SlideType = 'cover' | 'toc' | 'content' | 'chart' | 'comparison' | 'summary';
+
+export interface ChartData {
+  type: 'bar' | 'line' | 'pie' | 'donut';
+  labels: string[];
+  values: number[];
+}
+
+export interface SlideContent {
+  type: SlideType;
+  title: string;
+  subtitle?: string;
+  bodyText?: string[];
+  bulletPoints?: string[];
+  chartData?: ChartData;
+}
+
+export interface SlideItem {
+  id: number;
+  status: 'pending' | 'generating' | 'completed';
+  content: SlideContent;
+}
+
+export interface StreamingState {
+  currentSlideId: number;
+  streamedContent: {
+    title: string;
+    subtitle: string;
+    bulletPoints: string[];
+  };
+  isStreaming: boolean;
+  cursorVisible: boolean;
+}

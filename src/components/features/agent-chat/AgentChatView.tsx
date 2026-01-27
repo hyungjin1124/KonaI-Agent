@@ -7,6 +7,7 @@ import {
 import Dashboard from '../dashboard/Dashboard';
 import PPTGenPanel from '../../PPTGenPanel';
 import { SampleInterfaceContext, PPTConfig, SuggestionItem, QuickActionChip } from '../../../types';
+import { SlideItem } from './types';
 import { useCaptureStateInjection, StateInjectionHandlers } from '../../../hooks';
 
 const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleInterfaceContext }> = ({
@@ -42,10 +43,13 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // --- 우측 패널 상태 ---
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
-  const [rightPanelWidth, setRightPanelWidth] = useState(50); // 퍼센트 단위
+  const [rightPanelWidth, setRightPanelWidth] = useState(60); // 퍼센트 단위 (50% → 60%)
   const [isResizing, setIsResizing] = useState(false);
   const MIN_PANEL_WIDTH = 25; // 최소 25%
   const MAX_PANEL_WIDTH = 70; // 최대 70%
+
+  // --- PPT Slides 상태 (패널 접기/펼치기에도 유지) ---
+  const [pptSlides, setPptSlides] = useState<SlideItem[]>([]);
 
   // 캡처 자동화용 상태 주입 핸들러
   const stateInjectionHandlers = useMemo<StateInjectionHandlers>(() => ({
@@ -261,6 +265,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setDashboardScenario(undefined);
     setPptStatus('idle');
     setPptProgress(0);
+    setPptSlides([]); // Clear slides
     setContextData(null); // Clear context
   }, []);
 
@@ -808,14 +813,16 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                 {!isRightPanelCollapsed && (
                   <>
                     {/* Switch between Generation Panel and Final Dashboard */}
-                    {(dashboardType === 'ppt' && pptStatus !== 'done') ? (
+                    {dashboardType === 'ppt' ? (
                       <PPTGenPanel
-                        status={pptStatus === 'idle' ? 'setup' : pptStatus as 'setup'|'generating'}
+                        status={pptStatus === 'idle' ? 'setup' : pptStatus as 'setup'|'generating'|'done'}
                         config={pptConfig}
                         progress={pptProgress}
                         currentStageIndex={pptCurrentStage}
                         onCancel={handleReset}
                         onTogglePanel={toggleRightPanel}
+                        slides={pptSlides}
+                        onSlidesChange={setPptSlides}
                       />
                     ) : (
                       <Dashboard type={dashboardType} scenario={dashboardScenario} onTogglePanel={toggleRightPanel} />

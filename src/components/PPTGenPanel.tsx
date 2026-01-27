@@ -1,10 +1,10 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   CheckCircle2, Loader2, FileText, Sparkles,
-  LayoutTemplate, Palette, Type, Image as ImageIcon,
-  MousePointerClick, Clock, AlertCircle, Play, Pause, XCircle, PanelRightClose
+  LayoutTemplate, Palette, Pause, XCircle, PanelRightClose, Download
 } from './icons';
+import { SlideThumbnailList, SlideStreamingRenderer, generateMockSlides } from './features/ppt';
+import { SlideItem, StreamingState } from './features/agent-chat/types';
 
 export interface PPTConfig {
   theme: 'Corporate Blue' | 'Modern Dark' | 'Nature Green';
@@ -22,7 +22,12 @@ interface PPTGenPanelProps {
   currentStageIndex: number;
   onCancel: () => void;
   onTogglePanel?: () => void;
+  slides: SlideItem[];
+  onSlidesChange: (slides: SlideItem[]) => void;
 }
+
+// Export status type for type safety
+export type PPTGenPanelStatus = PPTGenPanelProps['status'];
 
 const STAGES = [
   '보고서 구조 분석 및 목차 생성',
@@ -39,19 +44,207 @@ const THEME_STYLES = {
   'Nature Green': { bg: 'bg-stone-50', accent: 'bg-green-700', text: 'text-stone-800', sub: 'text-stone-600' }
 };
 
-const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, currentStageIndex, onCancel, onTogglePanel }) => {
-  const [thumbnails, setThumbnails] = useState<number[]>([]);
+const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, currentStageIndex, onCancel, onTogglePanel, slides, onSlidesChange }) => {
   const themeStyle = THEME_STYLES[config.theme];
 
-  // Simulate thumbnails appearing during generation
+  // Local alias for slides setter (for backwards compatibility)
+  const setSlides = onSlidesChange;
+  const [selectedSlideId, setSelectedSlideId] = useState<number>(1);
+  const [streamingState, setStreamingState] = useState<StreamingState>({
+    currentSlideId: 1,
+    streamedContent: { title: '', subtitle: '', bulletPoints: [] },
+    isStreaming: false,
+    cursorVisible: true
+  });
+
+  // Ref to track slides without triggering useEffect re-runs
+  const slidesRef = useRef<SlideItem[]>([]);
+
+  // Keep slidesRef in sync with slides state
   useEffect(() => {
-    if (status === 'generating') {
-      const count = Math.ceil((progress / 100) * config.slideCount);
-      setThumbnails(Array.from({ length: count }, (_, i) => i + 1));
+    slidesRef.current = slides;
+  }, [slides]);
+
+  // Initialize slides when generation starts
+  useEffect(() => {
+    if (status === 'generating' && slides.length === 0) {
+      const mockSlides = generateMockSlides(config.slideCount);
+      const initialSlides: SlideItem[] = mockSlides.map((content, idx) => ({
+        id: idx + 1,
+        status: idx === 0 ? 'generating' : 'pending',
+        content
+      }));
+      setSlides(initialSlides);
+      setSelectedSlideId(1);
     } else if (status === 'setup') {
-      setThumbnails([]);
+      setSlides([]);
+      setSelectedSlideId(1);
     }
-  }, [progress, status, config.slideCount]);
+    // Note: Removed status === 'done' slides update to prevent flickering
+    // Slides status is already managed by progress-based completion in the next useEffect
+  }, [status, config.slideCount]);
+
+  // Progress-based slide completion simulation
+  useEffect(() => {
+    if (slides.length === 0) return;
+
+    // When done, mark all slides as completed (only if not already all completed)
+    if (status === 'done') {
+      const allCompleted = slides.every(s => s.status === 'completed');
+      if (!allCompleted) {
+        setSlides(slides.map(slide => ({
+          ...slide,
+          status: 'completed'
+        })));
+      }
+      return;
+    }
+
+    if (status !== 'generating') return;
+
+    const completedCount = Math.floor((progress / 100) * config.slideCount);
+    const currentGeneratingId = Math.min(completedCount + 1, config.slideCount);
+
+    setSlides(slides.map(slide => {
+      if (slide.id < currentGeneratingId) {
+        return { ...slide, status: 'completed' };
+      }
+      if (slide.id === currentGeneratingId) {
+        return { ...slide, status: 'generating' };
+      }
+      return { ...slide, status: 'pending' };
+    }));
+
+    // Auto-select the currently generating slide
+    if (selectedSlideId < currentGeneratingId) {
+      setSelectedSlideId(currentGeneratingId);
+    }
+
+    // Update streaming state
+    setStreamingState(prev => ({
+      ...prev,
+      currentSlideId: currentGeneratingId,
+      isStreaming: true
+    }));
+  }, [progress, status, config.slideCount, slides.length]);
+
+  // Typing effect simulation - uses slidesRef to avoid re-triggering on slides change
+  useEffect(() => {
+    if (status !== 'generating' && status !== 'done') return;
+
+    const selectedSlide = slidesRef.current.find(s => s.id === selectedSlideId);
+    if (!selectedSlide || selectedSlide.status === 'pending') return;
+
+    const { content } = selectedSlide;
+    const isCurrentlyGenerating = selectedSlide.status === 'generating';
+
+    if (!isCurrentlyGenerating) {
+      // Show completed slide fully
+      setStreamingState(prev => ({
+        ...prev,
+        currentSlideId: selectedSlideId,
+        streamedContent: {
+          title: content.title,
+          subtitle: content.subtitle || '',
+          bulletPoints: content.bulletPoints || []
+        },
+        isStreaming: false
+      }));
+      return;
+    }
+
+    // Streaming effect for generating slide
+    let charIndex = 0;
+    const fullTitle = content.title;
+    const fullSubtitle = content.subtitle || '';
+    const fullBullets = content.bulletPoints || [];
+
+    const typeNextChar = () => {
+      // Calculate what to show based on charIndex
+      const titleLength = fullTitle.length;
+      const subtitleLength = fullSubtitle.length;
+      const totalBulletChars = fullBullets.reduce((acc, b) => acc + b.length, 0);
+      const totalChars = titleLength + subtitleLength + totalBulletChars;
+
+      if (charIndex >= totalChars) {
+        // Typing complete - mark as not streaming
+        setStreamingState(prev => ({
+          ...prev,
+          isStreaming: false
+        }));
+        return;
+      }
+
+      let streamedTitle = '';
+      let streamedSubtitle = '';
+      let streamedBullets: string[] = [];
+
+      if (charIndex < titleLength) {
+        streamedTitle = fullTitle.slice(0, charIndex + 1);
+      } else if (charIndex < titleLength + subtitleLength) {
+        streamedTitle = fullTitle;
+        streamedSubtitle = fullSubtitle.slice(0, charIndex - titleLength + 1);
+      } else {
+        streamedTitle = fullTitle;
+        streamedSubtitle = fullSubtitle;
+        let bulletCharIndex = charIndex - titleLength - subtitleLength;
+        for (const bullet of fullBullets) {
+          if (bulletCharIndex >= bullet.length) {
+            streamedBullets.push(bullet);
+            bulletCharIndex -= bullet.length;
+          } else if (bulletCharIndex >= 0) {
+            streamedBullets.push(bullet.slice(0, bulletCharIndex + 1));
+            break;
+          }
+        }
+      }
+
+      setStreamingState(prev => ({
+        ...prev,
+        streamedContent: {
+          title: streamedTitle,
+          subtitle: streamedSubtitle,
+          bulletPoints: streamedBullets
+        }
+      }));
+
+      charIndex++;
+    };
+
+    // Initial state
+    setStreamingState(prev => ({
+      ...prev,
+      currentSlideId: selectedSlideId,
+      streamedContent: { title: '', subtitle: '', bulletPoints: [] },
+      isStreaming: true
+    }));
+
+    // Start typing - slower speed (100ms for more readable streaming)
+    const typingInterval = setInterval(typeNextChar, 100);
+
+    return () => clearInterval(typingInterval);
+  }, [selectedSlideId, status]);  // Removed 'slides' from dependencies
+
+  // Cursor blink effect
+  useEffect(() => {
+    if (!streamingState.isStreaming) return;
+
+    const blinkInterval = setInterval(() => {
+      setStreamingState(prev => ({
+        ...prev,
+        cursorVisible: !prev.cursorVisible
+      }));
+    }, 500);
+
+    return () => clearInterval(blinkInterval);
+  }, [streamingState.isStreaming]);
+
+  // Handle slide selection
+  const handleSlideSelect = useCallback((id: number) => {
+    setSelectedSlideId(id);
+  }, []);
+
+  const selectedSlide = slides.find(s => s.id === selectedSlideId) || null;
 
   // --- Render: Setup / Preview Mode ---
   if (status === 'setup') {
@@ -81,7 +274,7 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
         {/* Live Preview Card */}
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className={`w-full aspect-video rounded-xl shadow-2xl border border-gray-200/50 transition-all duration-500 flex flex-col overflow-hidden relative group ${themeStyle.bg}`}>
-            
+
             {/* Slide Header */}
             <div className="absolute top-6 left-8 right-8 flex justify-between items-start">
               <div className={`w-8 h-8 rounded ${themeStyle.accent} opacity-90 flex items-center justify-center`}>
@@ -95,13 +288,13 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
               <div className={`text-sm font-bold uppercase tracking-widest mb-4 opacity-70 ${themeStyle.accent === 'bg-emerald-500' ? 'text-emerald-400' : 'text-[#FF3C42]'}`}>
                 Business Report
               </div>
-              <h1 
+              <h1
                 className={`text-4xl md:text-5xl font-bold mb-6 leading-tight transition-all duration-300 ${themeStyle.text}`}
                 style={{ fontFamily: config.titleFont }}
               >
                 Q4 2025<br/>경영 실적 보고서
               </h1>
-              <p 
+              <p
                 className={`text-lg md:text-xl font-light max-w-md leading-relaxed transition-all duration-300 ${themeStyle.sub}`}
                 style={{ fontFamily: config.bodyFont }}
               >
@@ -115,7 +308,7 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
                  <path d="M50 0 L100 100 L0 100 Z" />
                </svg>
             </div>
-            
+
             {/* Hover Indicator */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
               <div className="px-4 py-2 bg-white/90 backdrop-blur rounded-full text-xs font-bold text-gray-900 shadow-sm transform translate-y-2 group-hover:translate-y-0 transition-all">
@@ -144,25 +337,51 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
     );
   }
 
-  // --- Render: Generating Mode ---
+  // Check if generation is complete
+  const isComplete = status === 'done';
+
+  // --- Render: Generating/Done Mode (2-Column Layout) ---
   return (
     <div className="h-full flex flex-col bg-white animate-fade-in-up overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+      <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
         <div>
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
-            <Loader2 size={18} className="text-[#FF3C42] animate-spin" />
-            Generating Presentation...
+            {isComplete ? (
+              <>
+                <CheckCircle2 size={18} className="text-green-500" />
+                Presentation Complete!
+              </>
+            ) : (
+              <>
+                <Loader2 size={18} className="text-[#FF3C42] animate-spin" />
+                Generating Presentation...
+              </>
+            )}
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">AI Agent가 보고서를 생성하고 있습니다</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {isComplete
+              ? `${config.slideCount}개의 슬라이드가 생성되었습니다`
+              : `${currentStageIndex + 1}/6 ${STAGES[currentStageIndex]}`
+            }
+          </p>
         </div>
         <div className="flex gap-2">
-          <button className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-gray-700 transition-all">
-            <Pause size={16} />
-          </button>
-          <button onClick={onCancel} className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-red-500 transition-all">
-            <XCircle size={16} />
-          </button>
+          {isComplete ? (
+            <button className="px-4 py-2 bg-[#FF3C42] text-white rounded-lg text-sm font-medium hover:bg-[#E63338] transition-all flex items-center gap-2">
+              <Download size={16} />
+              다운로드
+            </button>
+          ) : (
+            <>
+              <button className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-gray-700 transition-all">
+                <Pause size={16} />
+              </button>
+              <button onClick={onCancel} className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-red-500 transition-all">
+                <XCircle size={16} />
+              </button>
+            </>
+          )}
           {onTogglePanel && (
             <button
               onClick={onTogglePanel}
@@ -177,71 +396,35 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
 
       {/* Progress Bar */}
       <div className="w-full bg-gray-100 h-1">
-        <div 
-          className="h-full bg-[#FF3C42] transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,60,66,0.3)]"
-          style={{ width: `${progress}%` }}
+        <div
+          className={`h-full transition-all duration-300 ease-out ${
+            isComplete ? 'bg-green-500' : 'bg-[#FF3C42] shadow-[0_0_10px_rgba(255,60,66,0.3)]'
+          }`}
+          style={{ width: isComplete ? '100%' : `${progress}%` }}
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-        {/* Stage List */}
-        <div className="mb-8 space-y-4">
-          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Process Status</h4>
-          <div className="space-y-3 relative">
-             {/* Connector Line */}
-             <div className="absolute left-3 top-2 bottom-4 w-0.5 bg-gray-100 -z-10"></div>
-             
-             {STAGES.map((stage, idx) => {
-               const isComplete = idx < currentStageIndex;
-               const isCurrent = idx === currentStageIndex;
-               
-               return (
-                 <div key={idx} className={`flex items-center gap-4 transition-all duration-500 ${isCurrent ? 'scale-100 opacity-100' : isComplete ? 'opacity-50' : 'opacity-30'}`}>
-                   <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 z-10 bg-white ${
-                     isComplete ? 'border-[#FF3C42] text-[#FF3C42]' : 
-                     isCurrent ? 'border-[#FF3C42] animate-pulse' : 'border-gray-200'
-                   }`}>
-                     {isComplete ? <CheckCircle2 size={12} strokeWidth={3} /> : 
-                      isCurrent ? <div className="w-2 h-2 rounded-full bg-[#FF3C42]" /> : null}
-                   </div>
-                   <span className={`text-sm font-medium ${isCurrent ? 'text-gray-900' : 'text-gray-500'}`}>{stage}</span>
-                   {isCurrent && <span className="text-xs text-[#FF3C42] font-bold animate-pulse ml-auto">Processing...</span>}
-                 </div>
-               );
-             })}
-          </div>
+      {/* 2-Column Layout: Thumbnails + Streaming Renderer */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left: Thumbnail List (30%) */}
+        <div className="w-[30%] min-w-[180px] border-r border-gray-100">
+          <SlideThumbnailList
+            slides={slides}
+            selectedSlideId={selectedSlideId}
+            onSlideSelect={handleSlideSelect}
+            config={config}
+            progress={isComplete ? 100 : progress}
+          />
         </div>
 
-        {/* Live Thumbnails Grid */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Slide Previews ({thumbnails.length}/{config.slideCount})</h4>
-             <span className="text-[10px] text-gray-400 font-mono">{progress}% Complete</span>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            {thumbnails.map((id) => (
-              <div key={id} className="aspect-video bg-gray-50 rounded border border-gray-100 flex items-center justify-center animate-fade-in-up relative overflow-hidden group">
-                 {/* Mock Content */}
-                 <div className="w-3/4 space-y-2 opacity-30 group-hover:opacity-50 transition-opacity">
-                    <div className="w-1/2 h-2 bg-gray-400 rounded"></div>
-                    <div className="w-full h-1 bg-gray-300 rounded"></div>
-                    <div className="w-full h-1 bg-gray-300 rounded"></div>
-                    <div className="w-2/3 h-1 bg-gray-300 rounded"></div>
-                 </div>
-                 <div className="absolute top-2 left-2 text-[10px] font-bold text-gray-300">{id < 10 ? `0${id}` : id}</div>
-                 
-                 {/* Scanning Effect */}
-                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.5s_infinite]"></div>
-              </div>
-            ))}
-            {/* Loading Placeholder */}
-            {thumbnails.length < config.slideCount && (
-              <div className="aspect-video bg-gray-50/30 rounded border border-dashed border-gray-200 flex items-center justify-center">
-                 <Loader2 size={16} className="text-gray-300 animate-spin" />
-              </div>
-            )}
-          </div>
+        {/* Right: Streaming Renderer (70%) */}
+        <div className="flex-1">
+          <SlideStreamingRenderer
+            slide={selectedSlide}
+            streamingState={streamingState}
+            config={config}
+            totalSlides={config.slideCount}
+          />
         </div>
       </div>
     </div>
