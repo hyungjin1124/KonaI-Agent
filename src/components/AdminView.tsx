@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { 
-  Search, Plus, Filter, MoreHorizontal, Edit2, Trash2, 
+import {
+  Search, Plus, Filter, MoreHorizontal, Edit2, Trash2,
   Shield, Check, X, Lock, Users, Briefcase, Mail, Power
-} from 'lucide-react';
+} from './icons';
 import { User, UserRole, UserStatus, RoleConfig } from '../types';
 
 // --- Mock Data ---

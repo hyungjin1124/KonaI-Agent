@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Check, AlertTriangle, Info, AlertCircle, Clock } from 'lucide-react';
+import { X, Check, AlertTriangle, Info, AlertCircle, Clock } from './icons';
 import { useNotification, Anomaly } from '../context/NotificationContext';
 
 interface NotificationPopupProps {

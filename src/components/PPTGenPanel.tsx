@@ -1,10 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
-import { 
-  CheckCircle2, Loader2, FileText, Sparkles, 
+import {
+  CheckCircle2, Loader2, FileText, Sparkles,
   LayoutTemplate, Palette, Type, Image as ImageIcon,
-  MousePointerClick, Clock, AlertCircle, Play, Pause, XCircle
-} from 'lucide-react';
+  MousePointerClick, Clock, AlertCircle, Play, Pause, XCircle, PanelRightClose
+} from './icons';
 
 export interface PPTConfig {
   theme: 'Corporate Blue' | 'Modern Dark' | 'Nature Green';
@@ -21,6 +21,7 @@ interface PPTGenPanelProps {
   progress: number;
   currentStageIndex: number;
   onCancel: () => void;
+  onTogglePanel?: () => void;
 }
 
 const STAGES = [
@@ -38,7 +39,7 @@ const THEME_STYLES = {
   'Nature Green': { bg: 'bg-stone-50', accent: 'bg-green-700', text: 'text-stone-800', sub: 'text-stone-600' }
 };
 
-const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, currentStageIndex, onCancel }) => {
+const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, currentStageIndex, onCancel, onTogglePanel }) => {
   const [thumbnails, setThumbnails] = useState<number[]>([]);
   const themeStyle = THEME_STYLES[config.theme];
 
@@ -56,14 +57,25 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
   if (status === 'setup') {
     return (
       <div className="h-full flex flex-col bg-gray-50/50 p-6 animate-fade-in-up">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="p-2 bg-white rounded-lg border border-gray-200 shadow-sm">
-            <LayoutTemplate size={18} className="text-[#FF3C42]" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <LayoutTemplate size={18} className="text-[#FF3C42]" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900">Live Preview</h3>
+              <p className="text-xs text-gray-500">설정에 따라 실시간으로 업데이트됩니다</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-gray-900">Live Preview</h3>
-            <p className="text-xs text-gray-500">설정에 따라 실시간으로 업데이트됩니다</p>
-          </div>
+          {onTogglePanel && (
+            <button
+              onClick={onTogglePanel}
+              className="p-2 text-gray-500 hover:text-black hover:bg-white rounded-lg transition-colors border border-transparent hover:border-gray-200"
+              title="패널 접기"
+            >
+              <PanelRightClose size={18} />
+            </button>
+          )}
         </div>
 
         {/* Live Preview Card */}
@@ -151,6 +163,15 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
           <button onClick={onCancel} className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-red-500 transition-all">
             <XCircle size={16} />
           </button>
+          {onTogglePanel && (
+            <button
+              onClick={onTogglePanel}
+              className="p-2 text-gray-500 hover:text-black hover:bg-white rounded-lg transition-colors border border-transparent hover:border-gray-200"
+              title="패널 접기"
+            >
+              <PanelRightClose size={18} />
+            </button>
+          )}
         </div>
       </div>
 

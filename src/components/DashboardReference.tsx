@@ -8,7 +8,7 @@ import {
   TrendingUp, Activity, Download, PanelRightClose,
   MessageCircleQuestion, ArrowLeft, Share2, Globe, Factory, Cpu, ShieldCheck,
   Play, ChevronLeft, ChevronRight, LayoutGrid, Monitor, Layout
-} from 'lucide-react';
+} from './icons';
 import { PieChartClickData } from '../types';
 
 interface DashboardProps {

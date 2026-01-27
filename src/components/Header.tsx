@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, ChevronDown } from 'lucide-react';
+import { Bell, ChevronDown } from './icons';
 
 const Header: React.FC = () => {
   return (

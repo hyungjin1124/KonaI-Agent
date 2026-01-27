@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ComposedChart, Area, Cell, ReferenceLine, LabelList, AreaChart, PieChart, Pie
@@ -13,7 +13,7 @@ import {
   ChevronLeft, Layout, Box, CalendarDays, Map, MessageSquare, PanelRightClose, PanelRightOpen,
   MousePointerClick, List, Paperclip, Banknote, Smartphone, BarChart2, Zap, Lightbulb, ArrowUpRight, ArrowDownRight, Factory, Target,
   Edit2, RotateCcw, Check, Move
-} from 'lucide-react';
+} from '../../icons';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import _ from 'lodash';
 import {
@@ -28,9 +28,17 @@ import {
   TooltipFormatterProps,
   LabelListRenderProps,
   LineDotRenderProps
-} from '../types';
-import { storageService } from '../services';
-import { useCaptureStateInjection, StateInjectionHandlers } from '../hooks';
+} from '../../../types';
+import { storageService } from '../../../services';
+import { useCaptureStateInjection, StateInjectionHandlers } from '../../../hooks';
+import {
+  Breadcrumb,
+  ChatBubble,
+  KPICard,
+  CustomResizeHandle,
+  DepthLimitNotice,
+  ChartWidget,
+} from '../../shared';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -39,282 +47,7 @@ interface LiveboardViewProps {
   onAskAgent?: (data: AgentContextData) => void;
 }
 
-// Custom Resize Handle Props
-interface CustomResizeHandleProps {
-  handleAxis?: string;
-  [key: string]: unknown;
-}
-
-// --- Custom Resize Handle Component ---
-const CustomResizeHandle = React.forwardRef<HTMLDivElement, CustomResizeHandleProps>(({ handleAxis: _handleAxis, ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={`absolute bottom-0 right-0 cursor-se-resize z-[50] p-1.5 transition-colors group hover:bg-gray-100 rounded-tl-lg`}
-      {...props}
-    >
-      <ArrowDownRight 
-        size={16} 
-        strokeWidth={3} 
-        className="text-gray-300 group-hover:text-[#FF3C42] transition-colors" 
-      />
-    </div>
-  );
-});
-
-// --- Atomic Components ---
-
-// 1. Breadcrumb (Navigation Clarity)
-const Breadcrumb: React.FC<{ path: string[], onBack: (index: number) => void }> = ({ path, onBack }) => (
-  <nav className="flex items-center gap-1.5 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-    {path.map((item, idx) => (
-      <React.Fragment key={idx}>
-        <span 
-          onClick={() => onBack(idx)}
-          className={`cursor-pointer transition-colors ${idx === path.length - 1 ? 'text-[#FF3C42]' : 'hover:text-gray-600'}`}
-        >
-          {item}
-        </span>
-        {idx < path.length - 1 && <ChevronRight size={10} />}
-      </React.Fragment>
-    ))}
-  </nav>
-);
-
-// 2. Depth Limit Notice (Graceful Boundaries)
-const DepthLimitNotice: React.FC<{ onRedirect: () => void }> = ({ onRedirect }) => (
-  <div className="flex flex-col items-center justify-center h-full p-4 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-    <AlertCircle size={24} className="text-gray-400 mb-2" />
-    <h4 className="text-xs font-bold text-gray-700 mb-1">상세 데이터 분석 한계 도달</h4>
-    <p className="text-[10px] text-gray-500 mb-3">현재 보고서의 심도는 3단계까지입니다.<br/>원천 데이터 및 트랜잭션 단위 분석은 ERP를 활용하세요.</p>
-    <button 
-      onClick={onRedirect}
-      className="flex items-center gap-2 px-3 py-1.5 bg-black text-white text-[10px] font-bold rounded-lg hover:bg-gray-800 transition-all"
-    >
-      Kona ERP 시스템 바로가기 <ExternalLink size={10} />
-    </button>
-  </div>
-);
-
-// 3. Chat Bubble with Bold Parsing
-interface ChatBubbleProps {
-  speaker: 'ai' | 'user';
-  message: string;
-  timestamp: string;
-  isInterim?: boolean;
-}
-const ChatBubble: React.FC<ChatBubbleProps> = ({ speaker, message, timestamp, isInterim }) => {
-  // Enhanced markdown parsing for lists and bold text
-  const renderMessage = (text: string) => {
-    return text.split('\n').map((line, lineIdx) => {
-      const parts = line.split(/(\*\*.*?\*\*)/g);
-      const renderedParts = parts.map((part, partIdx) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={partIdx} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
-        }
-        return part;
-      });
-
-      // Handle simple list items (starting with - or 1.)
-      if (line.trim().startsWith('- ') || /^\d+\./.test(line.trim())) {
-          return <div key={lineIdx} className="pl-4 mb-1">{renderedParts}</div>;
-      }
-      // Handle headers (###)
-      if (line.trim().startsWith('###')) {
-          return <h3 key={lineIdx} className="text-sm font-bold mt-3 mb-1 text-gray-800">{line.replace('###', '').trim()}</h3>
-      }
-      
-      return <div key={lineIdx} className="min-h-[1.2em]">{renderedParts}</div>;
-    });
-  };
-
-  return (
-    <div className={`flex w-full mb-6 animate-fade-in-up ${speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
-      <div className={`flex max-w-[90%] ${speaker === 'user' ? 'flex-row-reverse' : 'flex-row'} gap-3`}>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
-          speaker === 'ai' ? 'bg-gray-900 text-white' : 'bg-[#FF3C42] text-white'
-        }`}>
-          {speaker === 'ai' ? <span className="font-bold text-xs">AI</span> : <User size={16} />}
-        </div>
-        <div className={`flex flex-col ${speaker === 'user' ? 'items-end' : 'items-start'}`}>
-          <div className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed shadow-sm whitespace-pre-line ${
-            speaker === 'ai' 
-              ? 'bg-white border border-gray-100 text-gray-800 rounded-tl-sm' 
-              : 'bg-[#FF3C42] text-white rounded-tr-sm'
-          } ${isInterim ? 'animate-pulse text-gray-500' : ''}`}>
-            {renderMessage(message)}
-          </div>
-          <span className="text-[10px] text-gray-400 mt-1.5 px-1 flex items-center gap-1">
-            {timestamp}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// KPI Card (Shared) - Compacted
-interface MultiMetric {
-    label: string;
-    value: string;
-    status?: 'warning' | 'normal';
-}
-
-interface KPICardProps {
-  title: string;
-  value?: string;
-  change?: string;
-  trend?: 'up' | 'down' | 'neutral';
-  icon?: React.ReactNode;
-  subtitle?: string;
-  isStock?: boolean;
-  onClick?: () => void;
-  footerBadge?: React.ReactNode;
-  multiMetrics?: MultiMetric[];
-}
-
-const KPICard: React.FC<KPICardProps> = ({ title, value, change, trend, icon, subtitle, isStock, onClick, footerBadge, multiMetrics }) => (
-  <div 
-    onClick={onClick}
-    className={`bg-white p-3 rounded-xl border border-gray-100 shadow-sm transition-all duration-300 animate-fade-in-up group ${isStock ? 'flex flex-col justify-between' : ''} ${onClick ? 'cursor-pointer hover:border-[#FF3C42] hover:shadow-md' : 'hover:shadow-md'}`}
-  >
-    <div className="flex justify-between items-start mb-1">
-      <div className="flex items-center gap-1.5">
-        {icon && <div className="p-1 bg-gray-50 rounded-md text-gray-500 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{icon}</div>}
-        <span className="text-gray-500 text-xs font-medium">{title}</span>
-      </div>
-      {change && (
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
-          trend === 'up' ? 'bg-red-50 text-[#FF3C42]' : 
-          trend === 'down' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'
-        }`}>
-          {trend === 'up' ? <TrendingUp size={8} /> : trend === 'down' ? <TrendingDown size={8} /> : <Minus size={8} />}
-          {change}
-        </span>
-      )}
-    </div>
-    
-    <div className="flex flex-col">
-      {value && <div className="text-xl font-bold text-gray-900 tracking-tight">{value}</div>}
-      
-      {multiMetrics && (
-          <div className="flex flex-col gap-1 mt-1">
-              {multiMetrics.map((metric, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs">
-                      <span className="text-gray-400 font-medium">{metric.label}</span>
-                      <div className="flex items-center gap-1">
-                          <span className="font-bold text-gray-900">{metric.value}</span>
-                          {metric.status === 'warning' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" title="Warning"></span>}
-                      </div>
-                  </div>
-              ))}
-          </div>
-      )}
-
-      {subtitle && <div className="text-[10px] text-gray-400 mt-0.5 font-medium truncate">{subtitle}</div>}
-      
-      {footerBadge && (
-          <div className="mt-2">
-              {footerBadge}
-          </div>
-      )}
-    </div>
-  </div>
-);
-
-// Chart Widget (Shared)
-interface ChartWidgetProps {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-  height?: number;
-  headerRight?: React.ReactNode;
-  drillPath?: string[];
-  onBreadcrumbClick?: (index: number) => void;
-  className?: string;
-  insightSummary?: string;
-  insightDetail?: React.ReactNode;
-  expandTestId?: string;
-}
-
-const ChartWidget: React.FC<ChartWidgetProps> = ({
-    title, subtitle, children, height = 220, headerRight, drillPath,
-    onBreadcrumbClick, className = '', insightSummary, insightDetail, expandTestId
-}) => {
-    const [showInsight, setShowInsight] = useState(false);
-
-    return (
-        <div className={`bg-white rounded-xl border border-gray-200 shadow-sm animate-fade-in-up relative overflow-hidden flex flex-col ${className}`}>
-            <div className="px-4 py-2 border-b border-gray-50 flex justify-between items-center bg-gray-50/30 min-h-[40px]">
-            <div className="flex items-center gap-2">
-                {drillPath && onBreadcrumbClick && <Breadcrumb path={drillPath} onBack={onBreadcrumbClick} />}
-                <div className="flex flex-col">
-                    <h3 className="text-sm font-bold text-gray-900 leading-tight">{title}</h3>
-                    {/* Compact subtitle or hide if needed for extreme compactness */}
-                    {/* {subtitle && <p className="text-[10px] text-gray-400">{subtitle}</p>} */}
-                </div>
-            </div>
-            {headerRight}
-            </div>
-            <div style={{ height: `${height}px`, width: '100%' }} className="p-3">
-                {children}
-            </div>
-            
-            {/* AI Insight & Action Footer - Compact */}
-            {insightSummary && (
-                <div
-                    data-testid={expandTestId}
-                    onClick={() => setShowInsight(true)}
-                    className="border-t border-gray-100 bg-blue-50/30 py-1.5 px-3 flex items-center justify-between cursor-pointer hover:bg-blue-50 transition-colors group"
-                >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                        <Sparkles size={10} className="text-blue-500 shrink-0" />
-                        <span className="text-[10px] font-semibold text-gray-600 truncate">{insightSummary}</span>
-                    </div>
-                    <ChevronRight size={12} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
-                </div>
-            )}
-
-            {/* AI Insight Overlay Modal */}
-            {showInsight && (
-                <div data-testid="widget-modal" className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col p-6 animate-fade-in-up">
-                    <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-                        <div className="flex items-center gap-2">
-                            <div className="p-2 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-200">
-                                <Lightbulb size={18} />
-                            </div>
-                            <div>
-                                <h4 className="text-lg font-bold text-gray-900">AI Detailed Analysis</h4>
-                                <p className="text-xs text-gray-500">데이터 기반 상세 분석 및 액션 제안</p>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); setShowInsight(false); }}
-                            className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                            <X size={20} />
-                        </button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-                        <div className="prose prose-sm max-w-none text-gray-700">
-                            {insightDetail}
-                        </div>
-                    </div>
-                    <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); setShowInsight(false); }}
-                            className="px-4 py-2 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
-                        >
-                            확인 완료
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-// --- Widget Logic for Custom Dashboard (Duplicated from Dashboard.tsx to allow rendering in Landing) ---
+// --- Widget Logic for Custom Dashboard ---
 
 export type WidgetId = 'revenue_growth_kpi' | 'cost_efficiency_kpi' | 'asp_kpi' | 'revenue_bridge_chart' | 'cost_correlation_chart' | 'monthly_trend_chart' | 'business_composition_chart' | 'top_clients_chart' | 'yoy_growth_chart' | 'anomaly_cost_chart';
 
@@ -673,8 +406,8 @@ const LiveboardView: React.FC<LiveboardViewProps> = ({ onAskAgent }) => {
     }
   }, [activeDashboardTab]);
 
-  // Common Back Handler
-  const handleBack = (drillSetter: React.Dispatch<React.SetStateAction<DrillState>>, index: number) => {
+  // Common Back Handler (useCallback으로 최적화)
+  const handleBack = useCallback((drillSetter: React.Dispatch<React.SetStateAction<DrillState>>, index: number) => {
     drillSetter((prev: DrillState) => ({
       level: (index + 1) as DrillLevel,
       path: prev.path.slice(0, index + 1),
@@ -682,19 +415,19 @@ const LiveboardView: React.FC<LiveboardViewProps> = ({ onAskAgent }) => {
     }));
     // Reset menu state when navigating back
     setMetalMenu({ isOpen: false, step: 'initial', x: 0, y: 0, data: null });
-  };
+  }, []);
 
-  const handleAgentSubmit = () => {
+  const handleAgentSubmit = useCallback(() => {
     if(!agentInput.trim()) return;
-    
+
     const userMessage = agentInput;
     const newTurnId = Date.now();
-    
+
     // Check for specific analyst request with context
     const isAnalystRequest = userMessage.includes("원인") || userMessage.includes("분석") || userMessage.includes("제안");
 
     let responseMessage = "요청하신 데이터를 분석하고 있습니다. 대시보드 지표와 연동하여 상세 리포트를 생성 중입니다...";
-    
+
     // Task: Inject specific analyst report if context matches request
     if (isAnalystRequest) {
         responseMessage = ANALYST_REPORT_RESPONSE;
@@ -703,9 +436,9 @@ const LiveboardView: React.FC<LiveboardViewProps> = ({ onAskAgent }) => {
 
     setHistory(prev => [...prev, { id: newTurnId, userMessage: userMessage, aiMessage: responseMessage, widgets: [], quickReplies: [], isInterim: false }]);
     setAgentInput("");
-    
+
     // Input resizing will be handled by useEffect now
-  };
+  }, [agentInput]);
 
   // Task 1: Robust Auto-resize logic using useEffect
   useEffect(() => {

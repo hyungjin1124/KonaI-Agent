@@ -2,8 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus, ArrowUp, Paperclip, X
-} from 'lucide-react';
-import LiveboardView from './LiveboardView';
+} from './icons';
+import { LiveboardView } from './features/liveboard';
 import { AgentContextData } from '../types';
 
 interface ScenarioTriggerData {

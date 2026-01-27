@@ -18,6 +18,18 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, 'src'),
         }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'vendor-recharts': ['recharts'],
+              'vendor-grid': ['react-grid-layout'],
+              'vendor-lodash': ['lodash'],
+              'vendor-reactflow': ['reactflow'],
+            }
+          }
+        }
       }
     };
 });

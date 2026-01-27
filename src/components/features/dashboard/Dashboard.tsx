@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, ComposedChart, ReferenceLine, Legend, Cell
@@ -8,7 +8,7 @@ import {
   ArrowLeft, Share2, Factory,
   Play, ChevronLeft, ChevronRight, LayoutGrid, Layout, ArrowUpRight, ArrowDownRight,
   Target, Pin, PinOff, Move, Save, X, Check, AlertTriangle
-} from 'lucide-react';
+} from '../../icons';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import _ from 'lodash';
 import {
@@ -19,9 +19,9 @@ import {
   GridLayout,
   Layout as GridLayoutItem,
   TooltipFormatterProps
-} from '../types';
-import { storageService } from '../services';
-import { CHART_COLORS } from '../constants';
+} from '../../../types';
+import { storageService } from '../../../services';
+import { CHART_COLORS } from '../../../constants';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -296,12 +296,11 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({ id, children, className =
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) => {
+const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario, onTogglePanel }) => {
   const [compositionView, setCompositionView] = useState<'overview' | 'platform_detail'>('overview');
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // --- Dynamic Dashboard State ---
-  const [viewMode, setViewMode] = useState<'analysis' | 'custom_dashboard'>('analysis');
   const [pinnedWidgets, setPinnedWidgets] = useState<WidgetId[]>([]);
   const [layout, setLayout] = useState<GridLayout>([]);
   const [isLayoutChanged, setIsLayoutChanged] = useState(false);
@@ -309,10 +308,13 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
   // Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const showToast = (message: string) => {
+  // Phase 4: Set 기반 O(1) 조회 최적화
+  const pinnedSet = useMemo(() => new Set(pinnedWidgets), [pinnedWidgets]);
+
+  const showToast = useCallback((message: string) => {
     setToastMessage(message);
     setTimeout(() => setToastMessage(null), 3000);
-  };
+  }, []);
 
   // Load saved layout on mount
   useEffect(() => {
@@ -327,56 +329,74 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
     }
   }, []);
 
-  // --- Pin Functionality ---
-  
-  const togglePin = (widgetId: WidgetId) => {
-    const isPinned = pinnedWidgets.includes(widgetId);
-    let newPinned = [];
-    
-    if (isPinned) {
-      newPinned = pinnedWidgets.filter(id => id !== widgetId);
-      showToast("위젯 고정이 해제되었습니다.");
-    } else {
-      newPinned = [...pinnedWidgets, widgetId];
-      showToast("위젯이 '나만의 대시보드'에 추가되었습니다.");
-    }
-    setPinnedWidgets(newPinned);
-    
-    // Update layout when widgets change
-    if (!isPinned) {
-       // Add to layout (simple stacked logic for new items)
-       const widgetConf = WIDGET_REGISTRY[widgetId];
-       const newItem: GridLayoutItem = {
-           i: widgetId,
-           x: (layout.length * widgetConf.defaultW) % 12,
-           y: Infinity, // Put at bottom
-           w: widgetConf.defaultW,
-           h: widgetConf.defaultH,
-           minW: widgetConf.minW,
-           minH: widgetConf.minH
-       };
-       setLayout([...layout, newItem]);
-    } else {
-       // Remove from layout
-       setLayout(layout.filter(l => l.i !== widgetId));
-    }
-  };
+  // --- Pin Functionality (useCallback으로 최적화) ---
 
-  const handleLayoutChange = (newLayout: GridLayout) => {
+  const togglePin = useCallback((widgetId: WidgetId) => {
+    setPinnedWidgets(prev => {
+      const isPinned = prev.includes(widgetId);
+      const newPinnedWidgets = isPinned
+        ? prev.filter(id => id !== widgetId)
+        : [...prev, widgetId];
+
+      // Update layout and save to localStorage
+      setLayout(prevLayout => {
+        let newLayout: GridLayout;
+        if (!isPinned) {
+          // Add to layout
+          const widgetConf = WIDGET_REGISTRY[widgetId];
+          const newItem: GridLayoutItem = {
+            i: widgetId,
+            x: (prevLayout.length * widgetConf.defaultW) % 12,
+            y: Infinity,
+            w: widgetConf.defaultW,
+            h: widgetConf.defaultH,
+            minW: widgetConf.minW,
+            minH: widgetConf.minH
+          };
+          newLayout = [...prevLayout, newItem];
+        } else {
+          // Remove from layout
+          newLayout = prevLayout.filter(l => l.i !== widgetId);
+        }
+
+        // 즉시 localStorage에 자동 저장
+        storageService.saveDashboard(newLayout, newPinnedWidgets);
+
+        return newLayout;
+      });
+
+      // 토스트 메시지
+      if (isPinned) {
+        showToast("위젯이 My Dashboard에서 제거되었습니다.");
+      } else {
+        showToast("위젯이 My Dashboard에 추가 및 저장되었습니다.");
+      }
+
+      return newPinnedWidgets;
+    });
+  }, [showToast]);
+
+  const handleLayoutChange = useCallback((newLayout: GridLayout) => {
     setLayout(newLayout);
     setIsLayoutChanged(true);
-  };
+  }, []);
 
-  const saveLayout = () => {
-    const result = storageService.saveDashboard(layout, pinnedWidgets);
-
-    if (result.success) {
-      setIsLayoutChanged(false);
-      showToast("대시보드 구성이 성공적으로 저장되었습니다.");
-    } else {
-      showToast("저장에 실패했습니다.");
-    }
-  };
+  const saveLayout = useCallback(() => {
+    // 함수형 setState로 현재 상태 접근
+    setLayout(currentLayout => {
+      setPinnedWidgets(currentPinned => {
+        const result = storageService.saveDashboard(currentLayout, currentPinned);
+        if (result.success) {
+          setIsLayoutChanged(false);
+          showToast("대시보드 구성이 성공적으로 저장되었습니다.");
+        } else {
+          showToast("저장에 실패했습니다.");
+        }
+        return currentPinned; // 상태 변경 없음
+      });
+      return currentLayout; // 상태 변경 없음
+    });
+  }, [showToast]);
 
   // Toast Component
   const Toast = () => {
@@ -408,7 +428,7 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
        <WidgetWrapper 
           id="anomaly_cost_chart" 
           className="flex-1 w-full min-h-0 bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
-          isPinned={pinnedWidgets.includes('anomaly_cost_chart')}
+          isPinned={pinnedSet.has('anomaly_cost_chart')}
           onToggle={togglePin}
        >
             {renderAnomalyCostChart()}
@@ -425,7 +445,7 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
              <WidgetWrapper 
                 id="revenue_growth_kpi" 
                 className="bg-white border border-gray-200 rounded-xl p-4 hover:border-[#FF3C42] transition-colors shadow-sm"
-                isPinned={pinnedWidgets.includes('revenue_growth_kpi')}
+                isPinned={pinnedSet.has('revenue_growth_kpi')}
                 onToggle={togglePin}
              >
                 {renderRevenueGrowthKPI()}
@@ -433,7 +453,7 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
              <WidgetWrapper 
                 id="cost_efficiency_kpi" 
                 className="bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-500 transition-colors shadow-sm"
-                isPinned={pinnedWidgets.includes('cost_efficiency_kpi')}
+                isPinned={pinnedSet.has('cost_efficiency_kpi')}
                 onToggle={togglePin}
              >
                 {renderCostEfficiencyKPI()}
@@ -441,7 +461,7 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
              <WidgetWrapper 
                 id="asp_kpi" 
                 className="bg-white border border-gray-200 rounded-xl p-4 hover:border-amber-500 transition-colors shadow-sm"
-                isPinned={pinnedWidgets.includes('asp_kpi')}
+                isPinned={pinnedSet.has('asp_kpi')}
                 onToggle={togglePin}
              >
                 {renderASPKPI()}
@@ -453,7 +473,7 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
             <WidgetWrapper 
                 id="revenue_bridge_chart" 
                 className="flex-1 min-h-0 bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
-                isPinned={pinnedWidgets.includes('revenue_bridge_chart')}
+                isPinned={pinnedSet.has('revenue_bridge_chart')}
                 onToggle={togglePin}
             >
                 {renderRevenueBridgeChart()}
@@ -462,7 +482,7 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
             <WidgetWrapper 
                 id="cost_correlation_chart" 
                 className="flex-1 min-h-0 bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
-                isPinned={pinnedWidgets.includes('cost_correlation_chart')}
+                isPinned={pinnedSet.has('cost_correlation_chart')}
                 onToggle={togglePin}
             >
                 {renderCostCorrelationChart()}
@@ -660,32 +680,13 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
         <div className="flex items-center gap-3">
             <h2 className="text-lg font-bold text-gray-900">
             {scenario === 'anomaly_cost_spike' ? (
-                viewMode === 'analysis' ? (
-                    <span className="flex items-center gap-2 text-red-600">
-                        <AlertTriangle size={20} /> [경보] 이상 징후 정밀 분석
-                    </span>
-                ) : 'CEO Custom Dashboard'
+                <span className="flex items-center gap-2 text-red-600">
+                    <AlertTriangle size={20} /> [경보] 이상 징후 정밀 분석
+                </span>
             ) : scenario === 'sales_analysis' ? (
-                viewMode === 'analysis' ? '매출 상승 원인 및 원가 분석 (12월)' : 'CEO Custom Dashboard'
+                '매출 상승 원인 및 원가 분석 (12월)'
             ) : type === 'did' ? 'DID Business Unit Analysis' : '2025 Performance Dashboard'}
             </h2>
-            
-            {(scenario === 'sales_analysis' || scenario === 'anomaly_cost_spike') && (
-                <div className="flex bg-gray-100 rounded-lg p-0.5">
-                    <button 
-                        onClick={() => setViewMode('analysis')}
-                        className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'analysis' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        분석
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('custom_dashboard')}
-                        className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'custom_dashboard' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        편집
-                    </button>
-                </div>
-            )}
         </div>
         <div className="flex items-center gap-2">
            <button className="p-2 text-gray-500 hover:text-black hover:bg-white rounded-lg transition-colors border border-transparent hover:border-gray-200" title="공유하기">
@@ -694,7 +695,11 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
            <button className="p-2 text-gray-500 hover:text-black hover:bg-white rounded-lg transition-colors border border-transparent hover:border-gray-200" title="데이터 다운로드">
              <Download size={18} />
            </button>
-           <button className="p-2 text-gray-500 hover:text-black hover:bg-white rounded-lg transition-colors border border-transparent hover:border-gray-200" title="패널 접기">
+           <button
+             onClick={onTogglePanel}
+             className="p-2 text-gray-500 hover:text-black hover:bg-white rounded-lg transition-colors border border-transparent hover:border-gray-200"
+             title="패널 접기"
+           >
              <PanelRightClose size={18} />
            </button>
         </div>
@@ -854,9 +859,9 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario }) =
 
       {/* Conditional Rendering based on Scenario or Type */}
       {scenario === 'anomaly_cost_spike' ? (
-          viewMode === 'analysis' ? renderAnomalyCostSpikeChart() : renderDashboardEditor()
+          renderAnomalyCostSpikeChart()
       ) : scenario === 'sales_analysis' ? (
-          viewMode === 'analysis' ? renderAnalysisView() : renderDashboardEditor()
+          renderAnalysisView()
       ) : type === 'did' ? (
         /* --- DID Dashboard Layout (Unchanged) --- */
         <div className="flex flex-col gap-6">

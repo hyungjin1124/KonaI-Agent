@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from 'react';
-import { X, Upload, FileArchive } from 'lucide-react';
+import { X, Upload, FileArchive } from './icons';
 
 interface SkillUploadModalProps {
   isOpen: boolean;

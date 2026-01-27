@@ -34,6 +34,7 @@ export interface WidgetConfig {
 export interface DashboardProps {
   type?: 'financial' | 'did' | 'ppt';
   scenario?: DashboardScenario;
+  onTogglePanel?: () => void;
 }
 
 export type DashboardScenario =

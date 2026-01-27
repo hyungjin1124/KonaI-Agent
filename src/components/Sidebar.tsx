@@ -8,7 +8,7 @@ import {
   History,
   Bell,
   Cpu
-} from 'lucide-react';
+} from './icons';
 import { ViewType } from '../types';
 import { useNotification, Anomaly } from '../context/NotificationContext';
 import NotificationPopup from './NotificationPopup';

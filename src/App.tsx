@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
-import SampleInterface from './components/SampleInterface';
+import { AgentChatView } from './components/features/agent-chat';
 import DataManagementView from './components/DataManagementView';
 import SkillManagementView from './components/SkillManagementView';
 import AdminView from './components/AdminView';
 import ChatHistoryView from './components/ChatHistoryView';
 import LoginView from './components/LoginView';
-import LiveboardView from './components/LiveboardView';
+import { LiveboardView } from './components/features/liveboard';
 import { ViewType, SampleInterfaceContext, AppViewMode } from './types';
 import { NotificationProvider, Anomaly, ToastProvider } from './context';
 import { useCaptureStateInjection, StateInjectionHandlers } from './hooks';
@@ -24,7 +24,7 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
   const [viewMode, setViewMode] = useState<AppViewMode>('landing');
-  const [agentContext, setAgentContext] = useState<SampleInterfaceContext | null>(null);
+  const [agentContext, setAgentContext] = useState<AgentChatViewContext | null>(null);
   const [agentQuery, setAgentQuery] = useState<string | undefined>(undefined);
 
   // 캡처 자동화용 상태 주입 핸들러
@@ -151,7 +151,7 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
            ) : viewMode === 'liveboard' ? (
              <LiveboardView />
            ) : viewMode === 'scenario_ppt' ? (
-             <SampleInterface
+             <AgentChatView
                 initialQuery={agentQuery}
              />
            ) : viewMode === 'landing' ? (
@@ -160,7 +160,7 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
                 onAskAgent={(data) => handleScenarioTrigger('scenario_analysis', data)}
              />
            ) : (
-             <SampleInterface
+             <AgentChatView
                 initialQuery={agentQuery}
                 initialContext={viewMode === 'scenario_analysis' ? agentContext : undefined}
              />

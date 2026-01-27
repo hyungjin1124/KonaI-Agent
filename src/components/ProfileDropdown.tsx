@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown } from './icons';
 import { useClickOutside } from '../hooks';
 import DropdownMenuItem from './DropdownMenuItem';
 

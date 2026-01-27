@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { 
-  Search, Calendar, MessageSquare, ChevronRight, ArrowLeft, 
+import {
+  Search, Calendar, MessageSquare, ChevronRight, ArrowLeft,
   Trash2, Download, User, Bot, Clock, Filter, MoreHorizontal
-} from 'lucide-react';
+} from './icons';
 
 // --- Types ---
 

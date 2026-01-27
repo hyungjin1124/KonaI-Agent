@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, MoreHorizontal } from './icons';
 import SkillUploadModal from './SkillUploadModal';
 
 interface Skill {

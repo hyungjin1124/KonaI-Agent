@@ -15,11 +15,11 @@ import ReactFlow, {
   addEdge,
   Connection
 } from 'reactflow';
-import { 
-  Save, Play, Settings, Plus, RotateCcw, 
-  Table, ArrowRightLeft, FileOutput, Search, Filter, 
+import {
+  Save, Play, Settings, Plus, RotateCcw,
+  Table, ArrowRightLeft, FileOutput, Search, Filter,
   MoreVertical, Layout, MousePointer2, Move, Spline, Maximize2
-} from 'lucide-react';
+} from './icons';
 
 // --- Custom Node Components ---
 

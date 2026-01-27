@@ -2,14 +2,14 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import {
   Plus, Mic, ArrowUp, FileText, Globe, Box, Palette, MoreHorizontal,
   TrendingUp, PieChart, Users, RotateCcw, MonitorPlay, FileImage, Sparkles, Check, ChevronDown, Wand2, Paperclip, X,
-  ArrowRight, PanelRightClose, PanelRightOpen, GripVertical
-} from 'lucide-react';
-import Dashboard from './Dashboard';
-import PPTGenPanel from './PPTGenPanel';
-import { SampleInterfaceContext, PPTConfig, SuggestionItem, QuickActionChip } from '../types';
-import { useCaptureStateInjection, StateInjectionHandlers } from '../hooks';
+  ArrowRight, PanelRightOpen, GripVertical
+} from '../../icons';
+import Dashboard from '../dashboard/Dashboard';
+import PPTGenPanel from '../../PPTGenPanel';
+import { SampleInterfaceContext, PPTConfig, SuggestionItem, QuickActionChip } from '../../../types';
+import { useCaptureStateInjection, StateInjectionHandlers } from '../../../hooks';
 
-const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: SampleInterfaceContext }> = ({
+const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleInterfaceContext }> = ({
   initialQuery,
   initialContext
 }) => {
@@ -167,40 +167,41 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
     icon: React.ReactNode;
   }
 
-  const suggestedPrompts: SuggestionItem[] = [
-    { 
-      title: '실적 분석', 
+  // useMemo로 suggestedPrompts 캐싱 (JSX 포함 객체 재생성 방지)
+  const suggestedPrompts = useMemo<SuggestionItem[]>(() => [
+    {
+      title: '실적 분석',
       description: '코나아이 ERP의 2025년 월별 매출 데이터를 분석 및 시각화',
       prompt: '코나아이 ERP의 2025년 월별 매출 데이터를 분석하여 시각화:\n- 월별 매출 추이\n- 사업부별 매출 구성\n- 주요 거래처 Top 10\n- 전년 동기 대비 성장률 KPI 카드 차트',
       icon: <TrendingUp size={20} className="text-[#FF3C42]" />
     },
-    { 
-      title: 'DID 리포트', 
+    {
+      title: 'DID 리포트',
       description: 'DID 사업부 매출 및 원가 효율성 상세 분석 요청',
       prompt: 'DID 사업부의 2025년 성과를 분석해줘:\n- 국내/해외 매출 비중 추이\n- 메탈 카드 원가율 분석\n- 주력 칩셋 판매 순위',
       icon: <PieChart size={20} className="text-[#FF6D72]" />
     },
-    { 
-      title: 'PPT 생성', 
+    {
+      title: 'PPT 생성',
       description: 'Q4 2025 경영 실적 보고서 PPT 생성',
       prompt: `Q4 2025 경영 실적 보고서 PPT를 만들어주세요.\n다음 섹션을 포함해주세요:\n- 표지 (회사 로고, 보고 일자)\n- 목차\n- 요약 (Executive Summary)\n- 재무 성과 (매출, 영업이익, 순이익)\n- 주요 사업 성과 (신규 계약, 프로젝트 완료율)\n- 향후 계획`,
       icon: <FileText size={20} className="text-[#FF9DA0]" />
     },
-    { 
-      title: '인사이트', 
+    {
+      title: '인사이트',
       prompt: '환율 1,500원 달성 시 이번 분기 원가 영향 분석 및 대처 방안',
       icon: <Users size={20} className="text-black" />
     },
-  ];
+  ], []);
 
-  // Added 'immediate' parameter to control transition delay
-  const handleSend = (text: string, immediate: boolean = false) => {
+  // useCallback으로 핸들러 최적화
+  const handleSend = useCallback((text: string, immediate: boolean = false) => {
     if (!showDashboard) {
         setInputValue(text);
     }
-    
+
     setUserQuery(text);
-    
+
     // Auto-detect triggered by context or text
     const isDidRequest = text.includes('DID') || text.includes('메탈') || text.includes('칩셋');
     const isPptRequest = text.includes('PPT') || text.includes('보고서') || text.includes('슬라이드');
@@ -208,7 +209,7 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
 
     // Specific scenarios
     let targetScenario: string | undefined = undefined;
-    
+
     if (contextData?.scenario) {
         targetScenario = contextData.scenario;
     } else {
@@ -250,9 +251,9 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
              }, 800);
          }
     }
-  };
+  }, [showDashboard, contextData]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setInputValue('');
     setShowDashboard(false);
     setUserQuery('');
@@ -261,7 +262,7 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
     setPptStatus('idle');
     setPptProgress(0);
     setContextData(null); // Clear context
-  };
+  }, []);
 
   useEffect(() => {
     if (showDashboard && leftPanelRef.current) {
@@ -269,22 +270,22 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
     }
   }, [showDashboard, userQuery, pptStatus]);
 
-  const handleGenerateStart = () => {
+  const handleGenerateStart = useCallback(() => {
     setPptStatus('generating');
     setPptProgress(0);
-  };
+  }, []);
 
-  const updatePptConfig = <K extends keyof PPTConfig>(key: K, value: PPTConfig[K]) => {
+  const updatePptConfig = useCallback(<K extends keyof PPTConfig>(key: K, value: PPTConfig[K]) => {
     setPptConfig(prev => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
-  const toggleTopic = (topic: string) => {
+  const toggleTopic = useCallback((topic: string) => {
     setPptConfig(prev => {
       const exists = prev.topics.includes(topic);
       if (exists) return { ...prev, topics: prev.topics.filter(t => t !== topic) };
       return { ...prev, topics: [...prev.topics, topic] };
     });
-  };
+  }, []);
 
   // Helper to render content based on dashboard type
   const renderAgentResponse = () => {
@@ -803,17 +804,6 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
                } ${dashboardType === 'ppt' && !isRightPanelCollapsed ? 'p-0' : isRightPanelCollapsed ? 'p-0' : 'p-6'}`}
                style={{ width: rightPanelWidthStyle }}
              >
-                {/* Panel Toggle Button */}
-                <button
-                  onClick={toggleRightPanel}
-                  className={`absolute top-4 z-20 p-2 rounded-lg bg-white border border-gray-200 shadow-md hover:bg-gray-50 hover:border-[#FF3C42] hover:text-[#FF3C42] transition-all ${
-                    isRightPanelCollapsed ? 'right-4' : 'left-4'
-                  }`}
-                  title={isRightPanelCollapsed ? '패널 펼치기' : '패널 접기'}
-                >
-                  {isRightPanelCollapsed ? <PanelRightOpen size={18} /> : <PanelRightClose size={18} />}
-                </button>
-
                 {/* Panel Content */}
                 {!isRightPanelCollapsed && (
                   <>
@@ -825,9 +815,10 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
                         progress={pptProgress}
                         currentStageIndex={pptCurrentStage}
                         onCancel={handleReset}
+                        onTogglePanel={toggleRightPanel}
                       />
                     ) : (
-                      <Dashboard type={dashboardType} scenario={dashboardScenario} />
+                      <Dashboard type={dashboardType} scenario={dashboardScenario} onTogglePanel={toggleRightPanel} />
                     )}
                   </>
                 )}
@@ -837,11 +828,10 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
              {isRightPanelCollapsed && (
                <button
                  onClick={toggleRightPanel}
-                 className="absolute top-4 right-4 z-20 p-2 rounded-lg bg-[#FF3C42] text-white border border-[#FF3C42] shadow-md hover:bg-[#E63338] transition-all flex items-center gap-2"
+                 className="absolute top-20 right-4 z-20 p-2 rounded-lg bg-[#FF3C42] text-white border border-[#FF3C42] shadow-md hover:bg-[#E63338] transition-all"
                  title="우측 패널 펼치기"
                >
                  <PanelRightOpen size={18} />
-                 <span className="text-sm font-medium">패널 열기</span>
                </button>
              )}
         </div>
@@ -953,4 +943,4 @@ const SampleInterface: React.FC<{ initialQuery?: string; initialContext?: Sample
   );
 };
 
-export default SampleInterface;
+export default AgentChatView;
