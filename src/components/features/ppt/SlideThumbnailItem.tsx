@@ -82,7 +82,7 @@ const SlideThumbnailItem: React.FC<SlideThumbnailItemProps> = ({
               {content.bulletPoints?.slice(0, 4).map((_, i) => (
                 <div key={i} className="flex items-center gap-0.5">
                   <div className={`w-0.5 h-0.5 rounded-full ${themeStyle.accent}`} />
-                  <div className={`h-0.5 rounded bg-gray-300`} style={{ width: `${50 + Math.random() * 30}%` }} />
+                  <div className={`h-0.5 rounded bg-gray-300`} style={{ width: `${55 + (i % 3) * 15}%` }} />
                 </div>
               ))}
             </div>

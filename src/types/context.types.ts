@@ -7,7 +7,7 @@ export interface PPTConfig {
   topics: string[];
   titleFont: string;
   bodyFont: string;
-  slideCount: number;
+  slideCount: number | '';
 }
 
 // SampleInterface Context

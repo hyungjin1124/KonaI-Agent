@@ -154,7 +154,7 @@ export const PPTSetupResponse: React.FC<PPTSetupResponseProps> = ({
               <input
                 type="number"
                 value={config.slideCount}
-                onChange={(e) => onUpdateConfig('slideCount', parseInt(e.target.value) || 0)}
+                onChange={(e) => onUpdateConfig('slideCount', e.target.value === '' ? '' : parseInt(e.target.value))}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#FF3C42]"
                 min={5}
                 max={50}

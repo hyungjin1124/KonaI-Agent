@@ -679,7 +679,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                  <input
                    type="number"
                    value={pptConfig.slideCount}
-                   onChange={(e) => updatePptConfig('slideCount', parseInt(e.target.value) || 0)}
+                   onChange={(e) => updatePptConfig('slideCount', e.target.value === '' ? '' : parseInt(e.target.value))}
                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#FF3C42]"
                    min={5} max={50}
                  />
@@ -825,10 +825,10 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                           </div>
                           <div className="space-y-2">
                              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">슬라이드 수</label>
-                             <input 
-                               type="number" 
+                             <input
+                               type="number"
                                value={pptConfig.slideCount}
-                               onChange={(e) => updatePptConfig('slideCount', parseInt(e.target.value) || 0)}
+                               onChange={(e) => updatePptConfig('slideCount', e.target.value === '' ? '' : parseInt(e.target.value))}
                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#FF3C42]"
                                min={5} max={50}
                              />

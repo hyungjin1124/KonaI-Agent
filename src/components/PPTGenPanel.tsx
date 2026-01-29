@@ -133,32 +133,8 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
       return;
     }
 
-    if (status !== 'generating') return;
-
-    const completedCount = Math.floor((progress / 100) * config.slideCount);
-    const currentGeneratingId = Math.min(completedCount + 1, config.slideCount);
-
-    setSlides(slides.map(slide => {
-      if (slide.id < currentGeneratingId) {
-        return { ...slide, status: 'completed' };
-      }
-      if (slide.id === currentGeneratingId) {
-        return { ...slide, status: 'generating' };
-      }
-      return { ...slide, status: 'pending' };
-    }));
-
-    // Auto-select the currently generating slide
-    if (selectedSlideId < currentGeneratingId) {
-      setSelectedSlideId(currentGeneratingId);
-    }
-
-    // Update streaming state
-    setStreamingState(prev => ({
-      ...prev,
-      currentSlideId: currentGeneratingId,
-      isStreaming: true
-    }));
+    // Slide status is now managed by typing completion, not by progress
+    // Progress is only used for the progress bar display
   }, [progress, status, config.slideCount, slides.length]);
 
   // Typing effect simulation - uses slidesRef to avoid re-triggering on slides change
@@ -200,7 +176,27 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
       const totalChars = titleLength + subtitleLength + totalBulletChars;
 
       if (charIndex >= totalChars) {
-        // Typing complete - mark as not streaming
+        // Typing complete - move to next slide automatically
+        const nextSlideId = selectedSlideId + 1;
+        if (nextSlideId <= config.slideCount && status === 'generating') {
+          // Mark current slide as completed and next slide as generating
+          setSlides(prev => prev.map(slide =>
+            slide.id === selectedSlideId
+              ? { ...slide, status: 'completed' }
+              : slide.id === nextSlideId
+                ? { ...slide, status: 'generating' }
+                : slide
+          ));
+          // Auto-select next slide
+          setSelectedSlideId(nextSlideId);
+        } else {
+          // Last slide - just mark as completed
+          setSlides(prev => prev.map(slide =>
+            slide.id === selectedSlideId
+              ? { ...slide, status: 'completed' }
+              : slide
+          ));
+        }
         setStreamingState(prev => ({
           ...prev,
           isStreaming: false
@@ -252,8 +248,8 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
       isStreaming: true
     }));
 
-    // Start typing - slower speed (100ms for more readable streaming)
-    const typingInterval = setInterval(typeNextChar, 100);
+    // Start typing - slower speed (150ms for more readable streaming)
+    const typingInterval = setInterval(typeNextChar, 150);
 
     return () => clearInterval(typingInterval);
   }, [selectedSlideId, status]);  // Removed 'slides' from dependencies
