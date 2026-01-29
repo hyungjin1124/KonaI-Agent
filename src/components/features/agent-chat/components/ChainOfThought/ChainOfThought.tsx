@@ -13,6 +13,7 @@ import type { ChainOfThoughtProps } from './types';
  */
 const ChainOfThought: React.FC<ChainOfThoughtProps> = ({
   isActive,
+  isComplete: isCompleteProp = false,
   onComplete,
   stepDuration = DEFAULT_STEP_DURATION,
 }) => {
@@ -62,7 +63,12 @@ const ChainOfThought: React.FC<ChainOfThoughtProps> = ({
     setIsExpanded((prev) => !prev);
   }, []);
 
-  if (!isActive) return null;
+  // isActive가 false이고 isComplete도 false면 렌더링하지 않음
+  // isComplete가 true면 완료 상태로 계속 표시
+  if (!isActive && !isCompleteProp) return null;
+
+  // 완료 상태 결정 (내부 상태 또는 외부 prop)
+  const showAsComplete = isAllComplete || isCompleteProp;
 
   return (
     <div className="mb-4 animate-fade-in-up">
@@ -77,12 +83,12 @@ const ChainOfThought: React.FC<ChainOfThoughtProps> = ({
         <CoTStepIndicator
           currentStep={currentStep}
           totalSteps={COT_STEPS.length}
-          isComplete={isAllComplete}
+          isComplete={showAsComplete}
         />
 
         {/* 요약 텍스트 */}
         <span className="flex-1 text-sm text-gray-600">
-          {isAllComplete
+          {showAsComplete
             ? '사고 과정 완료'
             : `${COT_STEPS[currentStep].label}... (${currentStep + 1}/${COT_STEPS.length})`}
         </span>
@@ -108,9 +114,9 @@ const ChainOfThought: React.FC<ChainOfThoughtProps> = ({
               key={step.id}
               step={step}
               stepIndex={index}
-              isActive={currentStep === index && !isAllComplete}
-              isComplete={completedSteps.has(index) || isAllComplete}
-              isVisible={index <= currentStep || isAllComplete}
+              isActive={currentStep === index && !showAsComplete}
+              isComplete={completedSteps.has(index) || showAsComplete}
+              isVisible={index <= currentStep || showAsComplete}
             />
           ))}
         </div>

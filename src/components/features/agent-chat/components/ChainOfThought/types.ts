@@ -17,7 +17,8 @@ export interface CoTStep {
 
 // CoT 컴포넌트 Props
 export interface ChainOfThoughtProps {
-  isActive: boolean;              // CoT 표시 여부
+  isActive: boolean;              // 진행 중 여부
+  isComplete?: boolean;           // 완료 여부 (완료 후에도 표시 유지)
   onComplete?: () => void;        // 모든 단계 완료 콜백
   stepDuration?: number;          // 각 단계 지속 시간 (ms, 기본: 1500)
 }

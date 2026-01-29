@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import {
   Plus, Mic, ArrowUp, FileText, Globe, Box, Palette, MoreHorizontal,
   TrendingUp, PieChart, Users, RotateCcw, MonitorPlay, FileImage, Sparkles, Check, ChevronDown, Wand2, Paperclip, X,
-  ArrowRight, PanelRightOpen, GripVertical
+  ArrowRight, GripVertical
 } from '../../icons';
 import Dashboard from '../dashboard/Dashboard';
 import PPTGenPanel from '../../PPTGenPanel';
@@ -437,25 +437,11 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setCotCompleteMap(prev => ({ ...prev, [messageId]: true }));
   }, []);
 
-  // Helper to render agent response for a specific message
-  const renderAgentResponseForMessage = (message: ChatMessage, isLatest: boolean) => {
+  // 실제 응답 렌더링 헬퍼 함수
+  const renderActualResponse = (message: ChatMessage, isLatest: boolean) => {
     const msgDashboardType = message.dashboardType || 'financial';
     const msgDashboardScenario = message.dashboardScenario;
     const msgPptStatus = isLatest ? pptStatus : (message.pptStatus || 'done');
-    const isCotComplete = cotCompleteMap[message.id] ?? false;
-
-    // 최신 에이전트 메시지에 대해 CoT 먼저 표시 (PPT setup 제외)
-    const shouldShowCot = isLatest && !isCotComplete && msgPptStatus !== 'setup' && msgPptStatus !== 'generating';
-
-    if (shouldShowCot) {
-      return (
-        <ChainOfThought
-          isActive={true}
-          onComplete={() => handleCotComplete(message.id)}
-          stepDuration={1200}
-        />
-      );
-    }
 
     // 1. PPT Scenario
     if (msgDashboardType === 'ppt') {
@@ -509,6 +495,44 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
         })}
       />
     );
+  };
+
+  // Helper to render agent response for a specific message
+  const renderAgentResponseForMessage = (message: ChatMessage, isLatest: boolean) => {
+    const msgDashboardType = message.dashboardType || 'financial';
+    const msgPptStatus = isLatest ? pptStatus : (message.pptStatus || 'done');
+    const isCotComplete = cotCompleteMap[message.id] ?? false;
+
+    // PPT setup/generating은 CoT 없이 바로 렌더링
+    if (msgDashboardType === 'ppt' && (msgPptStatus === 'setup' || msgPptStatus === 'generating') && isLatest) {
+      return renderActualResponse(message, isLatest);
+    }
+
+    // CoT 표시 여부 결정 (최신 메시지에만 CoT 표시)
+    const shouldShowCot = isLatest;
+
+    // CoT와 실제 응답을 함께 렌더링
+    return (
+      <>
+        {/* CoT 섹션 - 진행 중이거나 완료된 경우 모두 표시 */}
+        {shouldShowCot && (
+          <ChainOfThought
+            isActive={!isCotComplete}
+            isComplete={isCotComplete}
+            onComplete={() => handleCotComplete(message.id)}
+            stepDuration={1200}
+          />
+        )}
+
+        {/* 실제 응답 - CoT 완료 후 표시 */}
+        {isCotComplete && renderActualResponse(message, isLatest)}
+      </>
+    );
+  };
+
+  // 이전 메시지 응답 렌더링 (히스토리용 - CoT 없이)
+  const renderPreviousAgentResponse = (message: ChatMessage) => {
+    return renderActualResponse(message, false);
   };
 
   // PPT Setup 렌더링 헬퍼
@@ -997,16 +1021,6 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                 )}
              </div>
 
-             {/* Floating Toggle Button when panel is collapsed (appears on left panel) */}
-             {isRightPanelCollapsed && (
-               <button
-                 onClick={toggleRightPanel}
-                 className="absolute top-20 right-4 z-20 p-2 rounded-lg bg-[#FF3C42] text-white border border-[#FF3C42] shadow-md hover:bg-[#E63338] transition-all"
-                 title="우측 패널 펼치기"
-               >
-                 <PanelRightOpen size={18} />
-               </button>
-             )}
         </div>
     );
   }
