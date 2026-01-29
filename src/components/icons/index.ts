@@ -59,6 +59,7 @@ export { default as FileOutput } from 'lucide-react/dist/esm/icons/file-output';
 export { default as FileText } from 'lucide-react/dist/esm/icons/file-text';
 export { default as Filter } from 'lucide-react/dist/esm/icons/filter';
 export { default as Flame } from 'lucide-react/dist/esm/icons/flame';
+export { default as FolderOpen } from 'lucide-react/dist/esm/icons/folder-open';
 
 // G
 export { default as Globe } from 'lucide-react/dist/esm/icons/globe';

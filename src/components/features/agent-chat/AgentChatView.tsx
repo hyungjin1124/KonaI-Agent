@@ -2,15 +2,16 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import {
   Plus, Mic, ArrowUp, FileText, Globe, Box, Palette, MoreHorizontal,
   TrendingUp, PieChart, Users, RotateCcw, MonitorPlay, FileImage, Sparkles, Check, ChevronDown, Wand2, Paperclip, X,
-  ArrowRight, GripVertical
+  ArrowRight, GripVertical, FolderOpen
 } from '../../icons';
 import Dashboard from '../dashboard/Dashboard';
 import PPTGenPanel from '../../PPTGenPanel';
 import { SampleInterfaceContext, PPTConfig, SuggestionItem, QuickActionChip } from '../../../types';
-import { SlideItem } from './types';
+import { SlideItem, Artifact, RightPanelType } from './types';
 import { useCaptureStateInjection, StateInjectionHandlers } from '../../../hooks';
 import { SalesAnalysisResponse, AnomalyResponse, DefaultResponse, PPTDoneResponse } from './components/AgentResponse';
 import { ChainOfThought } from './components/ChainOfThought';
+import { ArtifactsPanel } from './components/ArtifactsPanel';
 
 // 대화 메시지 타입 정의
 interface ChatMessage {
@@ -67,13 +68,17 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // --- 우측 패널 상태 ---
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
-  const [rightPanelWidth, setRightPanelWidth] = useState(60); // 퍼센트 단위 (50% → 60%)
+  const [rightPanelWidth, setRightPanelWidth] = useState(60); // 퍼센트 단위 (PPT/Dashboard용)
   const [isResizing, setIsResizing] = useState(false);
   const MIN_PANEL_WIDTH = 25; // 최소 25%
   const MAX_PANEL_WIDTH = 70; // 최대 70%
 
   // --- PPT Slides 상태 (패널 접기/펼치기에도 유지) ---
   const [pptSlides, setPptSlides] = useState<SlideItem[]>([]);
+
+  // --- 아티팩트 상태 ---
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [rightPanelType, setRightPanelType] = useState<RightPanelType>('dashboard');
 
   // 캡처 자동화용 상태 주입 핸들러
   const stateInjectionHandlers = useMemo<StateInjectionHandlers>(() => ({
@@ -160,6 +165,23 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setIsRightPanelCollapsed(prev => !prev);
   }, []);
 
+  // 아티팩트 패널 열기
+  const openArtifactsPanel = useCallback(() => {
+    setRightPanelType('artifacts');
+    setIsRightPanelCollapsed(false);
+  }, []);
+
+  // 아티팩트 다운로드 핸들러
+  const handleDownloadArtifact = useCallback((artifact: Artifact) => {
+    console.log('Download artifact:', artifact.title);
+    // TODO: 실제 다운로드 로직 구현
+  }, []);
+
+  const handleDownloadAllArtifacts = useCallback(() => {
+    console.log('Download all artifacts:', artifacts.length);
+    // TODO: 실제 다운로드 로직 구현
+  }, [artifacts.length]);
+
   // 컨텍스트와 함께 우측 패널 열기 (히스토리의 특정 메시지 컨텍스트로 패널 전환)
   const openRightPanelWithContext = useCallback((context: {
     dashboardType: 'financial' | 'did' | 'ppt';
@@ -192,6 +214,24 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       return () => clearInterval(interval);
     }
   }, [pptStatus]);
+
+  // PPT 완료 시 아티팩트 생성
+  useEffect(() => {
+    if (pptStatus === 'done' && pptSlides.length > 0) {
+      const existingPptArtifact = artifacts.find(a => a.type === 'ppt');
+      if (!existingPptArtifact) {
+        const pptArtifact: Artifact = {
+          id: `artifact-ppt-${Date.now()}`,
+          title: 'Q4 2025 경영 실적 보고서',
+          type: 'ppt',
+          createdAt: new Date(),
+          messageId: chatHistory[chatHistory.length - 1]?.id || '',
+          fileSize: `${pptSlides.length} slides`,
+        };
+        setArtifacts(prev => [...prev, pptArtifact]);
+      }
+    }
+  }, [pptStatus, pptSlides.length]);
 
   const chips = [
     { icon: <FileText size={14} />, label: '슬라이드 제작' },
@@ -304,6 +344,8 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setSalesAnalysisComplete(false);
     // 시나리오 전환 시 우측 패널 자동 열기
     setIsRightPanelCollapsed(false);
+    // 아티팩트 패널에서 대시보드로 전환
+    setRightPanelType('dashboard');
 
     // Trigger UI Update
     if (showDashboard) {
@@ -334,6 +376,8 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setSalesAnalysisComplete(false);
     setChatHistory([]); // Clear chat history
     setCotCompleteMap({}); // Clear CoT completion states
+    setArtifacts([]); // Clear artifacts
+    setRightPanelType('dashboard'); // Reset panel type
     hasProcessedInitialQuery.current = false; // Reset initial query flag
   }, []);
 
@@ -852,18 +896,35 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // 1. Result View (Split Layout)
   if (showDashboard) {
-    const leftPanelWidthStyle = isRightPanelCollapsed ? '100%' : `${100 - rightPanelWidth}%`;
-    const rightPanelWidthStyle = isRightPanelCollapsed ? '0%' : `${rightPanelWidth}%`;
+    const ARTIFACTS_PANEL_WIDTH = 18; // 아티팩트 패널 전용 너비 (15~20% 범위)
+    const effectiveWidth = rightPanelType === 'artifacts' ? ARTIFACTS_PANEL_WIDTH : rightPanelWidth;
+    const leftPanelWidthStyle = isRightPanelCollapsed ? '100%' : `${100 - effectiveWidth}%`;
+    const rightPanelWidthStyle = isRightPanelCollapsed ? '0%' : `${effectiveWidth}%`;
 
     return (
         <div ref={containerRef} data-testid="analysis-view" className="flex w-full h-full animate-fade-in-up overflow-hidden relative">
              {/* Left Panel: User Query & Agent Analysis */}
              <div
-               className="h-full flex flex-col border-r border-gray-200 bg-white transition-all duration-300"
+               className="h-full flex flex-col border-r border-gray-200 bg-white transition-all duration-300 relative"
                style={{ width: leftPanelWidthStyle }}
              >
-                 <div ref={leftPanelRef} className="flex-1 overflow-y-auto p-6 custom-scrollbar scroll-smooth">
-
+                 {/* 아티팩트 버튼 - absolute로 우측 상단 고정 */}
+                 {isRightPanelCollapsed && artifacts.length > 0 && (
+                   <div className="absolute top-4 right-6 z-10">
+                     <button
+                       onClick={openArtifactsPanel}
+                       className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium border border-gray-200 shadow-sm"
+                       title="이 작업의 모든 파일 보기"
+                     >
+                       <FolderOpen size={16} />
+                       <span className="px-1.5 py-0.5 bg-gray-200 rounded-full text-xs font-bold">
+                         {artifacts.length}
+                       </span>
+                     </button>
+                   </div>
+                 )}
+                 <div ref={leftPanelRef} className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth">
+                  <div className="py-6 max-w-3xl mx-auto px-6">
                      {/* 대화 히스토리 렌더링 */}
                      {chatHistory.length > 0 ? (
                        chatHistory.map((message, index) => {
@@ -901,10 +962,12 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                      )}
 
                      <div className="h-6"></div>
+                  </div>
                  </div>
 
                  {/* Bottom Input Area */}
-                 <div className="p-4 pb-6 bg-white border-t border-gray-100 shrink-0">
+                 <div className="p-4 pb-6 bg-white border-t border-gray-100 shrink-0 flex justify-center">
+                   <div className="w-full max-w-3xl">
                     {/* 추천 프롬프트 칩 - 시나리오 완료 상태에 따라 표시 */}
                     {(pptStatus === 'done' || salesAnalysisComplete) && (
                       <div className="flex flex-wrap gap-2 mb-3">
@@ -976,6 +1039,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                             <ArrowUp size={18} />
                         </button>
                     </div>
+                   </div>
                  </div>
              </div>
 
@@ -996,14 +1060,24 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                data-testid="analysis-result"
                className={`h-full bg-gray-50 custom-scrollbar transition-all duration-300 relative ${
                  isRightPanelCollapsed ? 'overflow-hidden' : 'overflow-y-auto'
-               } ${dashboardType === 'ppt' && !isRightPanelCollapsed ? 'p-0' : isRightPanelCollapsed ? 'p-0' : 'p-6'}`}
+               } ${(dashboardType === 'ppt' || rightPanelType === 'artifacts') && !isRightPanelCollapsed ? 'p-0' : isRightPanelCollapsed ? 'p-0' : 'p-6'}`}
                style={{ width: rightPanelWidthStyle }}
              >
                 {/* Panel Content */}
                 {!isRightPanelCollapsed && (
                   <>
-                    {/* Switch between Generation Panel and Final Dashboard */}
-                    {dashboardType === 'ppt' ? (
+                    {/* Switch between Artifacts Panel, PPT Panel, and Dashboard */}
+                    {rightPanelType === 'artifacts' ? (
+                      <ArtifactsPanel
+                        artifacts={artifacts}
+                        onClose={() => {
+                          setRightPanelType('dashboard');
+                          toggleRightPanel();
+                        }}
+                        onDownloadAll={handleDownloadAllArtifacts}
+                        onDownloadItem={handleDownloadArtifact}
+                      />
+                    ) : dashboardType === 'ppt' ? (
                       <PPTGenPanel
                         status={pptStatus === 'idle' ? 'setup' : pptStatus as 'setup'|'generating'|'done'}
                         config={pptConfig}

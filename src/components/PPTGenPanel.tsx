@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   CheckCircle2, Loader2, FileText, Sparkles,
-  LayoutTemplate, Palette, Pause, XCircle, PanelRightClose, Download
+  LayoutTemplate, Palette, Pause, XCircle, PanelRightClose, Download, Play
 } from './icons';
 import { SlideThumbnailList, SlideStreamingRenderer, generateMockSlides } from './features/ppt';
 import { SlideItem, StreamingState } from './features/agent-chat/types';
@@ -60,10 +60,30 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
   // Ref to track slides without triggering useEffect re-runs
   const slidesRef = useRef<SlideItem[]>([]);
 
+  // Dropdown states and refs
+  const [downloadDropdownOpen, setDownloadDropdownOpen] = useState(false);
+  const [playDropdownOpen, setPlayDropdownOpen] = useState(false);
+  const downloadDropdownRef = useRef<HTMLDivElement>(null);
+  const playDropdownRef = useRef<HTMLDivElement>(null);
+
   // Keep slidesRef in sync with slides state
   useEffect(() => {
     slidesRef.current = slides;
   }, [slides]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (downloadDropdownRef.current && !downloadDropdownRef.current.contains(event.target as Node)) {
+        setDownloadDropdownOpen(false);
+      }
+      if (playDropdownRef.current && !playDropdownRef.current.contains(event.target as Node)) {
+        setPlayDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Initialize slides when generation starts
   useEffect(() => {
@@ -83,6 +103,19 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
     // Note: Removed status === 'done' slides update to prevent flickering
     // Slides status is already managed by progress-based completion in the next useEffect
   }, [status, config.slideCount]);
+
+  // Force complete all slides when status changes to 'done'
+  useEffect(() => {
+    if (status === 'done' && slides.length > 0) {
+      const hasIncomplete = slides.some(s => s.status !== 'completed');
+      if (hasIncomplete) {
+        setSlides(prevSlides => prevSlides.map(slide => ({
+          ...slide,
+          status: 'completed'
+        })));
+      }
+    }
+  }, [status]);
 
   // Progress-based slide completion simulation
   useEffect(() => {
@@ -368,10 +401,67 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
         </div>
         <div className="flex gap-2">
           {isComplete ? (
-            <button className="px-4 py-2 bg-[#FF3C42] text-white rounded-lg text-sm font-medium hover:bg-[#E63338] transition-all flex items-center gap-2">
-              <Download size={16} />
-              다운로드
-            </button>
+            <>
+              {/* 다운로드 드롭다운 */}
+              <div className="relative" ref={downloadDropdownRef}>
+                <button
+                  onClick={() => setDownloadDropdownOpen(!downloadDropdownOpen)}
+                  className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-gray-700 transition-all"
+                  title="다운로드"
+                >
+                  <Download size={16} />
+                </button>
+                {downloadDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px] z-50">
+                    <button
+                      onClick={() => { console.log('Download PPTX'); setDownloadDropdownOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      PPTX
+                    </button>
+                    <button
+                      onClick={() => { console.log('Download PDF'); setDownloadDropdownOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      PDF
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 재생 드롭다운 */}
+              <div className="relative" ref={playDropdownRef}>
+                <button
+                  onClick={() => setPlayDropdownOpen(!playDropdownOpen)}
+                  className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-gray-700 transition-all"
+                  title="프레젠테이션 재생"
+                >
+                  <Play size={16} />
+                </button>
+                {playDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[180px] z-50">
+                    <button
+                      onClick={() => { console.log('발표자 보기'); setPlayDropdownOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      발표자 보기
+                    </button>
+                    <button
+                      onClick={() => { console.log('처음부터 시작'); setPlayDropdownOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      처음부터 시작
+                    </button>
+                    <button
+                      onClick={() => { console.log('현재 슬라이드에서 시작'); setPlayDropdownOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      현재 슬라이드에서 시작
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <>
               <button className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-gray-700 transition-all">
@@ -394,15 +484,15 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="w-full bg-gray-100 h-1">
-        <div
-          className={`h-full transition-all duration-300 ease-out ${
-            isComplete ? 'bg-green-500' : 'bg-[#FF3C42] shadow-[0_0_10px_rgba(255,60,66,0.3)]'
-          }`}
-          style={{ width: isComplete ? '100%' : `${progress}%` }}
-        />
-      </div>
+      {/* Progress Bar - 생성 중일 때만 표시 */}
+      {!isComplete && (
+        <div className="w-full bg-gray-100 h-1">
+          <div
+            className="h-full transition-all duration-300 ease-out bg-[#FF3C42] shadow-[0_0_10px_rgba(255,60,66,0.3)]"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      )}
 
       {/* 2-Column Layout: Thumbnails + Streaming Renderer */}
       <div className="flex-1 flex overflow-hidden">

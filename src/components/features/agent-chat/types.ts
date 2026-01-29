@@ -75,3 +75,18 @@ export interface StreamingState {
   isStreaming: boolean;
   cursorVisible: boolean;
 }
+
+// Artifact Types for generated files
+export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image';
+
+export interface Artifact {
+  id: string;
+  title: string;
+  type: ArtifactType;
+  createdAt: Date;
+  messageId: string;
+  fileSize?: string;
+}
+
+// Right Panel Type
+export type RightPanelType = 'dashboard' | 'ppt' | 'artifacts';
