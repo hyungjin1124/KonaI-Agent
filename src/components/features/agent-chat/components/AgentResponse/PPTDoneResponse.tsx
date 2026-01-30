@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, FileImage, Sparkles, MonitorPlay, BarChart2, PanelRightOpen } from '../../../../icons';
+import { Plus, FileImage, Sparkles, MonitorPlay, BarChart2 } from '../../../../icons';
 import TypingCursor from '../../../../shared/TypingCursor';
 
 interface PPTDoneResponseProps {
   slideCount: number;
   onRequestSalesAnalysis?: () => void;
   isRightPanelCollapsed?: boolean;
+  currentDashboardType?: 'financial' | 'did' | 'ppt';
   onOpenRightPanel?: () => void;
 }
 
@@ -64,6 +65,7 @@ export const PPTDoneResponse: React.FC<PPTDoneResponseProps> = ({
   slideCount,
   onRequestSalesAnalysis,
   isRightPanelCollapsed,
+  currentDashboardType,
   onOpenRightPanel
 }) => {
   const [phase, setPhase] = useState(0); // 0: title, 1: description, 2: actions
@@ -110,16 +112,23 @@ export const PPTDoneResponse: React.FC<PPTDoneResponseProps> = ({
         {/* Related Queries / Actions for PPT */}
         {phase >= 2 && (
           <>
-            {/* 우측 패널 열기 버튼 - 패널이 접혀있을 때만 표시 */}
-            {isRightPanelCollapsed && onOpenRightPanel && (
-              <button
-                onClick={onOpenRightPanel}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#FF3C42] text-white rounded-lg hover:bg-[#E63338] transition-colors text-sm font-medium shadow-sm mb-4"
-              >
-                <PanelRightOpen size={16} />
-                <span>PPT 결과 보기</span>
-              </button>
-            )}
+            {/* 우측 패널 열기 버튼 - 현재 패널이 열려있으면 비활성화 */}
+            {onOpenRightPanel && (() => {
+              const isDisabled = !isRightPanelCollapsed && currentDashboardType === 'ppt';
+              return (
+                <button
+                  onClick={onOpenRightPanel}
+                  disabled={isDisabled}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium shadow-sm mb-4 ${
+                    isDisabled
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#FF3C42] text-white hover:bg-[#E63338]'
+                  }`}
+                >
+                  <span>PPT 결과</span>
+                </button>
+              );
+            })()}
 
             <div className="space-y-1">
               <p className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">

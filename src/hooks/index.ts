@@ -6,3 +6,4 @@ export { useCaptureStateInjection } from './useCaptureStateInjection';
 export type { InjectedState, StateInjectionHandlers } from './useCaptureStateInjection';
 export { useTextStreaming } from './useTextStreaming';
 export type { UseTextStreamingConfig, UseTextStreamingReturn } from './useTextStreaming';
+export { useScrollToBottomButton } from './useScrollToBottomButton';

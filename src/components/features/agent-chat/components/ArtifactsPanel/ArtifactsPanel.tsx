@@ -15,6 +15,7 @@ interface ArtifactsPanelProps {
   onClose: () => void;
   onDownloadAll: () => void;
   onDownloadItem: (artifact: Artifact) => void;
+  onArtifactClick?: (artifact: Artifact) => void;
 }
 
 const ARTIFACT_ICONS: Record<ArtifactType, React.FC<{ size?: number; className?: string }>> = {
@@ -38,6 +39,7 @@ export const ArtifactsPanel: React.FC<ArtifactsPanelProps> = ({
   onClose,
   onDownloadAll,
   onDownloadItem,
+  onArtifactClick,
 }) => {
   return (
     <div className="h-full flex flex-col bg-gray-50 animate-fade-in-up">
@@ -74,7 +76,8 @@ export const ArtifactsPanel: React.FC<ArtifactsPanelProps> = ({
             return (
               <div
                 key={artifact.id}
-                className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors group"
+                onClick={() => onArtifactClick?.(artifact)}
+                className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 bg-gray-100 rounded-lg">
@@ -93,7 +96,10 @@ export const ArtifactsPanel: React.FC<ArtifactsPanelProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={() => onDownloadItem(artifact)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownloadItem(artifact);
+                  }}
                   className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                   title="다운로드"
                 >

@@ -8,10 +8,11 @@ import Dashboard from '../dashboard/Dashboard';
 import PPTGenPanel from '../../PPTGenPanel';
 import { SampleInterfaceContext, PPTConfig, SuggestionItem, QuickActionChip } from '../../../types';
 import { SlideItem, Artifact, RightPanelType } from './types';
-import { useCaptureStateInjection, StateInjectionHandlers } from '../../../hooks';
+import { useCaptureStateInjection, StateInjectionHandlers, useScrollToBottomButton } from '../../../hooks';
 import { SalesAnalysisResponse, AnomalyResponse, DefaultResponse, PPTDoneResponse } from './components/AgentResponse';
 import { ChainOfThought } from './components/ChainOfThought';
 import { ArtifactsPanel } from './components/ArtifactsPanel';
+import ScrollToBottomButton from './components/ScrollToBottomButton';
 
 // 대화 메시지 타입 정의
 interface ChatMessage {
@@ -38,6 +39,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // 시나리오 완료 상태 추적
   const [salesAnalysisComplete, setSalesAnalysisComplete] = useState(false);
+  const [anomalyDetectionComplete, setAnomalyDetectionComplete] = useState(false);
 
   // 대화 히스토리 상태
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -87,6 +89,13 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // 외부 상태 주입 훅 사용 (Puppeteer 캡처 자동화 지원)
   useCaptureStateInjection(stateInjectionHandlers);
+
+  // Scroll to bottom button hook
+  const { isVisible: showScrollButton, unreadCount, scrollToBottom, isAtBottom } = useScrollToBottomButton({
+    containerRef: leftPanelRef,
+    threshold: 100,
+    messageCount: chatHistory.length
+  });
 
   // Auto-trigger if initialQuery is provided (중복 실행 방지)
   useEffect(() => {
@@ -182,6 +191,29 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     // TODO: 실제 다운로드 로직 구현
   }, [artifacts.length]);
 
+  // 아티팩트 클릭 핸들러 - 해당 타입에 맞는 패널 열기
+  const handleArtifactClick = useCallback((artifact: Artifact) => {
+    setRightPanelType('dashboard');
+
+    switch (artifact.type) {
+      case 'ppt':
+        setDashboardType('ppt');
+        setIsRightPanelCollapsed(false);
+        break;
+      case 'chart':
+        setDashboardType('financial');
+        if (artifact.id.includes('sales')) {
+          setDashboardScenario('sales_analysis');
+        } else if (artifact.id.includes('anomaly')) {
+          setDashboardScenario('anomaly_cost_spike');
+        }
+        setIsRightPanelCollapsed(false);
+        break;
+      default:
+        console.log('Unsupported artifact type:', artifact.type);
+    }
+  }, []);
+
   // 컨텍스트와 함께 우측 패널 열기 (히스토리의 특정 메시지 컨텍스트로 패널 전환)
   const openRightPanelWithContext = useCallback((context: {
     dashboardType: 'financial' | 'did' | 'ppt';
@@ -194,26 +226,19 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setIsRightPanelCollapsed(false);
   }, []);
 
-  // Handle PPT Generation Simulation
-  useEffect(() => {
-    if (pptStatus === 'generating') {
-      const interval = setInterval(() => {
-        setPptProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setPptStatus('done');
-            return 100;
-          }
-          // Calculate stage based on progress
-          const newStage = Math.min(5, Math.floor((prev + 1) / 16));
-          setPptCurrentStage(newStage);
-          return prev + 1; // Increment progress
-        });
-      }, 50); // Speed of generation simulation
+  // PPT progress is now controlled by slide completion callbacks from PPTGenPanel
+  const handlePptProgressChange = useCallback((newProgress: number) => {
+    setPptProgress(newProgress);
+    // Calculate stage based on progress (6 stages total)
+    const newStage = Math.min(5, Math.floor(newProgress / 16));
+    setPptCurrentStage(newStage);
+  }, []);
 
-      return () => clearInterval(interval);
-    }
-  }, [pptStatus]);
+  const handlePptComplete = useCallback(() => {
+    setPptStatus('done');
+    setPptProgress(100);
+    setPptCurrentStage(5);
+  }, []);
 
   // PPT 완료 시 아티팩트 생성
   useEffect(() => {
@@ -232,6 +257,42 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       }
     }
   }, [pptStatus, pptSlides.length]);
+
+  // 매출 분석 완료 시 아티팩트 생성
+  useEffect(() => {
+    if (salesAnalysisComplete) {
+      const existingSalesArtifact = artifacts.find(a => a.id.startsWith('artifact-sales-'));
+      if (!existingSalesArtifact) {
+        const salesArtifact: Artifact = {
+          id: `artifact-sales-${Date.now()}`,
+          title: '12월 경영 실적 심층 분석',
+          type: 'chart',
+          createdAt: new Date(),
+          messageId: chatHistory[chatHistory.length - 1]?.id || '',
+          fileSize: '3 KPI, 2 Charts',
+        };
+        setArtifacts(prev => [...prev, salesArtifact]);
+      }
+    }
+  }, [salesAnalysisComplete]);
+
+  // 이상 탐지 완료 시 아티팩트 생성
+  useEffect(() => {
+    if (anomalyDetectionComplete) {
+      const existingAnomalyArtifact = artifacts.find(a => a.id.startsWith('artifact-anomaly-'));
+      if (!existingAnomalyArtifact) {
+        const anomalyArtifact: Artifact = {
+          id: `artifact-anomaly-${Date.now()}`,
+          title: '원가율 이상 탐지 분석',
+          type: 'chart',
+          createdAt: new Date(),
+          messageId: chatHistory[chatHistory.length - 1]?.id || '',
+          fileSize: '1 Chart',
+        };
+        setArtifacts(prev => [...prev, anomalyArtifact]);
+      }
+    }
+  }, [anomalyDetectionComplete]);
 
   const chips = [
     { icon: <FileText size={14} />, label: '슬라이드 제작' },
@@ -342,6 +403,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     if (targetScenario) setDashboardScenario(targetScenario);
     // 시나리오 전환 시 이전 완료 상태 리셋
     setSalesAnalysisComplete(false);
+    setAnomalyDetectionComplete(false);
     // 시나리오 전환 시 우측 패널 자동 열기
     setIsRightPanelCollapsed(false);
     // 아티팩트 패널에서 대시보드로 전환
@@ -374,6 +436,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setPptSlides([]); // Clear slides
     setContextData(null); // Clear context
     setSalesAnalysisComplete(false);
+    setAnomalyDetectionComplete(false);
     setChatHistory([]); // Clear chat history
     setCotCompleteMap({}); // Clear CoT completion states
     setArtifacts([]); // Clear artifacts
@@ -453,15 +516,22 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setSalesAnalysisComplete(true);
   }, []);
 
+  // 이상 탐지 완료 핸들러
+  const handleAnomalyDetectionComplete = useCallback(() => {
+    setAnomalyDetectionComplete(true);
+  }, []);
+
+  // Auto-scroll to bottom only if user is already at bottom
   useEffect(() => {
-    if (showDashboard && leftPanelRef.current) {
+    if (showDashboard && leftPanelRef.current && isAtBottom) {
         leftPanelRef.current.scrollTop = leftPanelRef.current.scrollHeight;
     }
-  }, [showDashboard, userQuery, pptStatus]);
+  }, [showDashboard, userQuery, pptStatus, isAtBottom]);
 
   const handleGenerateStart = useCallback(() => {
     setPptStatus('generating');
     setPptProgress(0);
+    setIsRightPanelCollapsed(false);
   }, []);
 
   const updatePptConfig = useCallback(<K extends keyof PPTConfig>(key: K, value: PPTConfig[K]) => {
@@ -499,6 +569,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                 slideCount={pptConfig.slideCount}
                 onRequestSalesAnalysis={handleRequestSalesAnalysis}
                 isRightPanelCollapsed={isRightPanelCollapsed}
+                currentDashboardType={dashboardType}
                 onOpenRightPanel={() => openRightPanelWithContext({
                   dashboardType: 'ppt',
                   pptStatus: 'done'
@@ -511,7 +582,19 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     // 2. Anomaly Detection Scenario
     if (msgDashboardScenario === 'anomaly_cost_spike') {
         const agentMessage = contextData?.agentMessage || "이상 징후가 감지되었습니다.";
-        return <AnomalyResponse agentMessage={agentMessage} />;
+        return (
+          <AnomalyResponse
+            agentMessage={agentMessage}
+            isRightPanelCollapsed={isRightPanelCollapsed}
+            currentDashboardType={dashboardType}
+            currentDashboardScenario={dashboardScenario}
+            onOpenRightPanel={() => openRightPanelWithContext({
+              dashboardType: 'financial',
+              dashboardScenario: 'anomaly_cost_spike'
+            })}
+            onComplete={isLatest ? handleAnomalyDetectionComplete : undefined}
+          />
+        );
     }
 
     // 3. Sales Analysis Scenario
@@ -521,6 +604,8 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
             onComplete={isLatest ? handleSalesAnalysisComplete : undefined}
             onRequestPPT={handleRequestPPT}
             isRightPanelCollapsed={isRightPanelCollapsed}
+            currentDashboardType={dashboardType}
+            currentDashboardScenario={dashboardScenario}
             onOpenRightPanel={() => openRightPanelWithContext({
               dashboardType: 'financial',
               dashboardScenario: 'sales_analysis'
@@ -589,6 +674,19 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
         <div className="prose prose-sm">
           <p className="text-gray-900 font-medium">Q4 2025 경영 실적 보고서 PPT 생성을 요청하셨군요. 세부 설정을 확인해주세요.</p>
         </div>
+
+        {/* 우측 패널 열기 버튼 - 패널이 접혀있을 때만 표시 */}
+        {isRightPanelCollapsed && (
+          <button
+            onClick={() => openRightPanelWithContext({
+              dashboardType: 'ppt',
+              pptStatus: 'setup'
+            })}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#FF3C42] text-white rounded-lg hover:bg-[#E63338] transition-colors text-sm font-medium shadow-sm"
+          >
+            <span>미리 보기</span>
+          </button>
+        )}
 
         {/* Configuration Card */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-6">
@@ -880,7 +978,17 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     // 2. Anomaly Detection Scenario (Streaming)
     if (dashboardScenario === 'anomaly_cost_spike') {
         const agentMessage = contextData?.agentMessage || "이상 징후가 감지되었습니다.";
-        return <AnomalyResponse agentMessage={agentMessage} />;
+        return (
+          <AnomalyResponse
+            agentMessage={agentMessage}
+            isRightPanelCollapsed={isRightPanelCollapsed}
+            onOpenRightPanel={() => openRightPanelWithContext({
+              dashboardType: 'financial',
+              dashboardScenario: 'anomaly_cost_spike'
+            })}
+            onComplete={handleAnomalyDetectionComplete}
+          />
+        );
     }
 
     // 3. Sales Analysis Scenario (Streaming)
@@ -964,6 +1072,13 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                      <div className="h-6"></div>
                   </div>
                  </div>
+
+                 {/* Scroll to Bottom Button */}
+                 <ScrollToBottomButton
+                   isVisible={showScrollButton}
+                   unreadCount={unreadCount}
+                   onClick={scrollToBottom}
+                 />
 
                  {/* Bottom Input Area */}
                  <div className="p-4 pb-6 bg-white border-t border-gray-100 shrink-0 flex justify-center">
@@ -1076,6 +1191,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                         }}
                         onDownloadAll={handleDownloadAllArtifacts}
                         onDownloadItem={handleDownloadArtifact}
+                        onArtifactClick={handleArtifactClick}
                       />
                     ) : dashboardType === 'ppt' ? (
                       <PPTGenPanel
@@ -1087,6 +1203,8 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                         onTogglePanel={toggleRightPanel}
                         slides={pptSlides}
                         onSlidesChange={setPptSlides}
+                        onProgressChange={handlePptProgressChange}
+                        onComplete={handlePptComplete}
                       />
                     ) : (
                       <Dashboard type={dashboardType} scenario={dashboardScenario} onTogglePanel={toggleRightPanel} />

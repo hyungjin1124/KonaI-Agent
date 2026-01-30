@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, PanelRightOpen } from '../../../../icons';
+import { FileText } from '../../../../icons';
 import TypingCursor from '../../../../shared/TypingCursor';
 
 // 섹션별 텍스트 데이터
@@ -175,6 +175,8 @@ interface SalesAnalysisResponseProps {
   onComplete?: () => void;
   onRequestPPT?: () => void;
   isRightPanelCollapsed?: boolean;
+  currentDashboardType?: 'financial' | 'did' | 'ppt';
+  currentDashboardScenario?: string;
   onOpenRightPanel?: () => void;
 }
 
@@ -182,6 +184,8 @@ const SalesAnalysisResponse: React.FC<SalesAnalysisResponseProps> = ({
   onComplete,
   onRequestPPT,
   isRightPanelCollapsed,
+  currentDashboardType,
+  currentDashboardScenario,
   onOpenRightPanel
 }) => {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
@@ -345,16 +349,25 @@ const SalesAnalysisResponse: React.FC<SalesAnalysisResponseProps> = ({
         {/* 분석 완료 후 PPT 생성 연동 버튼 */}
         {isAllComplete && (
           <div className="mt-6 pt-4 border-t border-gray-200 animate-fade-in-up">
-            {/* 우측 패널 열기 버튼 - 패널이 접혀있을 때만 표시 */}
-            {isRightPanelCollapsed && onOpenRightPanel && (
-              <button
-                onClick={onOpenRightPanel}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#FF3C42] text-white rounded-lg hover:bg-[#E63338] transition-colors text-sm font-medium shadow-sm mb-4"
-              >
-                <PanelRightOpen size={16} />
-                <span>분석 대시보드 보기</span>
-              </button>
-            )}
+            {/* 우측 패널 열기 버튼 - 현재 패널이 열려있으면 비활성화 */}
+            {onOpenRightPanel && (() => {
+              const isDisabled = !isRightPanelCollapsed &&
+                currentDashboardType === 'financial' &&
+                currentDashboardScenario === 'sales_analysis';
+              return (
+                <button
+                  onClick={onOpenRightPanel}
+                  disabled={isDisabled}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium shadow-sm mb-4 ${
+                    isDisabled
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#FF3C42] text-white hover:bg-[#E63338]'
+                  }`}
+                >
+                  <span>시각화 결과</span>
+                </button>
+              );
+            })()}
 
             <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">
               Related Actions

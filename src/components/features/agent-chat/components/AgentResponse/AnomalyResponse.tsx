@@ -4,6 +4,11 @@ import TypingCursor from '../../../../shared/TypingCursor';
 
 interface AnomalyResponseProps {
   agentMessage: string;
+  isRightPanelCollapsed?: boolean;
+  currentDashboardType?: 'financial' | 'did' | 'ppt';
+  currentDashboardScenario?: string;
+  onOpenRightPanel?: () => void;
+  onComplete?: () => void;
 }
 
 // 스트리밍 텍스트 컴포넌트
@@ -78,7 +83,14 @@ const StreamingTextSpan: React.FC<{
   );
 };
 
-export const AnomalyResponse: React.FC<AnomalyResponseProps> = ({ agentMessage }) => {
+export const AnomalyResponse: React.FC<AnomalyResponseProps> = ({
+  agentMessage,
+  isRightPanelCollapsed,
+  currentDashboardType,
+  currentDashboardScenario,
+  onOpenRightPanel,
+  onComplete
+}) => {
   const [phase, setPhase] = useState(0); // 0: title, 1: message, 2: analysis, 3: actions
   const [cursorVisible, setCursorVisible] = useState(true);
 
@@ -92,6 +104,13 @@ export const AnomalyResponse: React.FC<AnomalyResponseProps> = ({ agentMessage }
 
     return () => clearInterval(blinkInterval);
   }, [phase]);
+
+  // phase 3 도달 시 완료 콜백 호출
+  useEffect(() => {
+    if (phase === 3) {
+      onComplete?.();
+    }
+  }, [phase, onComplete]);
 
   const titleText = '[Urgent] 공정 원가율 이상 급등 감지';
   const analysisItems = [
@@ -178,6 +197,26 @@ export const AnomalyResponse: React.FC<AnomalyResponseProps> = ({ agentMessage }
           {/* Action Items */}
           {phase >= 3 && (
             <div className="pt-2">
+              {/* 우측 패널 열기 버튼 - 현재 패널이 열려있으면 비활성화 */}
+              {onOpenRightPanel && (() => {
+                const isDisabled = !isRightPanelCollapsed &&
+                  currentDashboardType === 'financial' &&
+                  currentDashboardScenario === 'anomaly_cost_spike';
+                return (
+                  <button
+                    onClick={onOpenRightPanel}
+                    disabled={isDisabled}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium shadow-sm mb-4 ${
+                      isDisabled
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-[#FF3C42] text-white hover:bg-[#E63338]'
+                    }`}
+                  >
+                    <span>시각화 결과</span>
+                  </button>
+                );
+              })()}
+
               <h4 className="font-bold text-gray-900 mb-2">권장 조치 (Action Items)</h4>
               <div className="space-y-2">
                 <button className="w-full text-left p-3 rounded-xl bg-black text-white hover:bg-gray-800 transition-all text-sm flex items-center justify-between group shadow-md">

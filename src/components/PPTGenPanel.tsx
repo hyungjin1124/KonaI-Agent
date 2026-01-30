@@ -24,6 +24,8 @@ interface PPTGenPanelProps {
   onTogglePanel?: () => void;
   slides: SlideItem[];
   onSlidesChange: (slides: SlideItem[]) => void;
+  onProgressChange?: (progress: number) => void;
+  onComplete?: () => void;
 }
 
 // Export status type for type safety
@@ -44,7 +46,7 @@ const THEME_STYLES = {
   'Nature Green': { bg: 'bg-stone-50', accent: 'bg-green-700', text: 'text-stone-800', sub: 'text-stone-600' }
 };
 
-const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, currentStageIndex, onCancel, onTogglePanel, slides, onSlidesChange }) => {
+const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, currentStageIndex, onCancel, onTogglePanel, slides, onSlidesChange, onProgressChange, onComplete }) => {
   const themeStyle = THEME_STYLES[config.theme];
 
   // Local alias for slides setter (for backwards compatibility)
@@ -104,42 +106,19 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
     // Slides status is already managed by progress-based completion in the next useEffect
   }, [status, config.slideCount]);
 
-  // Force complete all slides when status changes to 'done'
-  useEffect(() => {
-    if (status === 'done' && slides.length > 0) {
-      const hasIncomplete = slides.some(s => s.status !== 'completed');
-      if (hasIncomplete) {
-        setSlides(prevSlides => prevSlides.map(slide => ({
-          ...slide,
-          status: 'completed'
-        })));
-      }
-    }
-  }, [status]);
+  // Note: Removed force complete logic - slides completion is now managed by typing effect
 
-  // Progress-based slide completion simulation
-  useEffect(() => {
-    if (slides.length === 0) return;
-
-    // When done, mark all slides as completed (only if not already all completed)
-    if (status === 'done') {
-      const allCompleted = slides.every(s => s.status === 'completed');
-      if (!allCompleted) {
-        setSlides(slides.map(slide => ({
-          ...slide,
-          status: 'completed'
-        })));
-      }
-      return;
-    }
-
-    // Slide status is now managed by typing completion, not by progress
-    // Progress is only used for the progress bar display
-  }, [progress, status, config.slideCount, slides.length]);
+  // Note: Progress is now calculated based on slide completion, not external timer
+  // Slide status is managed entirely by the typing effect below
 
   // Typing effect simulation - uses slidesRef to avoid re-triggering on slides change
   useEffect(() => {
     if (status !== 'generating' && status !== 'done') return;
+
+    // slidesRef가 최신 상태인지 확인 (race condition 방지)
+    if (slidesRef.current.length !== slides.length) {
+      slidesRef.current = slides;
+    }
 
     const selectedSlide = slidesRef.current.find(s => s.id === selectedSlideId);
     if (!selectedSlide || selectedSlide.status === 'pending') return;
@@ -177,25 +156,40 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
 
       if (charIndex >= totalChars) {
         // Typing complete - move to next slide automatically
+        const completedSlideCount = selectedSlideId;
+        const totalSlideCount = config.slideCount;
+
+        // Calculate and report progress based on completed slides
+        const newProgress = Math.round((completedSlideCount / totalSlideCount) * 100);
+        onProgressChange?.(newProgress);
+
         const nextSlideId = selectedSlideId + 1;
         if (nextSlideId <= config.slideCount && status === 'generating') {
-          // Mark current slide as completed and next slide as generating
-          setSlides(prev => prev.map(slide =>
+          // Create new slides array
+          const newSlides = slidesRef.current.map(slide =>
             slide.id === selectedSlideId
-              ? { ...slide, status: 'completed' }
+              ? { ...slide, status: 'completed' as const }
               : slide.id === nextSlideId
-                ? { ...slide, status: 'generating' }
+                ? { ...slide, status: 'generating' as const }
                 : slide
-          ));
-          // Auto-select next slide
+          );
+          // Update slidesRef directly (synchronous, immediate)
+          slidesRef.current = newSlides;
+          // Update state for UI
+          setSlides(newSlides);
+          // Select next slide
           setSelectedSlideId(nextSlideId);
         } else {
-          // Last slide - just mark as completed
-          setSlides(prev => prev.map(slide =>
+          // Last slide - mark as completed and notify parent
+          const newSlides = slidesRef.current.map(slide =>
             slide.id === selectedSlideId
-              ? { ...slide, status: 'completed' }
+              ? { ...slide, status: 'completed' as const }
               : slide
-          ));
+          );
+          slidesRef.current = newSlides;
+          setSlides(newSlides);
+          // Notify parent that all slides are complete
+          onComplete?.();
         }
         setStreamingState(prev => ({
           ...prev,
@@ -248,11 +242,11 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
       isStreaming: true
     }));
 
-    // Start typing - slower speed (150ms for more readable streaming)
-    const typingInterval = setInterval(typeNextChar, 150);
+    // Start typing (100ms per character)
+    const typingInterval = setInterval(typeNextChar, 100);
 
     return () => clearInterval(typingInterval);
-  }, [selectedSlideId, status]);  // Removed 'slides' from dependencies
+  }, [selectedSlideId, status, slides.length]);  // slides.length 추가: 초기화 후 재실행 보장
 
   // Cursor blink effect
   useEffect(() => {
@@ -479,16 +473,6 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
           )}
         </div>
       </div>
-
-      {/* Progress Bar - 생성 중일 때만 표시 */}
-      {!isComplete && (
-        <div className="w-full bg-gray-100 h-1">
-          <div
-            className="h-full transition-all duration-300 ease-out bg-[#FF3C42] shadow-[0_0_10px_rgba(255,60,66,0.3)]"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      )}
 
       {/* 2-Column Layout: Thumbnails + Streaming Renderer */}
       <div className="flex-1 flex overflow-hidden">
