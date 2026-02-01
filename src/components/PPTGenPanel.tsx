@@ -26,6 +26,8 @@ interface PPTGenPanelProps {
   onSlidesChange: (slides: SlideItem[]) => void;
   onProgressChange?: (progress: number) => void;
   onComplete?: () => void;
+  onSlideStart?: (slideId: number, totalSlides: number) => void;
+  onSlideComplete?: (slideId: number, totalSlides: number) => void;
 }
 
 // Export status type for type safety
@@ -46,7 +48,7 @@ const THEME_STYLES = {
   'Nature Green': { bg: 'bg-stone-50', accent: 'bg-green-700', text: 'text-stone-800', sub: 'text-stone-600' }
 };
 
-const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, currentStageIndex, onCancel, onTogglePanel, slides, onSlidesChange, onProgressChange, onComplete }) => {
+const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, currentStageIndex, onCancel, onTogglePanel, slides, onSlidesChange, onProgressChange, onComplete, onSlideStart, onSlideComplete }) => {
   const themeStyle = THEME_STYLES[config.theme];
 
   // Local alias for slides setter (for backwards compatibility)
@@ -159,6 +161,9 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
         const completedSlideCount = selectedSlideId;
         const totalSlideCount = config.slideCount;
 
+        // Notify slide completion
+        onSlideComplete?.(selectedSlideId, totalSlideCount);
+
         // Calculate and report progress based on completed slides
         const newProgress = Math.round((completedSlideCount / totalSlideCount) * 100);
         onProgressChange?.(newProgress);
@@ -241,6 +246,9 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
       streamedContent: { title: '', subtitle: '', bulletPoints: [] },
       isStreaming: true
     }));
+
+    // Notify slide generation start
+    onSlideStart?.(selectedSlideId, config.slideCount);
 
     // Start typing (100ms per character)
     const typingInterval = setInterval(typeNextChar, 100);

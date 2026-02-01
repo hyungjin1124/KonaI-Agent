@@ -90,3 +90,141 @@ export interface Artifact {
 
 // Right Panel Type
 export type RightPanelType = 'dashboard' | 'ppt' | 'artifacts';
+
+// =============================================
+// Tool Call Types (PPT 생성 시나리오용)
+// =============================================
+
+// 메시지 타입 (도구 호출과 답변 구분)
+export type ScenarioMessageType = 'user' | 'agent-text' | 'tool-call';
+
+// 도구 타입
+export type ToolType =
+  | 'ppt_init'             // 프레젠테이션 초기화
+  | 'deep_thinking'        // 심층 사고 (계획 수립)
+  | 'data_source_select'   // 데이터 소스 선택 (HITL)
+  | 'erp_connect'          // ERP 연결
+  | 'parallel_data_query'  // 병렬 데이터 조회 (여러 쿼리 동시 표시)
+  | 'data_query'           // 개별 데이터 조회 (상세 결과 표시)
+  | 'data_validation'      // 데이터 검증 (HITL)
+  | 'ppt_setup'            // PPT 세부 설정 (HITL)
+  | 'web_search'           // 웹 검색
+  | 'slide_planning'       // 슬라이드 개요 계획
+  | 'slide_generation'     // 슬라이드 제작
+  | 'completion'           // 완료
+  | 'todo_update';         // 진행 상황 업데이트
+
+// 도구 상태
+export type ToolStatus = 'pending' | 'running' | 'completed' | 'awaiting-input';
+
+// Human-In-The-Loop 옵션
+export interface HitlOption {
+  id: string;
+  label: string;
+  description?: string;
+  icon?: string;
+  recommended?: boolean;
+}
+
+// 도구 호출 결과
+export interface ToolCallResult {
+  success: boolean;
+  data?: Record<string, unknown>;
+  message?: string;
+}
+
+// 시나리오 메시지 인터페이스
+export interface ScenarioMessage {
+  id: string;
+  type: ScenarioMessageType;
+  timestamp: Date;
+
+  // user 또는 agent-text 타입일 때
+  content?: string;
+
+  // tool-call 타입일 때
+  toolType?: ToolType;
+  toolStatus?: ToolStatus;
+  toolInput?: Record<string, unknown>;
+  toolResult?: ToolCallResult;
+
+  // Human-In-The-Loop 관련
+  isHumanInTheLoop?: boolean;
+  hitlOptions?: HitlOption[];
+  hitlSelectedOption?: string;
+
+  // 연결된 슬라이드 ID
+  linkedSlideIds?: number[];
+}
+
+// 도구 메타데이터
+export interface ToolMetadata {
+  id: ToolType;
+  label: string;
+  labelRunning: string;
+  labelComplete: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+}
+
+// 시나리오 단계 정의
+export interface ScenarioStep {
+  id: string;
+  type: ScenarioMessageType;
+  toolType?: ToolType;
+  agentContent?: string;
+  isHitl?: boolean;
+  isAsyncTool?: boolean; // 외부 완료 신호를 기다리는 비동기 도구 (예: slide_generation)
+  delayMs?: number;
+  dependsOn?: string;
+}
+
+// 데이터 소스 옵션
+export interface DataSourceOption {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  recommended?: boolean;
+  connectedSources?: string[];
+}
+
+// 데이터 검증 요약
+export interface DataValidationSummary {
+  revenue: string;
+  revenueGrowth: string;
+  operatingProfit: string;
+  operatingProfitGrowth: string;
+  dataDate: string;
+  dataSources: string[];
+}
+
+// 병렬 데이터 조회 쿼리
+export interface ParallelDataQuery {
+  id: string;
+  source: string;      // 데이터 소스명 (영림원, E2MAX, Platform Portal)
+  query: string;       // 조회 쿼리명
+  period: string;      // 조회 기간
+  status: 'pending' | 'running' | 'completed';
+}
+
+// 개별 데이터 조회 결과
+export interface DataQueryResult {
+  id: string;
+  source: string;
+  queryName: string;
+  period: string;
+  timestamp: string;
+  data: DataQueryTableRow[];
+  sparqlQuery?: string;  // 가상 SPARQL 쿼리
+}
+
+// 데이터 조회 테이블 행
+export interface DataQueryTableRow {
+  label: string;
+  current: string;
+  previous?: string;
+  change?: string;
+}

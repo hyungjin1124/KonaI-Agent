@@ -13,6 +13,7 @@ import { SalesAnalysisResponse, AnomalyResponse, DefaultResponse, PPTDoneRespons
 import { ChainOfThought } from './components/ChainOfThought';
 import { ArtifactsPanel } from './components/ArtifactsPanel';
 import ScrollToBottomButton from './components/ScrollToBottomButton';
+import PPTScenarioRenderer from './components/PPTScenarioRenderer';
 
 // 대화 메시지 타입 정의
 interface ChatMessage {
@@ -77,6 +78,20 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // --- PPT Slides 상태 (패널 접기/펼치기에도 유지) ---
   const [pptSlides, setPptSlides] = useState<SlideItem[]>([]);
+
+  // --- 슬라이드 생성 상태 (좌우 패널 동기화용) ---
+  const [slideGenerationState, setSlideGenerationState] = useState<{
+    currentSlide: number;
+    completedSlides: number[];
+    totalSlides: number;
+  }>({
+    currentSlide: 0,
+    completedSlides: [],
+    totalSlides: 0
+  });
+
+  // --- 슬라이드 생성 완료 상태 (PPTGenPanel → PPTScenarioRenderer 동기화) ---
+  const [isSlideGenerationComplete, setIsSlideGenerationComplete] = useState(false);
 
   // --- 아티팩트 상태 ---
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
@@ -238,6 +253,25 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setPptStatus('done');
     setPptProgress(100);
     setPptCurrentStage(5);
+    setIsSlideGenerationComplete(true); // PPTScenarioRenderer에 완료 신호 전달
+  }, []);
+
+  // 슬라이드 생성 시작 핸들러 (좌우 패널 동기화)
+  const handleSlideStart = useCallback((slideId: number, totalSlides: number) => {
+    setSlideGenerationState(prev => ({
+      ...prev,
+      currentSlide: slideId,
+      totalSlides
+    }));
+  }, []);
+
+  // 슬라이드 완료 핸들러 (좌우 패널 동기화)
+  const handleSlideComplete = useCallback((slideId: number, totalSlides: number) => {
+    setSlideGenerationState(prev => ({
+      currentSlide: slideId < totalSlides ? slideId + 1 : slideId,
+      completedSlides: [...prev.completedSlides, slideId],
+      totalSlides
+    }));
   }, []);
 
   // PPT 완료 시 아티팩트 생성
@@ -404,8 +438,13 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     // 시나리오 전환 시 이전 완료 상태 리셋
     setSalesAnalysisComplete(false);
     setAnomalyDetectionComplete(false);
-    // 시나리오 전환 시 우측 패널 자동 열기
-    setIsRightPanelCollapsed(false);
+    // PPT 시나리오는 tool_ppt_setup 단계에서 패널이 열림
+    // 시작 시에는 패널을 명시적으로 닫음
+    if (isPptRequest) {
+      setIsRightPanelCollapsed(true);
+    } else {
+      setIsRightPanelCollapsed(false);
+    }
     // 아티팩트 패널에서 대시보드로 전환
     setRightPanelType('dashboard');
 
@@ -442,6 +481,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setArtifacts([]); // Clear artifacts
     setRightPanelType('dashboard'); // Reset panel type
     hasProcessedInitialQuery.current = false; // Reset initial query flag
+    setIsSlideGenerationComplete(false); // 슬라이드 생성 완료 상태 리셋
   }, []);
 
   // PPT 완료 후 → 매출 분석 시나리오로 전환
@@ -532,6 +572,13 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setPptStatus('generating');
     setPptProgress(0);
     setIsRightPanelCollapsed(false);
+    // 슬라이드 생성 상태 초기화
+    setSlideGenerationState({
+      currentSlide: 0,
+      completedSlides: [],
+      totalSlides: 0
+    });
+    setIsSlideGenerationComplete(false); // 슬라이드 생성 완료 상태 리셋
   }, []);
 
   const updatePptConfig = useCallback(<K extends keyof PPTConfig>(key: K, value: PPTConfig[K]) => {
@@ -557,13 +604,29 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     const msgDashboardScenario = message.dashboardScenario;
     const msgPptStatus = isLatest ? pptStatus : (message.pptStatus || 'done');
 
-    // 1. PPT Scenario
+    // 1. PPT Scenario - 새로운 시나리오 렌더러 사용
     if (msgDashboardType === 'ppt') {
-        if (msgPptStatus === 'setup' && isLatest) {
-            return renderPPTSetup();
-        } else if (msgPptStatus === 'generating' && isLatest) {
-            return renderPPTGenerating();
+        // 최신 메시지는 항상 PPTScenarioRenderer 사용 (done 상태에서도 대화 내역 유지)
+        if (isLatest) {
+            return (
+              <PPTScenarioRenderer
+                userQuery={userQuery}
+                pptConfig={pptConfig}
+                onPptConfigUpdate={updatePptConfig}
+                onPptStatusChange={setPptStatus}
+                onScenarioComplete={handlePptComplete}
+                onRequestSalesAnalysis={handleRequestSalesAnalysis}
+                isRightPanelCollapsed={isRightPanelCollapsed}
+                onOpenRightPanel={() => openRightPanelWithContext({
+                  dashboardType: 'ppt',
+                  pptStatus: pptStatus === 'done' ? 'done' : 'setup'  // 현재 상태에 따라 동적으로 설정
+                })}
+                slideGenerationState={slideGenerationState}
+                isSlideGenerationComplete={isSlideGenerationComplete}
+              />
+            );
         } else {
+            // 히스토리 메시지만 PPTDoneResponse로 표시
             return (
               <PPTDoneResponse
                 slideCount={pptConfig.slideCount}
@@ -632,12 +695,12 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     const msgPptStatus = isLatest ? pptStatus : (message.pptStatus || 'done');
     const isCotComplete = cotCompleteMap[message.id] ?? false;
 
-    // PPT setup/generating은 CoT 없이 바로 렌더링
-    if (msgDashboardType === 'ppt' && (msgPptStatus === 'setup' || msgPptStatus === 'generating') && isLatest) {
+    // PPT 시나리오는 자체 렌더러 사용 (CoT 대신 도구 호출/답변 번갈아 표시)
+    if (msgDashboardType === 'ppt') {
       return renderActualResponse(message, isLatest);
     }
 
-    // CoT 표시 여부 결정 (최신 메시지에만 CoT 표시)
+    // 다른 시나리오는 기존 CoT 패턴 유지
     const shouldShowCot = isLatest;
 
     // CoT와 실제 응답을 함께 렌더링
@@ -1205,6 +1268,8 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                         onSlidesChange={setPptSlides}
                         onProgressChange={handlePptProgressChange}
                         onComplete={handlePptComplete}
+                        onSlideStart={handleSlideStart}
+                        onSlideComplete={handleSlideComplete}
                       />
                     ) : (
                       <Dashboard type={dashboardType} scenario={dashboardScenario} onTogglePanel={toggleRightPanel} />
