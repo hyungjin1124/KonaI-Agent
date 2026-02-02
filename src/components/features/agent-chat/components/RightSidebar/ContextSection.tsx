@@ -122,7 +122,7 @@ export const ContextSection: React.FC<ContextSectionProps> = ({
           ) : (
             <ChevronRight className="w-4 h-4 text-gray-500" />
           )}
-          <span className="text-sm font-medium text-gray-900">Context</span>
+          <span className="text-sm font-medium text-gray-900">컨텍스트</span>
         </div>
         {items.length > 0 && (
           <span className="text-xs text-gray-500">{items.length}</span>
@@ -139,7 +139,7 @@ export const ContextSection: React.FC<ContextSectionProps> = ({
               {/* Selected Folders */}
               {folders.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 px-2 py-1">Selected folders</p>
+                  <p className="text-xs text-gray-500 px-2 py-1">선택된 폴더</p>
                   {folders.map((item) => (
                     <ContextItemRow key={item.id} item={item} />
                   ))}
@@ -149,7 +149,7 @@ export const ContextSection: React.FC<ContextSectionProps> = ({
               {/* Connectors */}
               {connectors.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 px-2 py-1">Connectors</p>
+                  <p className="text-xs text-gray-500 px-2 py-1">커넥터</p>
                   {connectors.map((item) => (
                     <ContextItemRow key={item.id} item={item} />
                   ))}
@@ -159,7 +159,7 @@ export const ContextSection: React.FC<ContextSectionProps> = ({
               {/* Data Sources */}
               {dataSources.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 px-2 py-1">Data Sources</p>
+                  <p className="text-xs text-gray-500 px-2 py-1">데이터 소스</p>
                   {dataSources.map((item) => (
                     <ContextItemRow key={item.id} item={item} />
                   ))}
@@ -169,7 +169,7 @@ export const ContextSection: React.FC<ContextSectionProps> = ({
               {/* Working Files */}
               {workingFiles.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 px-2 py-1">Working files</p>
+                  <p className="text-xs text-gray-500 px-2 py-1">작업 파일</p>
                   {workingFiles.map((item) => (
                     <ContextItemRow key={item.id} item={item} />
                   ))}

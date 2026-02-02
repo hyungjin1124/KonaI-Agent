@@ -57,7 +57,7 @@ export const ProgressSection: React.FC<ProgressSectionProps> = ({
           ) : (
             <ChevronRight className="w-4 h-4 text-gray-500" />
           )}
-          <span className="text-sm font-medium text-gray-900">Progress</span>
+          <span className="text-sm font-medium text-gray-900">진행 상황</span>
         </div>
         {totalCount > 0 && (
           <span className="text-xs text-gray-500">

@@ -269,5 +269,11 @@ export interface ArtifactPreviewState {
   previewType: 'ppt' | 'dashboard' | 'chart' | null;
 }
 
+// 가운데 패널 상태 (Artifact Preview 독립 제어)
+export interface CenterPanelState {
+  isOpen: boolean;
+  content: 'ppt-preview' | 'dashboard' | null;
+}
+
 // 레이아웃 모드
 export type LayoutMode = 'two-panel' | 'three-panel';

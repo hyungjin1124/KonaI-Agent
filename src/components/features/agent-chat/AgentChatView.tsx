@@ -7,7 +7,7 @@ import {
 import Dashboard from '../dashboard/Dashboard';
 import PPTGenPanel from '../../PPTGenPanel';
 import { SampleInterfaceContext, PPTConfig, SuggestionItem, QuickActionChip } from '../../../types';
-import { SlideItem, Artifact, RightPanelType, ProgressTask, ContextItem, SidebarSection, ArtifactPreviewState } from './types';
+import { SlideItem, Artifact, RightPanelType, ProgressTask, ContextItem, SidebarSection, ArtifactPreviewState, CenterPanelState } from './types';
 import { useCaptureStateInjection, StateInjectionHandlers, useScrollToBottomButton } from '../../../hooks';
 import { SalesAnalysisResponse, AnomalyResponse, DefaultResponse, PPTDoneResponse } from './components/AgentResponse';
 import { ChainOfThought } from './components/ChainOfThought';
@@ -108,6 +108,12 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     isOpen: false,
     selectedArtifact: null,
     previewType: null,
+  });
+
+  // 수정 2: 가운데 패널 상태 (Artifact Preview 독립 제어)
+  const [centerPanelState, setCenterPanelState] = useState<CenterPanelState>({
+    isOpen: false,
+    content: null,
   });
 
   // 캡처 자동화용 상태 주입 핸들러
@@ -451,13 +457,8 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     // 시나리오 전환 시 이전 완료 상태 리셋
     setSalesAnalysisComplete(false);
     setAnomalyDetectionComplete(false);
-    // PPT 시나리오는 tool_ppt_setup 단계에서 패널이 열림
-    // 시작 시에는 패널을 명시적으로 닫음
-    if (isPptRequest) {
-      setIsRightPanelCollapsed(true);
-    } else {
-      setIsRightPanelCollapsed(false);
-    }
+    // 수정 1: 우측 사이드바 기본값 열림 유지 (PPT 시나리오 시작 시에도 닫지 않음)
+    setIsRightPanelCollapsed(false);
     // 아티팩트 패널에서 대시보드로 전환
     setRightPanelType('dashboard');
 
@@ -656,6 +657,22 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     });
   }, []);
 
+  // 수정 2: 가운데 패널 열기 (조건 A, B, C, D)
+  const handleOpenCenterPanel = useCallback((content: 'ppt-preview' | 'dashboard' = 'ppt-preview') => {
+    setCenterPanelState({
+      isOpen: true,
+      content,
+    });
+  }, []);
+
+  // 가운데 패널 닫기 (독립적)
+  const handleCloseCenterPanel = useCallback(() => {
+    setCenterPanelState({
+      isOpen: false,
+      content: null,
+    });
+  }, []);
+
   // PPT 시나리오 Progress Task 매핑
   const PPT_SCENARIO_TASK_GROUPS = useMemo(() => [
     { id: 'planning', label: '작업 계획 수립', stepIds: ['agent_greeting', 'tool_planning'] },
@@ -767,8 +784,10 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                 isRightPanelCollapsed={isRightPanelCollapsed}
                 onOpenRightPanel={() => openRightPanelWithContext({
                   dashboardType: 'ppt',
-                  pptStatus: pptStatus === 'done' ? 'done' : 'setup'  // 현재 상태에 따라 동적으로 설정
+                  pptStatus: pptStatus === 'done' ? 'done' : 'setup'
                 })}
+                onOpenCenterPanel={() => handleOpenCenterPanel('ppt-preview')}
+                onProgressUpdate={setProgressTasks}
                 slideGenerationState={slideGenerationState}
                 isSlideGenerationComplete={isSlideGenerationComplete}
               />
@@ -1215,8 +1234,9 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // 1. Result View (Cowork Layout - 3-Panel)
   if (showDashboard) {
-    // 중앙 패널 열림 조건: PPT 생성 중이거나 완료 후, 또는 아티팩트 미리보기 선택 시
-    const isCenterPanelOpen = !isRightPanelCollapsed && (
+    // 수정 2: 가운데 패널 열림 조건 명확화 (centerPanelState 우선, 기존 로직 fallback)
+    // 가운데 패널과 우측 패널은 독립적으로 열림/닫힘
+    const isCenterPanelOpen = centerPanelState.isOpen || (
       (dashboardType === 'ppt' && pptStatus !== 'idle') ||
       (dashboardType === 'financial' && dashboardScenario) ||
       artifactPreview.isOpen

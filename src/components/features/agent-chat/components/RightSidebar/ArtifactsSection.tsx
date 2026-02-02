@@ -49,7 +49,7 @@ export const ArtifactsSection: React.FC<ArtifactsSectionProps> = ({
           ) : (
             <ChevronRight className="w-4 h-4 text-gray-500" />
           )}
-          <span className="text-sm font-medium text-gray-900">Artifacts</span>
+          <span className="text-sm font-medium text-gray-900">생성물</span>
         </div>
         {artifacts.length > 0 && (
           <span className="text-xs text-gray-500">{artifacts.length}</span>
