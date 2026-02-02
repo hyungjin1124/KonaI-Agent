@@ -1,4 +1,4 @@
-import { ToolType, ToolStatus, ToolCallResult, HitlOption, ToolMetadata } from '../../types';
+import { ToolType, ToolStatus, ToolCallResult, HitlOption, ToolMetadata, ScenarioMessage, DataValidationSummary } from '../../types';
 import { PPTConfig } from '../../../../../types';
 
 // ToolCallWidget Props
@@ -147,4 +147,63 @@ export interface SlideGenerationToolProps extends ToolVariantProps {
   currentSlide?: number;
   totalSlides?: number;
   slideTitle?: string;
+}
+
+// =============================================
+// Tool Group Types (2단계 아코디언 구조)
+// =============================================
+
+// ToolCallGroup Props (외부 아코디언)
+export interface ToolCallGroupProps {
+  /** 그룹 내 모든 메시지 (tool-call만 필터링됨) */
+  messages: ScenarioMessage[];
+  /** 그룹 펼침 상태 */
+  isGroupExpanded: boolean;
+  /** 그룹 토글 핸들러 */
+  onGroupToggle: () => void;
+  /** 현재 활성화된 Tool 메시지 ID (내부 아코디언) */
+  activeToolMessageId: string | null;
+  /** 개별 Tool 토글 핸들러 */
+  onToolToggle: (messageId: string) => void;
+  /** 시나리오 완료 여부 */
+  isScenarioComplete: boolean;
+  /** 시나리오 진행 중 여부 */
+  isScenarioRunning: boolean;
+  /** 현재 단계 ID */
+  currentStepId: string | null;
+  /** 완료된 단계 ID Set */
+  completedStepIds: Set<string>;
+
+  // HITL 관련 Props
+  onHitlSelect?: (stepId: string, optionId: string) => void;
+  onValidationConfirm?: () => void;
+  onPptSetupComplete?: () => void;
+
+  // PPT Config Props
+  pptConfig?: PPTConfig;
+  onPptConfigUpdate?: <K extends keyof PPTConfig>(key: K, value: PPTConfig[K]) => void;
+  validationData?: DataValidationSummary;
+
+  // 슬라이드 생성 상태
+  slideGenerationState?: {
+    currentSlide: number;
+    completedSlides: number[];
+    totalSlides: number;
+  };
+}
+
+// ToolCallGroupHeader Props (외부 아코디언 헤더)
+export interface ToolCallGroupHeaderProps {
+  /** 완료된 Tool 수 */
+  completedCount: number;
+  /** 전체 Tool 수 */
+  totalCount: number;
+  /** 시나리오 완료 여부 */
+  isComplete: boolean;
+  /** 시나리오 진행 중 여부 */
+  isRunning: boolean;
+  /** 펼침 상태 */
+  isExpanded: boolean;
+  /** 토글 핸들러 */
+  onToggle: () => void;
 }

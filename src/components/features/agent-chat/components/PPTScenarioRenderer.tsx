@@ -1,9 +1,7 @@
-import React, { useEffect, useCallback } from 'react';
-import { ToolCallWidget, DEFAULT_DATA_SOURCE_OPTIONS } from './ToolCall';
-import { PPTSetupTool } from './ToolCall/tool-variants';
+import React, { useEffect, useMemo } from 'react';
+import { ToolCallGroup } from './ToolCall';
 import { PPTDoneResponse } from './AgentResponse';
-import { ScenarioMessage, ToolStatus } from '../types';
-import { DEFAULT_VALIDATION_DATA } from '../scenarios/pptScenario';
+import { ProgressTask } from '../types';
 import { PPTConfig } from '../../../../types';
 import usePPTScenario from '../../../../hooks/usePPTScenario';
 
@@ -16,6 +14,8 @@ interface PPTScenarioRendererProps {
   onRequestSalesAnalysis: () => void;
   isRightPanelCollapsed: boolean;
   onOpenRightPanel: () => void;
+  onOpenCenterPanel?: () => void; // 가운데 패널 열기 콜백
+  onProgressUpdate?: (tasks: ProgressTask[]) => void; // Progress 업데이트 콜백
   slideGenerationState?: {
     currentSlide: number;
     completedSlides: number[];
@@ -38,6 +38,8 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
   onRequestSalesAnalysis,
   isRightPanelCollapsed,
   onOpenRightPanel,
+  onOpenCenterPanel,
+  onProgressUpdate,
   slideGenerationState,
   isSlideGenerationComplete,
 }) => {
@@ -49,29 +51,43 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
     isComplete,
     validationData,
     completedStepIds,
+    progressTasks,
     startScenario,
     resumeWithHitlSelection,
     confirmValidation,
     completePptSetup,
     completeSlideGeneration,
     toggleMessageExpand,
-    expandedMessageIds,
+    activeToolMessageId,
+    isGroupExpanded,
+    toggleGroup,
   } = usePPTScenario({
     onScenarioComplete: () => {
       onPptStatusChange('done');
       onScenarioComplete();
     },
     onStepStart: (stepId) => {
-      // PPT 세부 설정 단계에서 우측 패널 자동 열기
+      // 조건 A: PPT 세부 설정 단계에서 가운데 패널 열기
       if (stepId === 'tool_ppt_setup') {
-        onOpenRightPanel();
+        onOpenCenterPanel?.();
       }
-      // 슬라이드 생성 단계에서 generating 상태로 변경
+      // 조건 B: 슬라이드 생성 단계에서 가운데 패널 열기 (닫혀있었다면)
       if (stepId === 'tool_slide_generation') {
         onPptStatusChange('generating');
+        onOpenCenterPanel?.();
       }
     },
   });
+
+  // todo_update 메시지 필터링
+  const filteredMessages = useMemo(() => {
+    return messages.filter(msg => msg.toolType !== 'todo_update');
+  }, [messages]);
+
+  // Progress 업데이트 전달
+  useEffect(() => {
+    onProgressUpdate?.(progressTasks);
+  }, [progressTasks, onProgressUpdate]);
 
   // 시나리오 자동 시작 (완료 상태에서는 재시작하지 않음)
   useEffect(() => {
@@ -88,29 +104,20 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
     }
   }, [isSlideGenerationComplete, currentStepId, isPaused, completeSlideGeneration]);
 
-  // 메시지 렌더링
-  const renderMessage = useCallback((message: ScenarioMessage, index: number) => {
-    const isExpanded = expandedMessageIds.has(message.id);
+  // 에이전트 텍스트 메시지만 필터링 (최초 인사 등)
+  const agentMessages = useMemo(() => {
+    return filteredMessages.filter(msg => msg.type === 'agent-text' && msg.content !== 'final');
+  }, [filteredMessages]);
 
-    // 에이전트 텍스트 메시지
-    if (message.type === 'agent-text') {
-      // 최종 응답은 PPTDoneResponse로 렌더링
-      if (message.content === 'final' && isComplete) {
-        return (
-          <div key={message.id} className="mb-4">
-            <PPTDoneResponse
-              slideCount={pptConfig.slideCount}
-              onRequestSalesAnalysis={onRequestSalesAnalysis}
-              isRightPanelCollapsed={isRightPanelCollapsed}
-              currentDashboardType="ppt"
-              onOpenRightPanel={onOpenRightPanel}
-            />
-          </div>
-        );
-      }
+  // Tool 메시지가 있는지 확인 (그룹 렌더링용)
+  const hasToolMessages = useMemo(() => {
+    return filteredMessages.some(msg => msg.type === 'tool-call');
+  }, [filteredMessages]);
 
-      // 일반 에이전트 텍스트
-      return (
+  return (
+    <div className="space-y-2">
+      {/* 에이전트 초기 메시지 */}
+      {agentMessages.map((message) => (
         <div key={message.id} className="flex gap-4 mb-4 animate-fade-in-up">
           <div className="w-8 h-8 rounded bg-[#FF3C42] flex items-center justify-center shrink-0 mt-1 shadow-sm">
             <span className="text-white font-bold text-xs">K</span>
@@ -121,146 +128,42 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
             </p>
           </div>
         </div>
-      );
-    }
+      ))}
 
-    // 도구 호출 메시지
-    if (message.type === 'tool-call' && message.toolType) {
-      // HITL 위젯은 입력 대기 중일 때 항상 펼침, 완료 후에는 접을 수 있음
-      const isHitlAwaitingInput = message.toolStatus === 'running' || message.toolStatus === 'awaiting-input';
+      {/* Tool 그룹 (2단계 아코디언) */}
+      {hasToolMessages && (
+        <ToolCallGroup
+          messages={filteredMessages}
+          isGroupExpanded={isGroupExpanded}
+          onGroupToggle={toggleGroup}
+          activeToolMessageId={activeToolMessageId}
+          onToolToggle={toggleMessageExpand}
+          isScenarioComplete={isComplete}
+          isScenarioRunning={isRunning}
+          currentStepId={currentStepId}
+          completedStepIds={completedStepIds}
+          onHitlSelect={resumeWithHitlSelection}
+          onValidationConfirm={confirmValidation}
+          onPptSetupComplete={completePptSetup}
+          pptConfig={pptConfig}
+          onPptConfigUpdate={onPptConfigUpdate}
+          validationData={validationData}
+          slideGenerationState={slideGenerationState}
+        />
+      )}
 
-      // PPT 세부 설정은 별도 컴포넌트로 렌더링
-      if (message.toolType === 'ppt_setup') {
-        const pptSetupExpanded = isHitlAwaitingInput || isExpanded;
-        return (
-          <div key={message.id} className="mb-4">
-            <ToolCallWidget
-              toolType={message.toolType}
-              status={message.toolStatus || 'pending'}
-              isExpanded={pptSetupExpanded}
-              onToggle={() => toggleMessageExpand(message.id)}
-              currentStepId={currentStepId}
-              completedStepIds={completedStepIds}
-            />
-            {message.toolStatus !== 'completed' && (
-              <div className="mt-2 p-4 bg-white border border-pink-200 rounded-lg">
-                <PPTSetupTool
-                  status={message.toolStatus === 'running' ? 'awaiting-input' : message.toolStatus || 'pending'}
-                  config={pptConfig}
-                  onConfigUpdate={onPptConfigUpdate}
-                  onComplete={completePptSetup}
-                />
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      // 데이터 소스 선택 (HITL)
-      if (message.toolType === 'data_source_select') {
-        const dataSourceExpanded = isHitlAwaitingInput || isExpanded;
-        return (
-          <div key={message.id} className="mb-4">
-            <ToolCallWidget
-              toolType={message.toolType}
-              status={message.toolStatus || 'pending'}
-              isExpanded={dataSourceExpanded}
-              onToggle={() => toggleMessageExpand(message.id)}
-              isHitl={true}
-              hitlOptions={DEFAULT_DATA_SOURCE_OPTIONS}
-              selectedOption={message.hitlSelectedOption}
-              onHitlSelect={(optionId) => resumeWithHitlSelection('tool_data_source', optionId)}
-              currentStepId={currentStepId}
-              completedStepIds={completedStepIds}
-            />
-          </div>
-        );
-      }
-
-      // 데이터 검증 (HITL)
-      if (message.toolType === 'data_validation') {
-        const validationExpanded = isHitlAwaitingInput || isExpanded;
-        return (
-          <div key={message.id} className="mb-4">
-            <ToolCallWidget
-              toolType={message.toolType}
-              status={message.toolStatus || 'pending'}
-              isExpanded={validationExpanded}
-              onToggle={() => toggleMessageExpand(message.id)}
-              isHitl={true}
-              validationData={validationData}
-              onValidationConfirm={confirmValidation}
-              onValidationModify={() => {
-                // TODO: 수정 요청 처리
-                console.log('Modification requested');
-              }}
-              currentStepId={currentStepId}
-              completedStepIds={completedStepIds}
-            />
-          </div>
-        );
-      }
-
-      // 슬라이드 제작 (우측 패널과 동기화)
-      if (message.toolType === 'slide_generation') {
-        return (
-          <div key={message.id} className="mb-4">
-            <ToolCallWidget
-              toolType={message.toolType}
-              status={message.toolStatus || 'pending'}
-              isExpanded={isExpanded}
-              onToggle={() => toggleMessageExpand(message.id)}
-              input={{
-                currentSlide: slideGenerationState?.currentSlide || 1,
-                totalSlides: slideGenerationState?.totalSlides || pptConfig.slideCount,
-                completedSlides: slideGenerationState?.completedSlides || [],
-              }}
-              currentStepId={currentStepId}
-              completedStepIds={completedStepIds}
-            />
-          </div>
-        );
-      }
-
-      // 기타 도구 호출 (접을 수 있음)
-      return (
-        <div key={message.id} className="mb-4">
-          <ToolCallWidget
-            toolType={message.toolType}
-            status={message.toolStatus || 'pending'}
-            isExpanded={isExpanded}
-            onToggle={() => toggleMessageExpand(message.id)}
-            input={message.toolInput}
-            result={message.toolResult}
-            currentStepId={currentStepId}
-            completedStepIds={completedStepIds}
+      {/* 최종 완료 응답 */}
+      {isComplete && (
+        <div className="mb-4">
+          <PPTDoneResponse
+            slideCount={pptConfig.slideCount}
+            onRequestSalesAnalysis={onRequestSalesAnalysis}
+            isRightPanelCollapsed={isRightPanelCollapsed}
+            currentDashboardType="ppt"
+            onOpenRightPanel={onOpenRightPanel}
           />
         </div>
-      );
-    }
-
-    return null;
-  }, [
-    expandedMessageIds,
-    isComplete,
-    pptConfig,
-    onRequestSalesAnalysis,
-    isRightPanelCollapsed,
-    onOpenRightPanel,
-    toggleMessageExpand,
-    resumeWithHitlSelection,
-    validationData,
-    confirmValidation,
-    completePptSetup,
-    onPptConfigUpdate,
-    currentStepId,
-    completedStepIds,
-    slideGenerationState,
-  ]);
-
-  return (
-    <div className="space-y-2">
-      {messages.map((message, index) => renderMessage(message, index))}
+      )}
 
       {/* 로딩 인디케이터 (실행 중이고 일시 중지가 아닐 때) */}
       {isRunning && !isPaused && !isComplete && (

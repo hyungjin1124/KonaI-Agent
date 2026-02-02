@@ -39,6 +39,39 @@
         .animate-fade-in-up {
             animation: fadeInUp 0.5s ease-out forwards;
         }
+        /* Accordion animations (Claude Chat style) */
+        @keyframes accordion-down {
+            from {
+                opacity: 0;
+                max-height: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                max-height: 1000px;
+                transform: translateY(0);
+            }
+        }
+        @keyframes accordion-up {
+            from {
+                opacity: 1;
+                max-height: 1000px;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                max-height: 0;
+                transform: translateY(-8px);
+            }
+        }
+        .animate-accordion-down {
+            animation: accordion-down 0.2s ease-out forwards;
+            overflow: hidden;
+        }
+        .animate-accordion-up {
+            animation: accordion-up 0.2s ease-out forwards;
+            overflow: hidden;
+        }
         /* React Grid Layout Overrides */
         .react-grid-item.react-grid-placeholder {
             background: rgba(255, 60, 66, 0.1) !important;

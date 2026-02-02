@@ -4,6 +4,10 @@ export { default as ToolCallContent } from './ToolCallContent';
 export { default as ToolCallStatusIndicator } from './ToolCallStatusIndicator';
 export { default as QueryAnalysisBox } from './QueryAnalysisBox';
 
+// 2단계 아코디언 그룹 컴포넌트
+export { default as ToolCallGroup } from './ToolCallGroup';
+export { default as ToolCallGroupHeader } from './ToolCallGroupHeader';
+
 // Types
 export type {
   ToolCallWidgetProps,
@@ -17,6 +21,9 @@ export type {
   DeepThinkingToolProps,
   DataQueryToolProps,
   SlideGenerationToolProps,
+  // 2단계 아코디언 그룹 타입
+  ToolCallGroupProps,
+  ToolCallGroupHeaderProps,
 } from './types';
 
 // Constants

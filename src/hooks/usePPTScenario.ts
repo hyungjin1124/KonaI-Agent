@@ -1,19 +1,28 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   ScenarioMessage,
   ToolStatus,
-  HitlOption,
   DataValidationSummary,
+  ProgressTask,
 } from '../components/features/agent-chat/types';
 import {
   PPT_SCENARIO_STEPS,
   DEFAULT_VALIDATION_DATA,
-  findStepById,
-  findNextStep,
   createScenarioMessage,
 } from '../components/features/agent-chat/scenarios/pptScenario';
-import { DEFAULT_DATA_SOURCE_OPTIONS, findTodoByStepId, SCENARIO_TODOS } from '../components/features/agent-chat/components/ToolCall/constants';
+import { DEFAULT_DATA_SOURCE_OPTIONS } from '../components/features/agent-chat/components/ToolCall/constants';
 import { PPTConfig } from '../types';
+
+// Progress 태스크 그룹 정의 (시나리오 단계 → 진행 상황 매핑)
+const PROGRESS_TASK_GROUPS = [
+  { id: 'planning', label: '작업 계획 수립', stepIds: ['agent_greeting', 'tool_planning'] },
+  { id: 'data_source', label: '데이터 소스 선택', stepIds: ['tool_data_source', 'agent_data_source_confirm'] },
+  { id: 'data_query', label: '데이터 조회', stepIds: ['tool_erp_connect', 'tool_parallel_query', 'tool_data_query_1', 'tool_data_query_2', 'tool_data_query_3', 'tool_data_query_4'] },
+  { id: 'data_validation', label: '데이터 검증', stepIds: ['tool_data_validation', 'agent_validation_confirm'] },
+  { id: 'ppt_setup', label: 'PPT 설정', stepIds: ['tool_ppt_setup', 'agent_setup_confirm'] },
+  { id: 'slide_generation', label: '슬라이드 생성', stepIds: ['tool_web_search', 'tool_slide_planning', 'tool_slide_generation'] },
+  { id: 'completion', label: '완료', stepIds: ['tool_completion', 'agent_final'] },
+];
 
 interface UsePPTScenarioOptions {
   onStepStart?: (stepId: string) => void;
@@ -36,6 +45,9 @@ interface UsePPTScenarioReturn {
   validationData: DataValidationSummary;
   completedStepIds: Set<string>; // 완료된 단계 ID 추적
 
+  // Progress 동기화용 데이터
+  progressTasks: ProgressTask[];
+
   // Actions
   startScenario: () => void;
   resumeWithHitlSelection: (stepId: string, selectedOption: string) => void;
@@ -45,9 +57,14 @@ interface UsePPTScenarioReturn {
   pauseScenario: () => void;
   resetScenario: () => void;
 
-  // 메시지 토글
+  // 메시지 토글 (아코디언 방식)
   toggleMessageExpand: (messageId: string) => void;
-  expandedMessageIds: Set<string>;
+  activeToolMessageId: string | null;
+  isMessageExpanded: (messageId: string) => boolean;
+
+  // 외부 아코디언 (그룹) 상태
+  isGroupExpanded: boolean;
+  toggleGroup: () => void;
 }
 
 export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScenarioReturn {
@@ -72,50 +89,58 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
   // 완료된 단계 ID 추적
   const [completedStepIds, setCompletedStepIds] = useState<Set<string>>(new Set());
 
-  // 확장된 메시지 ID 추적
-  const [expandedMessageIds, setExpandedMessageIds] = useState<Set<string>>(new Set());
+  // 현재 활성화된 도구 메시지 ID (아코디언 방식 - 하나만 펼쳐짐)
+  const [activeToolMessageId, setActiveToolMessageId] = useState<string | null>(null);
+
+  // 외부 아코디언(그룹) 펼침 상태
+  const [isGroupExpanded, setIsGroupExpanded] = useState<boolean>(true);
 
   // 타이머 ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const stepIndexRef = useRef(0);
 
-  // Task 완료 시 Todo 메시지 삽입 (마지막 step인 경우에만)
-  const insertTodoUpdateIfTaskCompleted = useCallback((stepId: string, newCompletedStepIds: Set<string>) => {
-    const todo = findTodoByStepId(stepId);
-    if (!todo) return;
+  // Progress 태스크 계산 (completedStepIds, currentStepId 기반)
+  const progressTasks = useMemo((): ProgressTask[] => {
+    return PROGRESS_TASK_GROUPS.map(group => {
+      const allCompleted = group.stepIds.every(id => completedStepIds.has(id));
+      const anyRunning = group.stepIds.includes(currentStepId || '');
+      const someCompleted = group.stepIds.some(id => completedStepIds.has(id));
 
-    // 이 stepId가 해당 Task의 마지막 step인지 확인
-    const isLastStepOfTask = todo.stepIds[todo.stepIds.length - 1] === stepId;
-    if (!isLastStepOfTask) return;
+      let status: 'pending' | 'running' | 'completed' | 'error' = 'pending';
+      let progress: number | undefined;
 
-    // 해당 Task의 모든 step이 완료되었는지 확인
-    const allStepsCompleted = todo.stepIds.every(id => newCompletedStepIds.has(id));
-    if (!allStepsCompleted) return;
+      if (allCompleted) {
+        status = 'completed';
+        progress = 100;
+      } else if (anyRunning || someCompleted) {
+        status = 'running';
+        // 부분 진행률 계산
+        const completedCount = group.stepIds.filter(id => completedStepIds.has(id)).length;
+        progress = Math.round((completedCount / group.stepIds.length) * 100);
+      }
 
-    // Todo 업데이트 메시지 삽입
-    const todoMessage: ScenarioMessage = {
-      id: `msg-todo-${todo.id}-${Date.now()}`,
-      type: 'tool-call',
-      timestamp: new Date(),
-      toolType: 'todo_update',
-      toolStatus: 'completed',
-    };
-    setMessages(prev => [...prev, todoMessage]);
-    // 기본적으로 펼침 상태로 설정
-    setExpandedMessageIds(prev => new Set([...prev, todoMessage.id]));
+      return {
+        id: group.id,
+        label: group.label,
+        status,
+        progress,
+      };
+    });
+  }, [completedStepIds, currentStepId]);
+
+  // 메시지 토글 (아코디언 방식)
+  const toggleMessageExpand = useCallback((messageId: string) => {
+    setActiveToolMessageId(prev => prev === messageId ? null : messageId);
   }, []);
 
-  // 메시지 토글
-  const toggleMessageExpand = useCallback((messageId: string) => {
-    setExpandedMessageIds(prev => {
-      const next = new Set(prev);
-      if (next.has(messageId)) {
-        next.delete(messageId);
-      } else {
-        next.add(messageId);
-      }
-      return next;
-    });
+  // 펼침 상태 확인 헬퍼
+  const isMessageExpanded = useCallback((messageId: string) => {
+    return activeToolMessageId === messageId;
+  }, [activeToolMessageId]);
+
+  // 외부 아코디언(그룹) 토글
+  const toggleGroup = useCallback(() => {
+    setIsGroupExpanded(prev => !prev);
   }, []);
 
   // 단계 실행
@@ -123,6 +148,8 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     if (stepIndex >= PPT_SCENARIO_STEPS.length) {
       setIsComplete(true);
       setIsRunning(false);
+      setActiveToolMessageId(null); // 시나리오 완료 시 모든 도구 접기
+      setIsGroupExpanded(false); // 시나리오 완료 시 외부 아코디언 접기
       onScenarioComplete?.();
       return;
     }
@@ -154,8 +181,8 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
       });
 
       setMessages(prev => [...prev, newMessage]);
-      // 새 도구 호출 메시지는 기본적으로 펼침
-      setExpandedMessageIds(prev => new Set([...prev, newMessage.id]));
+      // 새 도구 호출 메시지를 활성화 (아코디언 - 하나만 펼침)
+      setActiveToolMessageId(newMessage.id);
 
       // HITL 단계인 경우 일시 중지
       if (step.isHitl) {
@@ -181,12 +208,7 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
           )
         );
         // 완료된 단계 추가
-        setCompletedStepIds(prev => {
-          const newSet = new Set([...prev, step.id]);
-          // Task 완료 시 Todo 메시지 삽입
-          insertTodoUpdateIfTaskCompleted(step.id, newSet);
-          return newSet;
-        });
+        setCompletedStepIds(prev => new Set([...prev, step.id]));
         onStepComplete?.(step.id);
         stepIndexRef.current = stepIndex + 1;
 
@@ -231,7 +253,7 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
         }
       }, step.delayMs || 500);
     }
-  }, [onStepStart, onStepComplete, onHitlRequired, onScenarioComplete, insertTodoUpdateIfTaskCompleted]);
+  }, [onStepStart, onStepComplete, onHitlRequired, onScenarioComplete]);
 
   // 시나리오 시작
   const startScenario = useCallback(() => {
@@ -241,7 +263,8 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     setIsPaused(false);
     setIsComplete(false);
     setSelectedDataSource(null);
-    setExpandedMessageIds(new Set());
+    setActiveToolMessageId(null);
+    setIsGroupExpanded(true); // 시나리오 시작 시 외부 아코디언 펼치기
     stepIndexRef.current = 0;
     executeStep(0);
   }, [executeStep]);
@@ -264,12 +287,7 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     );
 
     // 완료된 단계 추가
-    setCompletedStepIds(prev => {
-      const newSet = new Set([...prev, stepId]);
-      // Task 완료 시 Todo 메시지 삽입
-      insertTodoUpdateIfTaskCompleted(stepId, newSet);
-      return newSet;
-    });
+    setCompletedStepIds(prev => new Set([...prev, stepId]));
     setIsPaused(false);
     onStepComplete?.(stepId);
 
@@ -277,7 +295,7 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     const nextIndex = stepIndexRef.current + 1;
     stepIndexRef.current = nextIndex;
     executeStep(nextIndex);
-  }, [executeStep, onStepComplete, insertTodoUpdateIfTaskCompleted]);
+  }, [executeStep, onStepComplete]);
 
   // 데이터 검증 확인
   const confirmValidation = useCallback(() => {
@@ -292,19 +310,14 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     );
 
     // 완료된 단계 추가
-    setCompletedStepIds(prev => {
-      const newSet = new Set([...prev, stepId]);
-      // Task 완료 시 Todo 메시지 삽입
-      insertTodoUpdateIfTaskCompleted(stepId, newSet);
-      return newSet;
-    });
+    setCompletedStepIds(prev => new Set([...prev, stepId]));
     setIsPaused(false);
     onStepComplete?.(stepId);
 
     const nextIndex = stepIndexRef.current + 1;
     stepIndexRef.current = nextIndex;
     executeStep(nextIndex);
-  }, [executeStep, onStepComplete, insertTodoUpdateIfTaskCompleted]);
+  }, [executeStep, onStepComplete]);
 
   // PPT 설정 완료
   const completePptSetup = useCallback(() => {
@@ -319,19 +332,14 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     );
 
     // 완료된 단계 추가
-    setCompletedStepIds(prev => {
-      const newSet = new Set([...prev, stepId]);
-      // Task 완료 시 Todo 메시지 삽입
-      insertTodoUpdateIfTaskCompleted(stepId, newSet);
-      return newSet;
-    });
+    setCompletedStepIds(prev => new Set([...prev, stepId]));
     setIsPaused(false);
     onStepComplete?.(stepId);
 
     const nextIndex = stepIndexRef.current + 1;
     stepIndexRef.current = nextIndex;
     executeStep(nextIndex);
-  }, [executeStep, onStepComplete, insertTodoUpdateIfTaskCompleted]);
+  }, [executeStep, onStepComplete]);
 
   // 슬라이드 생성 완료 (PPTGenPanel에서 모든 슬라이드 완료 시 호출)
   const completeSlideGeneration = useCallback(() => {
@@ -346,19 +354,14 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     );
 
     // 완료된 단계 추가
-    setCompletedStepIds(prev => {
-      const newSet = new Set([...prev, stepId]);
-      // Task 완료 시 Todo 메시지 삽입
-      insertTodoUpdateIfTaskCompleted(stepId, newSet);
-      return newSet;
-    });
+    setCompletedStepIds(prev => new Set([...prev, stepId]));
     setIsPaused(false);
     onStepComplete?.(stepId);
 
     const nextIndex = stepIndexRef.current + 1;
     stepIndexRef.current = nextIndex;
     executeStep(nextIndex);
-  }, [executeStep, onStepComplete, insertTodoUpdateIfTaskCompleted]);
+  }, [executeStep, onStepComplete]);
 
   // 시나리오 일시 중지
   const pauseScenario = useCallback(() => {
@@ -382,7 +385,8 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     setIsComplete(false);
     setSelectedDataSource(null);
     setCompletedStepIds(new Set());
-    setExpandedMessageIds(new Set());
+    setActiveToolMessageId(null);
+    setIsGroupExpanded(true); // 리셋 시 외부 아코디언 펼침 상태로
     stepIndexRef.current = 0;
   }, []);
 
@@ -404,6 +408,7 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     selectedDataSource,
     validationData,
     completedStepIds,
+    progressTasks,
     startScenario,
     resumeWithHitlSelection,
     confirmValidation,
@@ -412,7 +417,10 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     pauseScenario,
     resetScenario,
     toggleMessageExpand,
-    expandedMessageIds,
+    activeToolMessageId,
+    isMessageExpanded,
+    isGroupExpanded,
+    toggleGroup,
   };
 }
 

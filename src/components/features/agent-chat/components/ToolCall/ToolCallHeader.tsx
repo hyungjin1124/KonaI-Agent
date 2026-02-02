@@ -4,9 +4,10 @@ import ToolCallStatusIndicator from './ToolCallStatusIndicator';
 import type { ToolCallHeaderProps } from './types';
 
 /**
- * 도구 호출 위젯 헤더
+ * 도구 호출 위젯 헤더 (Claude Chat 스타일)
  * - 아이콘 + 도구명 + 상태 표시
- * - 클릭 시 펼치기/접기
+ * - 상태별 배경색/테두리 스타일
+ * - 클릭 시 펼치기/접기 (아코디언)
  */
 const ToolCallHeader: React.FC<ToolCallHeaderProps> = ({
   toolType,
@@ -23,26 +24,50 @@ const ToolCallHeader: React.FC<ToolCallHeaderProps> = ({
       case 'completed':
         return metadata.labelComplete;
       case 'awaiting-input':
-        return `${metadata.label} (입력 대기)`;
+        return metadata.label;
       default:
         return metadata.label;
     }
   };
 
-  // HITL 도구인 경우 강조 스타일
+  // HITL 도구인지 확인
   const isHitl = status === 'awaiting-input';
-  const borderClass = isHitl
-    ? 'border-gray-300 bg-gray-100'
-    : `${metadata.borderColor} ${metadata.bgColor}`;
+
+  // Claude Chat 스타일 - 상태별 배경색/테두리
+  const getStatusStyles = () => {
+    switch (status) {
+      case 'running':
+        return 'bg-blue-50 border-blue-100 hover:bg-blue-100/80';
+      case 'completed':
+        return 'bg-gray-50 border-gray-200 hover:bg-gray-100';
+      case 'awaiting-input':
+        return 'bg-amber-50 border-amber-200 hover:bg-amber-100/80';
+      default:
+        return 'bg-gray-50 border-gray-200 hover:bg-gray-100';
+    }
+  };
+
+  // 상태별 텍스트 색상
+  const getTextColor = () => {
+    switch (status) {
+      case 'running':
+        return 'text-blue-700';
+      case 'completed':
+        return 'text-gray-600';
+      case 'awaiting-input':
+        return 'text-amber-700';
+      default:
+        return 'text-gray-700';
+    }
+  };
 
   return (
     <button
       onClick={onToggle}
       className={`
-        flex items-center gap-2 w-full px-3 py-2 rounded-lg border
+        flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl border
         transition-all duration-200 text-left group
-        hover:shadow-sm
-        ${borderClass}
+        ${getStatusStyles()}
       `}
       aria-expanded={isExpanded}
     >
@@ -50,15 +75,20 @@ const ToolCallHeader: React.FC<ToolCallHeaderProps> = ({
       <ToolCallStatusIndicator status={status} color={metadata.color} />
 
       {/* 도구명/상태 텍스트 */}
-      <span className={`flex-1 text-sm font-medium ${metadata.color}`}>
+      <span className={`flex-1 text-sm font-medium ${getTextColor()}`}>
         {getLabel()}
       </span>
+
+      {/* 완료 시 "완료됨" 표시 */}
+      {status === 'completed' && (
+        <span className="text-xs text-gray-400">완료됨</span>
+      )}
 
       {/* 펼침/접힘 아이콘 */}
       <ChevronDown
         size={16}
         className={`
-          text-gray-400 transition-transform duration-300
+          text-gray-400 transition-transform duration-200
           group-hover:text-gray-600
           ${isExpanded ? 'rotate-180' : ''}
         `}
