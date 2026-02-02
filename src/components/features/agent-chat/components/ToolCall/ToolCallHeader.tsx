@@ -32,7 +32,7 @@ const ToolCallHeader: React.FC<ToolCallHeaderProps> = ({
   // HITL 도구인 경우 강조 스타일
   const isHitl = status === 'awaiting-input';
   const borderClass = isHitl
-    ? 'border-amber-300 bg-amber-50'
+    ? 'border-gray-300 bg-gray-100'
     : `${metadata.borderColor} ${metadata.bgColor}`;
 
   return (

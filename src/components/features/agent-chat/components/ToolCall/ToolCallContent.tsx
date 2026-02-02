@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import type { ToolCallContentProps } from './types';
 import { DEFAULT_DEEP_THINKING_TODOS, DEFAULT_ERP_CONNECTIONS, SCENARIO_TODOS, getScenarioTodosWithStatus, PARALLEL_DATA_QUERIES, DATA_QUERY_RESULTS } from './constants';
 import StreamingText from '../../../../shared/StreamingText';
+import QueryAnalysisBox from './QueryAnalysisBox';
 
 /**
  * 접이식 SPARQL 쿼리 표시 컴포넌트
@@ -56,7 +57,10 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
   onValidationModify,
   currentStepId,
   completedStepIds,
+  skipStreaming = false,
 }) => {
+  // 스트리밍 활성화 여부 (skipStreaming이 true면 비활성화)
+  const streamingEnabled = !skipStreaming;
   // PPT 초기화 내용
   if (toolType === 'ppt_init') {
     return (
@@ -67,6 +71,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
           className="font-medium text-gray-800"
           typingSpeed={45}
           showCursor={status === 'running'}
+          enabled={streamingEnabled}
         />
         <StreamingText
           content="프레젠테이션이 초기화되었습니다."
@@ -75,6 +80,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
           typingSpeed={50}
           startDelay={800}
           showCursor={false}
+          enabled={streamingEnabled}
         />
       </div>
     );
@@ -95,48 +101,58 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
     const inProgressTodo = scenarioTodos.find(t => t.status === 'in_progress');
 
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-500">총: {scenarioTodos.length}개의 Task</span>
-          <span className="text-gray-500">
-            {completedCount === 0
-              ? `남은 Task ${scenarioTodos.length}개`
-              : `완료 ${completedCount}/${scenarioTodos.length}`}
-          </span>
-        </div>
-        <div className="border-t border-gray-200 pt-2 space-y-1.5">
-          {scenarioTodos.map((todo, idx) => {
-            const isCompleted = todo.status === 'completed';
-            const isInProgress = todo.status === 'in_progress';
+      <div className="space-y-4">
+        {/* Chain-of-Thought 분석 박스 */}
+        <QueryAnalysisBox
+          status={status}
+          skipStreaming={skipStreaming}
+        />
 
-            return (
-              <div key={todo.id} className="flex items-center gap-2 text-sm">
-                <span className={
-                  isCompleted
-                    ? 'text-green-500'
-                    : isInProgress
-                      ? 'text-blue-500 animate-pulse'
-                      : 'text-gray-400'
-                }>
-                  {isCompleted ? '✓' : isInProgress ? '●' : '○'}
-                </span>
-                <StreamingText
-                  content={todo.label}
-                  as="span"
-                  className={
+        {/* Task 진행 상황 */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-500">총: {scenarioTodos.length}개의 Task</span>
+            <span className="text-gray-500">
+              {completedCount === 0
+                ? `남은 Task ${scenarioTodos.length}개`
+                : `완료 ${completedCount}/${scenarioTodos.length}`}
+            </span>
+          </div>
+          <div className="border-t border-gray-200 pt-2 space-y-1.5">
+            {scenarioTodos.map((todo, idx) => {
+              const isCompleted = todo.status === 'completed';
+              const isInProgress = todo.status === 'in_progress';
+
+              return (
+                <div key={todo.id} className="flex items-center gap-2 text-sm">
+                  <span className={
                     isCompleted
-                      ? 'text-gray-400 line-through'
+                      ? 'text-green-500'
                       : isInProgress
-                        ? 'text-gray-800 font-medium'
-                        : 'text-gray-600'
-                  }
-                  typingSpeed={35}
-                  startDelay={idx * 250}
-                  showCursor={status === 'running' && idx === scenarioTodos.length - 1}
-                />
-              </div>
-            );
-          })}
+                        ? 'text-blue-500 animate-pulse'
+                        : 'text-gray-400'
+                  }>
+                    {isCompleted ? '✓' : isInProgress ? '●' : '○'}
+                  </span>
+                  <StreamingText
+                    content={todo.label}
+                    as="span"
+                    className={
+                      isCompleted
+                        ? 'text-gray-400 line-through'
+                        : isInProgress
+                          ? 'text-gray-800 font-medium'
+                          : 'text-gray-600'
+                    }
+                    typingSpeed={35}
+                    startDelay={5500 + idx * 250}
+                    showCursor={status === 'running' && idx === scenarioTodos.length - 1}
+                    enabled={streamingEnabled}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -193,6 +209,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
           className="text-sm text-gray-600"
           typingSpeed={35}
           showCursor={false}
+          enabled={streamingEnabled}
         />
         <div className="space-y-1.5">
           {connections.map((conn, idx) => (
@@ -206,17 +223,17 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
                   typingSpeed={35}
                   startDelay={450 + idx * 450}
                   showCursor={false}
-                  enabled={status === 'running' || status === 'completed'}
+                  enabled={streamingEnabled && (status === 'running' || status === 'completed')}
                 />
               </div>
               <StreamingText
                 content={`마지막 동기화: ${conn.lastSync}`}
                 as="span"
-                className="text-xs text-gray-400"
+                className="text-xs text-gray-400 min-w-[160px] text-left"
                 typingSpeed={25}
                 startDelay={600 + idx * 450}
                 showCursor={false}
-                enabled={status === 'running' || status === 'completed'}
+                enabled={streamingEnabled && (status === 'running' || status === 'completed')}
               />
             </div>
           ))}
@@ -229,6 +246,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
             typingSpeed={35}
             startDelay={2000}
             showCursor={false}
+            enabled={streamingEnabled}
           />
         )}
       </div>
@@ -245,6 +263,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
           className="text-sm font-medium text-gray-700"
           typingSpeed={35}
           showCursor={false}
+          enabled={streamingEnabled}
         />
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
@@ -279,6 +298,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
                       typingSpeed={30}
                       startDelay={300 + idx * 400}
                       showCursor={false}
+                      enabled={streamingEnabled}
                     />
                   </div>
                   <span className="text-xs text-gray-400">{query.period}</span>
@@ -329,6 +349,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
           className="text-sm text-gray-600"
           typingSpeed={35}
           showCursor={false}
+          enabled={streamingEnabled}
         />
 
         {/* 결과 테이블 */}
@@ -352,6 +373,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
                       typingSpeed={25}
                       startDelay={200 + idx * 150}
                       showCursor={false}
+                      enabled={streamingEnabled}
                     />
                   </td>
                   <td className="px-3 py-2 text-right font-medium text-gray-800">
@@ -361,6 +383,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
                       typingSpeed={25}
                       startDelay={300 + idx * 150}
                       showCursor={false}
+                      enabled={streamingEnabled}
                     />
                   </td>
                   <td className="px-3 py-2 text-right text-gray-500">
@@ -370,6 +393,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
                       typingSpeed={25}
                       startDelay={400 + idx * 150}
                       showCursor={false}
+                      enabled={streamingEnabled}
                     />
                   </td>
                   <td className="px-3 py-2 text-right">
@@ -380,6 +404,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
                       typingSpeed={25}
                       startDelay={500 + idx * 150}
                       showCursor={status === 'running' && idx === queryResult.data.length - 1}
+                      enabled={streamingEnabled}
                     />
                   </td>
                 </tr>
@@ -471,6 +496,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
           className="text-sm text-gray-600"
           typingSpeed={40}
           showCursor={false}
+          enabled={streamingEnabled}
         />
         <div className="space-y-1">
           {searches.map((search, idx) => (
@@ -482,6 +508,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
                 typingSpeed={40}
                 startDelay={500 + idx * 700}
                 showCursor={status === 'running' && idx === searches.length - 1}
+                enabled={streamingEnabled}
               />
             </div>
           ))}
@@ -508,6 +535,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
           className="text-sm text-gray-600"
           typingSpeed={35}
           showCursor={false}
+          enabled={streamingEnabled}
         />
         <div className="space-y-1">
           {slides.map((slide, idx) => (
@@ -522,6 +550,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
                 typingSpeed={35}
                 startDelay={300 + idx * 350}
                 showCursor={status === 'running' && idx === slides.length - 1}
+                enabled={streamingEnabled}
               />
             </div>
           ))}
@@ -599,6 +628,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
           className="text-sm text-green-600 font-medium"
           typingSpeed={45}
           showCursor={status === 'running'}
+          enabled={streamingEnabled}
         />
         <div className="text-xs text-gray-500">
           <StreamingText
@@ -607,6 +637,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
             typingSpeed={45}
             startDelay={800}
             showCursor={false}
+            enabled={streamingEnabled}
           />
           <StreamingText
             content="• 데이터 출처: 영림원 ERP, E2MAX MES, Platform Portal"
@@ -614,6 +645,7 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
             typingSpeed={45}
             startDelay={1000}
             showCursor={false}
+            enabled={streamingEnabled}
           />
         </div>
       </div>

@@ -8,9 +8,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '프레젠테이션 초기화 중...',
     labelComplete: '프레젠테이션 초기화 완료',
     icon: '📋',
-    color: 'text-blue-700',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   deep_thinking: {
     id: 'deep_thinking',
@@ -18,9 +18,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '작업 계획 수립 중...',
     labelComplete: '계획 수립 완료',
     icon: '🧠',
-    color: 'text-purple-700',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   data_source_select: {
     id: 'data_source_select',
@@ -28,9 +28,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '선택 대기 중...',
     labelComplete: '데이터 소스 선택 완료',
     icon: '📊',
-    color: 'text-amber-700',
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-300',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   erp_connect: {
     id: 'erp_connect',
@@ -38,9 +38,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: 'ERP 시스템 연결 중...',
     labelComplete: 'ERP 연결 완료',
     icon: '🔌',
-    color: 'text-green-700',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   parallel_data_query: {
     id: 'parallel_data_query',
@@ -48,9 +48,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '데이터 조회 실행 중...',
     labelComplete: '데이터 조회 완료',
     icon: '📊',
-    color: 'text-cyan-700',
-    bgColor: 'bg-cyan-50',
-    borderColor: 'border-cyan-200',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   data_query: {
     id: 'data_query',
@@ -58,9 +58,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '데이터 조회 중...',
     labelComplete: '데이터 조회 완료',
     icon: '📑',
-    color: 'text-cyan-700',
-    bgColor: 'bg-cyan-50',
-    borderColor: 'border-cyan-200',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   data_validation: {
     id: 'data_validation',
@@ -68,9 +68,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '검증 대기 중...',
     labelComplete: '데이터 검증 완료',
     icon: '✅',
-    color: 'text-emerald-700',
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-emerald-300',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   ppt_setup: {
     id: 'ppt_setup',
@@ -78,9 +78,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '설정 대기 중...',
     labelComplete: 'PPT 설정 완료',
     icon: '🎨',
-    color: 'text-pink-700',
-    bgColor: 'bg-pink-50',
-    borderColor: 'border-pink-300',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   web_search: {
     id: 'web_search',
@@ -88,9 +88,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '시장 정보 검색 중...',
     labelComplete: '웹 검색 완료',
     icon: '🔍',
-    color: 'text-indigo-700',
-    bgColor: 'bg-indigo-50',
-    borderColor: 'border-indigo-200',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   slide_planning: {
     id: 'slide_planning',
@@ -98,9 +98,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '슬라이드 구성 계획 중...',
     labelComplete: '슬라이드 계획 완료',
     icon: '📝',
-    color: 'text-orange-700',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   slide_generation: {
     id: 'slide_generation',
@@ -108,9 +108,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '슬라이드 생성 중...',
     labelComplete: '슬라이드 제작 완료',
     icon: '🖼️',
-    color: 'text-violet-700',
-    bgColor: 'bg-violet-50',
-    borderColor: 'border-violet-200',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   completion: {
     id: 'completion',
@@ -118,9 +118,9 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '마무리 중...',
     labelComplete: 'PPT 생성 완료',
     icon: '🎉',
-    color: 'text-rose-700',
-    bgColor: 'bg-rose-50',
-    borderColor: 'border-rose-200',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-gray-200',
   },
   todo_update: {
     id: 'todo_update',
@@ -128,7 +128,7 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '상태 업데이트 중...',
     labelComplete: '진행 상황 업데이트',
     icon: '📋',
-    color: 'text-gray-700',
+    color: 'text-gray-600',
     bgColor: 'bg-gray-50',
     borderColor: 'border-gray-200',
   },
@@ -424,4 +424,56 @@ WHERE {
   ))
 }`,
   },
+};
+
+// =============================================
+// Chain-of-Thought 분석 데이터 (deep_thinking용)
+// =============================================
+
+// 분석 데이터 타입
+export interface QueryAnalysisKeyword {
+  keyword: string;
+  category: string;
+  description: string;
+}
+
+export interface QueryAnalysisComplexity {
+  dataSource: string;
+  analysisDepth: string;
+  estimatedSlides: string;
+  level: 1 | 2 | 3 | 4 | 5;
+  levelLabel: string;
+}
+
+export interface QueryAnalysis {
+  userQuery: string;
+  keywords: QueryAnalysisKeyword[];
+  implicitRequirements: string[];
+  complexity: QueryAnalysisComplexity;
+  conclusion: string;
+}
+
+// PPT 시나리오용 Chain-of-Thought 분석 데이터
+export const PPT_QUERY_ANALYSIS: QueryAnalysis = {
+  userQuery: 'Q4 2025 경영 실적 보고서 PPT를 만들어주세요.',
+  keywords: [
+    { keyword: 'Q4 2025', category: '기간', description: '2025년 4분기 (10월~12월)' },
+    { keyword: '경영 실적', category: '유형', description: '재무/운영 성과 보고' },
+    { keyword: '보고서', category: '목적', description: '경영진/이사회 보고용' },
+    { keyword: 'PPT', category: '산출물', description: '프레젠테이션 파일' },
+  ],
+  implicitRequirements: [
+    '데이터 정확성 필수 (경영 보고 목적)',
+    '시각화 필요 (차트, 그래프)',
+    '비교 분석 포함 (전년 동기, 전분기 대비)',
+    '전문적 디자인 (공식 보고용)',
+  ],
+  complexity: {
+    dataSource: '다중 시스템 연동 필요',
+    analysisDepth: '재무 + 운영 + 시장 환경',
+    estimatedSlides: '8~12장',
+    level: 4,
+    levelLabel: 'High',
+  },
+  conclusion: '체계적 작업 분해 필요, 5단계 Task로 구성',
 };

@@ -2,6 +2,7 @@ export { default as ToolCallWidget } from './ToolCallWidget';
 export { default as ToolCallHeader } from './ToolCallHeader';
 export { default as ToolCallContent } from './ToolCallContent';
 export { default as ToolCallStatusIndicator } from './ToolCallStatusIndicator';
+export { default as QueryAnalysisBox } from './QueryAnalysisBox';
 
 // Types
 export type {

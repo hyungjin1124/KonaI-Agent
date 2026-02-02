@@ -30,8 +30,8 @@ const ToolCallStatusIndicator: React.FC<ToolCallStatusIndicatorProps> = ({
 
     case 'awaiting-input':
       return (
-        <div className="w-5 h-5 rounded-full border-2 border-amber-400 flex items-center justify-center animate-pulse">
-          <div className="w-2 h-2 rounded-full bg-amber-400" />
+        <div className="w-5 h-5 rounded-full border-2 border-gray-400 flex items-center justify-center animate-pulse">
+          <div className="w-2 h-2 rounded-full bg-gray-400" />
         </div>
       );
 

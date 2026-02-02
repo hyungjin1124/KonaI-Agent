@@ -80,6 +80,9 @@ export interface ToolCallContentProps {
   // 시나리오 진행 상태 (동적 Todo list 용)
   currentStepId?: string | null;
   completedStepIds?: Set<string>;
+
+  // 스트리밍 건너뛰기 (완료 후 재펼침 시)
+  skipStreaming?: boolean;
 }
 
 // ToolCallStatusIndicator Props

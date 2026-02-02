@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ToolCallHeader from './ToolCallHeader';
 import ToolCallContent from './ToolCallContent';
 import { TOOL_METADATA, isHitlTool } from './constants';
@@ -33,8 +33,18 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
   // 내부 상태 (외부에서 제어하지 않는 경우)
   const [internalExpanded, setInternalExpanded] = useState(false);
 
+  // 완료 후 접힘 추적 (재펼침 시 스트리밍 건너뛰기용)
+  const [hasBeenCollapsedAfterComplete, setHasBeenCollapsedAfterComplete] = useState(false);
+
   // 펼침 상태 결정 (외부 prop 우선)
   const isExpanded = isExpandedProp !== undefined ? isExpandedProp : internalExpanded;
+
+  // 완료 상태에서 접히면 추적
+  useEffect(() => {
+    if (status === 'completed' && !isExpanded) {
+      setHasBeenCollapsedAfterComplete(true);
+    }
+  }, [status, isExpanded]);
 
   // 토글 핸들러
   const handleToggle = useCallback(() => {
@@ -97,6 +107,7 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
             onValidationModify={onValidationModify}
             currentStepId={currentStepId}
             completedStepIds={completedStepIds}
+            skipStreaming={hasBeenCollapsedAfterComplete}
           />
         </div>
       )}
