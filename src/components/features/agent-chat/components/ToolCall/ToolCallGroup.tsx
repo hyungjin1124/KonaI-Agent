@@ -92,7 +92,7 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
                     completedStepIds={completedStepIds}
                   />
                   {message.toolStatus !== 'completed' && (
-                    <div className="mt-2 ml-6 p-4 bg-white border border-pink-200 rounded-lg">
+                    <div className="mt-2 ml-6 p-4 bg-white border border-pink-200 rounded-lg mb-6">
                       <PPTSetupTool
                         status={message.toolStatus === 'running' ? 'awaiting-input' : message.toolStatus || 'pending'}
                         config={pptConfig!}

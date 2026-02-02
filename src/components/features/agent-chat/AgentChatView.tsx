@@ -1234,10 +1234,10 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // 1. Result View (Cowork Layout - 3-Panel)
   if (showDashboard) {
-    // 수정 2: 가운데 패널 열림 조건 명확화 (centerPanelState 우선, 기존 로직 fallback)
+    // 수정 2: 가운데 패널 열림 조건 명확화 (centerPanelState 우선)
+    // PPT 시나리오: centerPanelState.isOpen으로만 제어 (tool_ppt_setup 단계에서 열림)
     // 가운데 패널과 우측 패널은 독립적으로 열림/닫힘
     const isCenterPanelOpen = centerPanelState.isOpen || (
-      (dashboardType === 'ppt' && pptStatus !== 'idle') ||
       (dashboardType === 'financial' && dashboardScenario) ||
       artifactPreview.isOpen
     );
@@ -1379,7 +1379,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
         isOpen={true}
         artifact={artifactPreview.selectedArtifact}
         previewType={dashboardType === 'ppt' ? 'ppt' : artifactPreview.previewType || 'dashboard'}
-        onClose={handleClosePreviewPanel}
+        onClose={handleCloseCenterPanel}
         onDownload={() => handleDownloadArtifact(artifactPreview.selectedArtifact!)}
         // PPT Props
         pptConfig={pptConfig}
