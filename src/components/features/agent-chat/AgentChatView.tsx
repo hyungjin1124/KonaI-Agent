@@ -7,13 +7,16 @@ import {
 import Dashboard from '../dashboard/Dashboard';
 import PPTGenPanel from '../../PPTGenPanel';
 import { SampleInterfaceContext, PPTConfig, SuggestionItem, QuickActionChip } from '../../../types';
-import { SlideItem, Artifact, RightPanelType } from './types';
+import { SlideItem, Artifact, RightPanelType, ProgressTask, ContextItem, SidebarSection, ArtifactPreviewState } from './types';
 import { useCaptureStateInjection, StateInjectionHandlers, useScrollToBottomButton } from '../../../hooks';
 import { SalesAnalysisResponse, AnomalyResponse, DefaultResponse, PPTDoneResponse } from './components/AgentResponse';
 import { ChainOfThought } from './components/ChainOfThought';
 import { ArtifactsPanel } from './components/ArtifactsPanel';
 import ScrollToBottomButton from './components/ScrollToBottomButton';
 import PPTScenarioRenderer from './components/PPTScenarioRenderer';
+import { CoworkLayout } from './layouts';
+import { RightSidebar } from './components/RightSidebar';
+import { ArtifactPreviewPanel } from './components/ArtifactPreviewPanel';
 
 // 대화 메시지 타입 정의
 interface ChatMessage {
@@ -96,6 +99,16 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   // --- 아티팩트 상태 ---
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [rightPanelType, setRightPanelType] = useState<RightPanelType>('dashboard');
+
+  // --- Cowork Layout 상태 (Claude Cowork 스타일) ---
+  const [sidebarExpandedSections, setSidebarExpandedSections] = useState<SidebarSection[]>(['progress', 'artifacts', 'context']);
+  const [progressTasks, setProgressTasks] = useState<ProgressTask[]>([]);
+  const [contextItems, setContextItems] = useState<ContextItem[]>([]);
+  const [artifactPreview, setArtifactPreview] = useState<ArtifactPreviewState>({
+    isOpen: false,
+    selectedArtifact: null,
+    previewType: null,
+  });
 
   // 캡처 자동화용 상태 주입 핸들러
   const stateInjectionHandlers = useMemo<StateInjectionHandlers>(() => ({
@@ -598,6 +611,141 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setCotCompleteMap(prev => ({ ...prev, [messageId]: true }));
   }, []);
 
+  // --- Cowork Layout 핸들러 ---
+
+  // 사이드바 섹션 토글
+  const handleToggleSidebarSection = useCallback((section: SidebarSection) => {
+    setSidebarExpandedSections(prev =>
+      prev.includes(section)
+        ? prev.filter(s => s !== section)
+        : [...prev, section]
+    );
+  }, []);
+
+  // 아티팩트 선택 (미리보기 패널 열기)
+  const handleArtifactSelectForPreview = useCallback((artifact: Artifact) => {
+    let previewType: 'ppt' | 'dashboard' | 'chart' | null = null;
+
+    switch (artifact.type) {
+      case 'ppt':
+        previewType = 'ppt';
+        break;
+      case 'chart':
+        previewType = 'chart';
+        break;
+      default:
+        previewType = 'dashboard';
+    }
+
+    setArtifactPreview({
+      isOpen: true,
+      selectedArtifact: artifact,
+      previewType,
+    });
+
+    // 기존 아티팩트 클릭 핸들러도 호출하여 상태 동기화
+    handleArtifactClick(artifact);
+  }, [handleArtifactClick]);
+
+  // 미리보기 패널 닫기
+  const handleClosePreviewPanel = useCallback(() => {
+    setArtifactPreview({
+      isOpen: false,
+      selectedArtifact: null,
+      previewType: null,
+    });
+  }, []);
+
+  // PPT 시나리오 Progress Task 매핑
+  const PPT_SCENARIO_TASK_GROUPS = useMemo(() => [
+    { id: 'planning', label: '작업 계획 수립', stepIds: ['agent_greeting', 'tool_planning'] },
+    { id: 'data_source', label: '데이터 소스 선택', stepIds: ['tool_data_source', 'agent_data_source_confirm'] },
+    { id: 'data_query', label: '데이터 조회', stepIds: ['tool_erp_connect', 'tool_parallel_query', 'tool_data_query_1', 'tool_data_query_2', 'tool_data_query_3', 'tool_data_query_4'] },
+    { id: 'data_validation', label: '데이터 검증', stepIds: ['tool_data_validation', 'agent_validation_confirm'] },
+    { id: 'ppt_setup', label: 'PPT 설정', stepIds: ['tool_ppt_setup', 'agent_setup_confirm'] },
+    { id: 'slide_generation', label: '슬라이드 생성', stepIds: ['tool_web_search', 'tool_slide_planning', 'tool_slide_generation'] },
+    { id: 'completion', label: '완료', stepIds: ['tool_completion', 'agent_final'] },
+  ], []);
+
+  // PPT 상태에 따라 Progress 업데이트
+  useEffect(() => {
+    if (dashboardType === 'ppt') {
+      let tasks: ProgressTask[] = [];
+
+      if (pptStatus === 'setup') {
+        tasks = PPT_SCENARIO_TASK_GROUPS.map((group, index) => ({
+          id: group.id,
+          label: group.label,
+          status: index === 0 ? 'running' : 'pending',
+        }));
+      } else if (pptStatus === 'generating') {
+        // 슬라이드 생성 중
+        const slideProgress = slideGenerationState.totalSlides > 0
+          ? Math.round((slideGenerationState.completedSlides.length / slideGenerationState.totalSlides) * 100)
+          : 0;
+
+        tasks = PPT_SCENARIO_TASK_GROUPS.map((group) => ({
+          id: group.id,
+          label: group.label,
+          status: group.id === 'slide_generation'
+            ? 'running'
+            : group.id === 'completion'
+              ? 'pending'
+              : 'completed',
+          progress: group.id === 'slide_generation' ? slideProgress : undefined,
+        }));
+      } else if (pptStatus === 'done') {
+        tasks = PPT_SCENARIO_TASK_GROUPS.map((group) => ({
+          id: group.id,
+          label: group.label,
+          status: 'completed',
+        }));
+      }
+
+      setProgressTasks(tasks);
+    } else if (dashboardScenario === 'sales_analysis') {
+      // 매출 분석 시나리오 Progress
+      setProgressTasks([
+        { id: 'analysis', label: '데이터 분석', status: salesAnalysisComplete ? 'completed' : 'running' },
+        { id: 'visualization', label: '시각화 생성', status: salesAnalysisComplete ? 'completed' : 'pending' },
+      ]);
+    } else {
+      // 기본 상태
+      setProgressTasks([]);
+    }
+  }, [dashboardType, pptStatus, slideGenerationState, salesAnalysisComplete, dashboardScenario, PPT_SCENARIO_TASK_GROUPS]);
+
+  // Context Items 업데이트 (데이터 소스에 따라)
+  useEffect(() => {
+    if (dashboardType === 'ppt' || dashboardType === 'financial') {
+      setContextItems([
+        {
+          id: 'folder-1',
+          type: 'folder',
+          name: 'Documents',
+          children: [
+            { id: 'file-1', type: 'file', name: 'Q4_Report.xlsx' },
+          ],
+        },
+        {
+          id: 'connector-erp',
+          type: 'connector',
+          name: '영림원 ERP',
+          status: 'connected',
+          icon: 'erp',
+        },
+        {
+          id: 'connector-e2max',
+          type: 'data-source',
+          name: 'E2MAX',
+          status: 'connected',
+        },
+      ]);
+    } else {
+      setContextItems([]);
+    }
+  }, [dashboardType]);
+
   // 실제 응답 렌더링 헬퍼 함수
   const renderActualResponse = (message: ChatMessage, isLatest: boolean) => {
     const msgDashboardType = message.dashboardType || 'financial';
@@ -1065,220 +1213,204 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     return <DefaultResponse dashboardType={dashboardType} />;
   };
 
-  // 1. Result View (Split Layout)
+  // 1. Result View (Cowork Layout - 3-Panel)
   if (showDashboard) {
-    const ARTIFACTS_PANEL_WIDTH = 18; // 아티팩트 패널 전용 너비 (15~20% 범위)
-    const effectiveWidth = rightPanelType === 'artifacts' ? ARTIFACTS_PANEL_WIDTH : rightPanelWidth;
-    const leftPanelWidthStyle = isRightPanelCollapsed ? '100%' : `${100 - effectiveWidth}%`;
-    const rightPanelWidthStyle = isRightPanelCollapsed ? '0%' : `${effectiveWidth}%`;
+    // 중앙 패널 열림 조건: PPT 생성 중이거나 완료 후, 또는 아티팩트 미리보기 선택 시
+    const isCenterPanelOpen = !isRightPanelCollapsed && (
+      (dashboardType === 'ppt' && pptStatus !== 'idle') ||
+      (dashboardType === 'financial' && dashboardScenario) ||
+      artifactPreview.isOpen
+    );
+
+    // 좌측 패널 (채팅 영역)
+    const leftPanelContent = (
+      <div ref={leftPanelRef} className="h-full overflow-y-auto custom-scrollbar scroll-smooth relative">
+        <div className="py-6 max-w-3xl mx-auto px-6">
+          {/* 대화 히스토리 렌더링 */}
+          {chatHistory.length > 0 ? (
+            chatHistory.map((message, index) => {
+              const isLatestAgent = message.type === 'agent' &&
+                index === chatHistory.length - 1;
+
+              return (
+                <div key={message.id}>
+                  {message.type === 'user' ? (
+                    // User Query Bubble
+                    <div className="flex justify-end mb-10 mt-6">
+                      <div className="bg-gray-100 text-black px-5 py-4 rounded-2xl rounded-tr-sm max-w-[90%] border border-gray-200 shadow-sm">
+                        <p className="text-sm leading-relaxed whitespace-pre-line font-medium">{message.content}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    // Agent Response
+                    <div className="mb-6">
+                      {renderAgentResponseForMessage(message, isLatestAgent)}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            // Fallback: 기존 단일 메시지 렌더링 (초기 상태)
+            <>
+              <div className="flex justify-end mb-10 mt-6">
+                <div className="bg-gray-100 text-black px-5 py-4 rounded-2xl rounded-tr-sm max-w-[90%] border border-gray-200 shadow-sm">
+                  <p className="text-sm leading-relaxed whitespace-pre-line font-medium">{userQuery}</p>
+                </div>
+              </div>
+              {renderAgentResponse()}
+            </>
+          )}
+
+          <div className="h-6"></div>
+        </div>
+
+        {/* Scroll to Bottom Button */}
+        <ScrollToBottomButton
+          isVisible={showScrollButton}
+          unreadCount={unreadCount}
+          onClick={scrollToBottom}
+        />
+      </div>
+    );
+
+    // 입력 영역
+    const inputAreaContent = (
+      <div className="p-4 pb-6 bg-white border-t border-gray-100 flex justify-center">
+        <div className="w-full max-w-3xl">
+          {/* 추천 프롬프트 칩 - 시나리오 완료 상태에 따라 표시 */}
+          {(pptStatus === 'done' || salesAnalysisComplete) && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {pptStatus === 'done' && (
+                <>
+                  <button
+                    onClick={() => handleSend('이 데이터로 매출 심층 분석해줘')}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
+                  >
+                    이 데이터로 매출 심층 분석해줘
+                  </button>
+                  <button
+                    onClick={() => handleSend('원가율 추이 분석해줘')}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
+                  >
+                    원가율 추이 분석해줘
+                  </button>
+                </>
+              )}
+              {salesAnalysisComplete && (
+                <>
+                  <button
+                    onClick={() => handleSend('이 분석 결과로 PPT 만들어줘')}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
+                  >
+                    이 분석 결과로 PPT 만들어줘
+                  </button>
+                  <button
+                    onClick={() => handleSend('경영진 보고서 생성해줘')}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
+                  >
+                    경영진 보고서 생성해줘
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+          <div className="relative bg-[#F3F4F6] rounded-xl border border-transparent focus-within:border-[#FF3C42] focus-within:bg-white focus-within:ring-1 focus-within:ring-[#FF3C42] transition-all p-2 flex items-center gap-2">
+            <button className="p-2 text-gray-400 hover:text-[#FF3C42] transition-colors">
+              <Plus size={20} />
+            </button>
+            <textarea
+              ref={textareaRef}
+              className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-[#000000] placeholder-gray-400 resize-none h-10 py-2 text-sm max-h-32 overflow-y-auto custom-scrollbar"
+              placeholder="추가 요청이나 질문을 입력하세요..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (inputValue.trim()) {
+                    handleSend(inputValue);
+                  }
+                }
+              }}
+            />
+            <button className="p-2 text-gray-400 hover:text-[#FF3C42] transition-colors">
+              <Mic size={20} />
+            </button>
+            <button
+              className={`p-2 rounded-lg transition-all ${inputValue.trim() ? 'bg-[#FF3C42] text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+              disabled={!inputValue.trim()}
+              onClick={() => {
+                if (inputValue.trim()) {
+                  handleSend(inputValue);
+                }
+              }}
+            >
+              <ArrowUp size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+
+    // 중앙 패널 (Artifact Preview - PPT/Dashboard)
+    const centerPanelContent = isCenterPanelOpen ? (
+      <ArtifactPreviewPanel
+        isOpen={true}
+        artifact={artifactPreview.selectedArtifact}
+        previewType={dashboardType === 'ppt' ? 'ppt' : artifactPreview.previewType || 'dashboard'}
+        onClose={handleClosePreviewPanel}
+        onDownload={() => handleDownloadArtifact(artifactPreview.selectedArtifact!)}
+        // PPT Props
+        pptConfig={pptConfig}
+        pptStatus={pptStatus === 'idle' ? 'setup' : pptStatus as 'setup' | 'generating' | 'done'}
+        pptProgress={pptProgress}
+        pptCurrentStageIndex={pptCurrentStage}
+        pptSlides={pptSlides}
+        onPptSlidesChange={setPptSlides}
+        onPptProgressChange={handlePptProgressChange}
+        onPptComplete={handlePptComplete}
+        onPptSlideStart={handleSlideStart}
+        onPptSlideComplete={handleSlideComplete}
+        onPptCancel={handleReset}
+        // Dashboard Props
+        dashboardType={dashboardType}
+        dashboardScenario={dashboardScenario}
+        dashboardComponent={
+          dashboardType !== 'ppt' ? (
+            <Dashboard type={dashboardType} scenario={dashboardScenario} onTogglePanel={handleClosePreviewPanel} />
+          ) : undefined
+        }
+      />
+    ) : null;
+
+    // 우측 사이드바
+    const rightSidebarContent = (
+      <RightSidebar
+        isCollapsed={isRightPanelCollapsed}
+        expandedSections={sidebarExpandedSections}
+        onToggleSection={handleToggleSidebarSection}
+        onToggleCollapse={toggleRightPanel}
+        tasks={progressTasks}
+        artifacts={artifacts}
+        selectedArtifactId={artifactPreview.selectedArtifact?.id}
+        onArtifactSelect={handleArtifactSelectForPreview}
+        onArtifactDownload={handleDownloadArtifact}
+        contextItems={contextItems}
+      />
+    );
 
     return (
-        <div ref={containerRef} data-testid="analysis-view" className="flex w-full h-full animate-fade-in-up overflow-hidden relative">
-             {/* Left Panel: User Query & Agent Analysis */}
-             <div
-               className="h-full flex flex-col border-r border-gray-200 bg-white transition-all duration-300 relative"
-               style={{ width: leftPanelWidthStyle }}
-             >
-                 {/* 아티팩트 버튼 - absolute로 우측 상단 고정 */}
-                 {isRightPanelCollapsed && artifacts.length > 0 && (
-                   <div className="absolute top-4 right-6 z-10">
-                     <button
-                       onClick={openArtifactsPanel}
-                       className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium border border-gray-200 shadow-sm"
-                       title="이 작업의 모든 파일 보기"
-                     >
-                       <FolderOpen size={16} />
-                       <span className="px-1.5 py-0.5 bg-gray-200 rounded-full text-xs font-bold">
-                         {artifacts.length}
-                       </span>
-                     </button>
-                   </div>
-                 )}
-                 <div ref={leftPanelRef} className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth">
-                  <div className="py-6 max-w-3xl mx-auto px-6">
-                     {/* 대화 히스토리 렌더링 */}
-                     {chatHistory.length > 0 ? (
-                       chatHistory.map((message, index) => {
-                         const isLatestAgent = message.type === 'agent' &&
-                           index === chatHistory.length - 1;
-
-                         return (
-                           <div key={message.id}>
-                             {message.type === 'user' ? (
-                               // User Query Bubble
-                               <div className="flex justify-end mb-10 mt-6">
-                                 <div className="bg-gray-100 text-black px-5 py-4 rounded-2xl rounded-tr-sm max-w-[90%] border border-gray-200 shadow-sm">
-                                   <p className="text-sm leading-relaxed whitespace-pre-line font-medium">{message.content}</p>
-                                 </div>
-                               </div>
-                             ) : (
-                               // Agent Response
-                               <div className="mb-6">
-                                 {renderAgentResponseForMessage(message, isLatestAgent)}
-                               </div>
-                             )}
-                           </div>
-                         );
-                       })
-                     ) : (
-                       // Fallback: 기존 단일 메시지 렌더링 (초기 상태)
-                       <>
-                         <div className="flex justify-end mb-10 mt-6">
-                           <div className="bg-gray-100 text-black px-5 py-4 rounded-2xl rounded-tr-sm max-w-[90%] border border-gray-200 shadow-sm">
-                             <p className="text-sm leading-relaxed whitespace-pre-line font-medium">{userQuery}</p>
-                           </div>
-                         </div>
-                         {renderAgentResponse()}
-                       </>
-                     )}
-
-                     <div className="h-6"></div>
-                  </div>
-                 </div>
-
-                 {/* Scroll to Bottom Button */}
-                 <ScrollToBottomButton
-                   isVisible={showScrollButton}
-                   unreadCount={unreadCount}
-                   onClick={scrollToBottom}
-                 />
-
-                 {/* Bottom Input Area */}
-                 <div className="p-4 pb-6 bg-white border-t border-gray-100 shrink-0 flex justify-center">
-                   <div className="w-full max-w-3xl">
-                    {/* 추천 프롬프트 칩 - 시나리오 완료 상태에 따라 표시 */}
-                    {(pptStatus === 'done' || salesAnalysisComplete) && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {pptStatus === 'done' && (
-                          <>
-                            <button
-                              onClick={() => handleSend('이 데이터로 매출 심층 분석해줘')}
-                              className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
-                            >
-                              이 데이터로 매출 심층 분석해줘
-                            </button>
-                            <button
-                              onClick={() => handleSend('원가율 추이 분석해줘')}
-                              className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
-                            >
-                              원가율 추이 분석해줘
-                            </button>
-                          </>
-                        )}
-                        {salesAnalysisComplete && (
-                          <>
-                            <button
-                              onClick={() => handleSend('이 분석 결과로 PPT 만들어줘')}
-                              className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
-                            >
-                              이 분석 결과로 PPT 만들어줘
-                            </button>
-                            <button
-                              onClick={() => handleSend('경영진 보고서 생성해줘')}
-                              className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
-                            >
-                              경영진 보고서 생성해줘
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    <div className="relative bg-[#F3F4F6] rounded-xl border border-transparent focus-within:border-[#FF3C42] focus-within:bg-white focus-within:ring-1 focus-within:ring-[#FF3C42] transition-all p-2 flex items-center gap-2">
-                        <button className="p-2 text-gray-400 hover:text-[#FF3C42] transition-colors">
-                            <Plus size={20} />
-                        </button>
-                        <textarea
-                            ref={textareaRef}
-                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-[#000000] placeholder-gray-400 resize-none h-10 py-2 text-sm max-h-32 overflow-y-auto custom-scrollbar"
-                            placeholder="추가 요청이나 질문을 입력하세요..."
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    if (inputValue.trim()) {
-                                        handleSend(inputValue);
-                                    }
-                                }
-                            }}
-                        />
-                        <button className="p-2 text-gray-400 hover:text-[#FF3C42] transition-colors">
-                            <Mic size={20} />
-                        </button>
-                        <button 
-                            className={`p-2 rounded-lg transition-all ${inputValue.trim() ? 'bg-[#FF3C42] text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                            disabled={!inputValue.trim()}
-                            onClick={() => {
-                                if (inputValue.trim()) {
-                                    handleSend(inputValue);
-                                }
-                            }}
-                        >
-                            <ArrowUp size={18} />
-                        </button>
-                    </div>
-                   </div>
-                 </div>
-             </div>
-
-             {/* Resize Handle */}
-             {!isRightPanelCollapsed && (
-               <div
-                 className="w-1 h-full bg-gray-200 hover:bg-[#FF3C42] cursor-col-resize flex items-center justify-center group transition-colors relative z-10"
-                 onMouseDown={handleResizeStart}
-               >
-                 <div className="absolute w-4 h-12 flex items-center justify-center">
-                   <GripVertical size={12} className="text-gray-400 group-hover:text-white transition-colors" />
-                 </div>
-               </div>
-             )}
-
-             {/* Right Panel: Visualization Dashboard */}
-             <div
-               data-testid="analysis-result"
-               className={`h-full bg-gray-50 custom-scrollbar transition-all duration-300 relative ${
-                 isRightPanelCollapsed ? 'overflow-hidden' : 'overflow-y-auto'
-               } ${(dashboardType === 'ppt' || rightPanelType === 'artifacts') && !isRightPanelCollapsed ? 'p-0' : isRightPanelCollapsed ? 'p-0' : 'p-6'}`}
-               style={{ width: rightPanelWidthStyle }}
-             >
-                {/* Panel Content */}
-                {!isRightPanelCollapsed && (
-                  <>
-                    {/* Switch between Artifacts Panel, PPT Panel, and Dashboard */}
-                    {rightPanelType === 'artifacts' ? (
-                      <ArtifactsPanel
-                        artifacts={artifacts}
-                        onClose={() => {
-                          setRightPanelType('dashboard');
-                          toggleRightPanel();
-                        }}
-                        onDownloadAll={handleDownloadAllArtifacts}
-                        onDownloadItem={handleDownloadArtifact}
-                        onArtifactClick={handleArtifactClick}
-                      />
-                    ) : dashboardType === 'ppt' ? (
-                      <PPTGenPanel
-                        status={pptStatus === 'idle' ? 'setup' : pptStatus as 'setup'|'generating'|'done'}
-                        config={pptConfig}
-                        progress={pptProgress}
-                        currentStageIndex={pptCurrentStage}
-                        onCancel={handleReset}
-                        onTogglePanel={toggleRightPanel}
-                        slides={pptSlides}
-                        onSlidesChange={setPptSlides}
-                        onProgressChange={handlePptProgressChange}
-                        onComplete={handlePptComplete}
-                        onSlideStart={handleSlideStart}
-                        onSlideComplete={handleSlideComplete}
-                      />
-                    ) : (
-                      <Dashboard type={dashboardType} scenario={dashboardScenario} onTogglePanel={toggleRightPanel} />
-                    )}
-                  </>
-                )}
-             </div>
-
-        </div>
+      <div ref={containerRef} data-testid="analysis-view" className="w-full h-full animate-fade-in-up overflow-hidden">
+        <CoworkLayout
+          leftPanel={leftPanelContent}
+          centerPanel={centerPanelContent}
+          isCenterPanelOpen={isCenterPanelOpen}
+          rightPanel={rightSidebarContent}
+          isRightPanelCollapsed={isRightPanelCollapsed}
+          inputArea={inputAreaContent}
+        />
+      </div>
     );
   }
 

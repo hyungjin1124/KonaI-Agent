@@ -228,3 +228,46 @@ export interface DataQueryTableRow {
   previous?: string;
   change?: string;
 }
+
+// =============================================
+// Cowork Layout Types (Claude Cowork 스타일 UI)
+// =============================================
+
+// 진행 상태 타입
+export interface ProgressTask {
+  id: string;
+  label: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  progress?: number; // 0-100
+}
+
+// Context 아이템 타입
+export type ContextItemType = 'file' | 'connector' | 'data-source' | 'folder';
+
+export interface ContextItem {
+  id: string;
+  type: ContextItemType;
+  name: string;
+  icon?: string;
+  status?: 'connected' | 'disconnected' | 'loading';
+  children?: ContextItem[];
+}
+
+// 우측 사이드바 섹션 타입
+export type SidebarSection = 'progress' | 'artifacts' | 'context';
+
+// 우측 사이드바 상태
+export interface RightSidebarState {
+  isCollapsed: boolean;
+  expandedSections: SidebarSection[];
+}
+
+// Artifact Preview 상태
+export interface ArtifactPreviewState {
+  isOpen: boolean;
+  selectedArtifact: Artifact | null;
+  previewType: 'ppt' | 'dashboard' | 'chart' | null;
+}
+
+// 레이아웃 모드
+export type LayoutMode = 'two-panel' | 'three-panel';
