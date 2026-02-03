@@ -1,6 +1,6 @@
 import { ToolType, ToolMetadata, HitlOption, ParallelDataQuery, DataQueryResult } from '../../types';
 
-// 도구별 메타데이터
+// 도구별 메타데이터 (텍스트 스타일용)
 export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
   ppt_init: {
     id: 'ppt_init',
@@ -8,9 +8,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '프레젠테이션 초기화 중...',
     labelComplete: '프레젠테이션 초기화 완료',
     icon: '📋',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   deep_thinking: {
     id: 'deep_thinking',
@@ -18,9 +15,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '작업 계획 수립 중...',
     labelComplete: '계획 수립 완료',
     icon: '🧠',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   data_source_select: {
     id: 'data_source_select',
@@ -28,9 +22,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '선택 대기 중...',
     labelComplete: '데이터 소스 선택 완료',
     icon: '📊',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   erp_connect: {
     id: 'erp_connect',
@@ -38,9 +29,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: 'ERP 시스템 연결 중...',
     labelComplete: 'ERP 연결 완료',
     icon: '🔌',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   parallel_data_query: {
     id: 'parallel_data_query',
@@ -48,9 +36,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '데이터 조회 실행 중...',
     labelComplete: '데이터 조회 완료',
     icon: '📊',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   data_query: {
     id: 'data_query',
@@ -58,9 +43,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '데이터 조회 중...',
     labelComplete: '데이터 조회 완료',
     icon: '📑',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   data_validation: {
     id: 'data_validation',
@@ -68,9 +50,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '검증 대기 중...',
     labelComplete: '데이터 검증 완료',
     icon: '✅',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   ppt_setup: {
     id: 'ppt_setup',
@@ -78,9 +57,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '설정 대기 중...',
     labelComplete: 'PPT 설정 완료',
     icon: '🎨',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   web_search: {
     id: 'web_search',
@@ -88,9 +64,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '시장 정보 검색 중...',
     labelComplete: '웹 검색 완료',
     icon: '🔍',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   slide_planning: {
     id: 'slide_planning',
@@ -98,9 +71,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '슬라이드 구성 계획 중...',
     labelComplete: '슬라이드 계획 완료',
     icon: '📝',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   slide_generation: {
     id: 'slide_generation',
@@ -108,9 +78,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '슬라이드 생성 중...',
     labelComplete: '슬라이드 제작 완료',
     icon: '🖼️',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   completion: {
     id: 'completion',
@@ -118,9 +85,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '마무리 중...',
     labelComplete: 'PPT 생성 완료',
     icon: '🎉',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
   todo_update: {
     id: 'todo_update',
@@ -128,9 +92,6 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     labelRunning: '상태 업데이트 중...',
     labelComplete: '진행 상황 업데이트',
     icon: '📋',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
   },
 };
 
@@ -144,6 +105,26 @@ export const HITL_TOOLS: ToolType[] = [
 // 도구가 HITL인지 확인하는 헬퍼
 export const isHitlTool = (toolType: ToolType): boolean => {
   return HITL_TOOLS.includes(toolType);
+};
+
+// HITL 질문 (수정 3: 플로팅 패널용)
+export const HITL_QUESTIONS: Partial<Record<ToolType, string>> = {
+  data_source_select: '경영 실적 보고서 제작을 위해 데이터 소스를 선택해 주세요.',
+  data_validation: 'ERP에서 조회한 Q4 2025 핵심 데이터를 확인해 주세요.',
+  ppt_setup: 'PPT 세부 설정을 확인해 주세요.',
+};
+
+// HITL 옵션 (수정 3: 플로팅 패널용)
+export const HITL_OPTIONS: Partial<Record<ToolType, HitlOption[]>> = {
+  data_validation: [
+    { id: 'confirm', label: '확인', description: '데이터가 정확합니다', recommended: true },
+    { id: 'modify', label: '수정 요청', description: '데이터 수정이 필요합니다' },
+  ],
+  ppt_setup: [
+    { id: 'short', label: '5-7장 (핵심 요약)', description: '간결하게 핵심만 담은 보고서' },
+    { id: 'standard', label: '8-12장 (표준)', description: '일반적인 경영 보고서 분량', recommended: true },
+    { id: 'detailed', label: '13장 이상 (상세)', description: '상세 분석이 포함된 보고서' },
+  ],
 };
 
 // 기본 데이터 소스 옵션

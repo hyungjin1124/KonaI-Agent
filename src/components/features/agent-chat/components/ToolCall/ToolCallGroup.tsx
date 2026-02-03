@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import ToolCallGroupHeader from './ToolCallGroupHeader';
 import ToolCallWidget from './ToolCallWidget';
-import { PPTSetupTool } from './tool-variants';
 import { DEFAULT_DATA_SOURCE_OPTIONS } from './constants';
 import type { ToolCallGroupProps } from './types';
 
@@ -12,6 +11,8 @@ import type { ToolCallGroupProps } from './types';
  * - 2단계 아코디언 구조: 외부(그룹) + 내부(개별 Tool)
  */
 const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
+  groupId,
+  groupLabel,
   messages,
   isGroupExpanded,
   onGroupToggle,
@@ -52,10 +53,11 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
     <div className="mb-4 animate-fade-in-up">
       {/* 외부 아코디언 헤더 */}
       <ToolCallGroupHeader
+        label={groupLabel}
         completedCount={completedCount}
         totalCount={totalCount}
-        isComplete={isScenarioComplete}
-        isRunning={isScenarioRunning}
+        isComplete={completedCount === totalCount && totalCount > 0}
+        isRunning={isScenarioRunning && completedCount < totalCount}
         isExpanded={isGroupExpanded}
         onToggle={onGroupToggle}
       />
@@ -63,45 +65,25 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
       {/* 외부 아코디언 콘텐츠 (내부 Tool 목록) */}
       {isGroupExpanded && (
         <div
-          className={`
-            mt-2 ml-4 pl-4 border-l-2 border-gray-200
-            space-y-2
-            animate-accordion-down
-          `}
+          className="mt-1 ml-2 pl-2 border-l border-gray-200 space-y-0.5 animate-accordion-down"
         >
           {toolMessages.map((message) => {
+            // 모든 도구는 기본적으로 닫힌 상태 (사용자가 클릭해야 펼침)
             const isExpanded = activeToolMessageId === message.id;
 
-            // HITL 도구는 입력 대기 중일 때 강제 펼침
-            const isHitlAwaitingInput =
-              message.toolStatus === 'running' || message.toolStatus === 'awaiting-input';
-            const shouldExpand = message.isHumanInTheLoop
-              ? isHitlAwaitingInput || isExpanded
-              : isExpanded;
-
-            // PPT 세부 설정은 별도 처리
+            // PPT 세부 설정 (HITL) - 플로팅 패널에서 설정, 인라인은 상태만 표시
             if (message.toolType === 'ppt_setup') {
               return (
-                <div key={message.id}>
-                  <ToolCallWidget
-                    toolType={message.toolType}
-                    status={message.toolStatus || 'pending'}
-                    isExpanded={shouldExpand}
-                    onToggle={() => onToolToggle(message.id)}
-                    currentStepId={currentStepId}
-                    completedStepIds={completedStepIds}
-                  />
-                  {message.toolStatus !== 'completed' && (
-                    <div className="mt-2 ml-6 p-4 bg-white border border-pink-200 rounded-lg mb-6">
-                      <PPTSetupTool
-                        status={message.toolStatus === 'running' ? 'awaiting-input' : message.toolStatus || 'pending'}
-                        config={pptConfig!}
-                        onConfigUpdate={onPptConfigUpdate!}
-                        onComplete={onPptSetupComplete!}
-                      />
-                    </div>
-                  )}
-                </div>
+                <ToolCallWidget
+                  key={message.id}
+                  toolType={message.toolType}
+                  status={message.toolStatus || 'pending'}
+                  isExpanded={isExpanded}
+                  onToggle={() => onToolToggle(message.id)}
+                  isHitl={true}
+                  currentStepId={currentStepId}
+                  completedStepIds={completedStepIds}
+                />
               );
             }
 
@@ -112,7 +94,7 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
                   key={message.id}
                   toolType={message.toolType}
                   status={message.toolStatus || 'pending'}
-                  isExpanded={shouldExpand}
+                  isExpanded={isExpanded}
                   onToggle={() => onToolToggle(message.id)}
                   isHitl={true}
                   hitlOptions={DEFAULT_DATA_SOURCE_OPTIONS}
@@ -135,7 +117,7 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
                   key={message.id}
                   toolType={message.toolType}
                   status={message.toolStatus || 'pending'}
-                  isExpanded={shouldExpand}
+                  isExpanded={isExpanded}
                   onToggle={() => onToolToggle(message.id)}
                   isHitl={true}
                   validationData={validationData}

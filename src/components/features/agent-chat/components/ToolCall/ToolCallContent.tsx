@@ -97,9 +97,8 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
   }, [currentStepId, completedStepIds]);
 
   if (toolType === 'deep_thinking') {
-    const completedCount = scenarioTodos.filter(t => t.status === 'completed').length;
-    const inProgressTodo = scenarioTodos.find(t => t.status === 'in_progress');
-
+    // Task 목록은 우측 사이드바 ProgressSection에서만 표시
+    // 좌측 패널에서는 Chain-of-Thought 분석 박스만 표시
     return (
       <div className="space-y-4">
         {/* Chain-of-Thought 분석 박스 */}
@@ -107,93 +106,19 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
           status={status}
           skipStreaming={skipStreaming}
         />
-
-        {/* Task 진행 상황 */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">총: {scenarioTodos.length}개의 Task</span>
-            <span className="text-gray-500">
-              {completedCount === 0
-                ? `남은 Task ${scenarioTodos.length}개`
-                : `완료 ${completedCount}/${scenarioTodos.length}`}
-            </span>
-          </div>
-          <div className="border-t border-gray-200 pt-2 space-y-1.5">
-            {scenarioTodos.map((todo, idx) => {
-              const isCompleted = todo.status === 'completed';
-              const isInProgress = todo.status === 'in_progress';
-
-              return (
-                <div key={todo.id} className="flex items-center gap-2 text-sm">
-                  <span className={
-                    isCompleted
-                      ? 'text-green-500'
-                      : isInProgress
-                        ? 'text-blue-500 animate-pulse'
-                        : 'text-gray-400'
-                  }>
-                    {isCompleted ? '✓' : isInProgress ? '●' : '○'}
-                  </span>
-                  <StreamingText
-                    content={todo.label}
-                    as="span"
-                    className={
-                      isCompleted
-                        ? 'text-gray-400 line-through'
-                        : isInProgress
-                          ? 'text-gray-800 font-medium'
-                          : 'text-gray-600'
-                    }
-                    typingSpeed={35}
-                    startDelay={5500 + idx * 250}
-                    showCursor={status === 'running' && idx === scenarioTodos.length - 1}
-                    enabled={streamingEnabled}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
     );
   }
 
-  // 데이터 소스 선택 (HITL)
-  if (toolType === 'data_source_select' && hitlOptions && onHitlSelect) {
+  // 데이터 소스 선택 (HITL) - 플로팅 패널에서 선택, 인라인은 상태 표시만
+  if (toolType === 'data_source_select') {
     return (
-      <div className="space-y-3">
-        <p className="text-sm text-gray-600">경영 실적 보고서 제작을 위해 데이터 소스를 선택해 주세요:</p>
-        <div className="space-y-2">
-          {hitlOptions.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => onHitlSelect(option.id)}
-              disabled={status === 'completed'}
-              className={`
-                w-full p-3 rounded-lg border text-left transition-all
-                ${selectedOption === option.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }
-                ${status === 'completed' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
-              `}
-            >
-              <div className="flex items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-800">{option.label}</span>
-                    {option.recommended && (
-                      <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">
-                        추천
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
+      <div className="space-y-2">
+        <p className="text-sm text-gray-600">
+          {status === 'completed' && selectedOption
+            ? `데이터 소스가 선택되었습니다: ${hitlOptions?.find(o => o.id === selectedOption)?.label || selectedOption}`
+            : '데이터 소스 선택 대기 중...'}
+        </p>
       </div>
     );
   }
@@ -429,54 +354,24 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
     );
   }
 
-  // 데이터 검증 (HITL)
-  if (toolType === 'data_validation' && validationData) {
+  // 데이터 검증 (HITL) - 플로팅 패널에서 확인/수정, 인라인은 상태 표시만
+  if (toolType === 'data_validation') {
     return (
-      <div className="space-y-3">
-        <p className="text-sm text-gray-600">ERP에서 조회한 Q4 2025 핵심 데이터를 확인해 주세요:</p>
-        <div className="p-3 bg-white border border-gray-200 rounded-lg space-y-2">
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-gray-500">매출액</span>
-              <p className="font-semibold text-gray-800">{validationData.revenue}</p>
-              <span className="text-xs text-green-600">{validationData.revenueGrowth}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">영업이익</span>
-              <p className="font-semibold text-gray-800">{validationData.operatingProfit}</p>
-              <span className="text-xs text-green-600">{validationData.operatingProfitGrowth}</span>
-            </div>
-          </div>
-          <div className="pt-2 border-t border-gray-100 text-xs text-gray-500">
-            <p>데이터 기준일: {validationData.dataDate}</p>
-            <p>출처: {validationData.dataSources.join(', ')}</p>
-          </div>
-        </div>
-        {status === 'awaiting-input' && onValidationConfirm && onValidationModify && (
-          <div className="flex gap-2">
-            <button
-              onClick={onValidationConfirm}
-              className="flex-1 py-2 bg-black text-white rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors"
-            >
-              확인
-            </button>
-            <button
-              onClick={onValidationModify}
-              className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors"
-            >
-              수정 요청
-            </button>
-          </div>
-        )}
+      <div className="text-sm text-gray-500">
+        {status === 'completed'
+          ? '데이터 검증이 완료되었습니다.'
+          : '데이터 검증 대기 중...'}
       </div>
     );
   }
 
-  // PPT 세부 설정 (HITL) - 별도 tool-variant에서 처리
+  // PPT 세부 설정 (HITL) - 플로팅 패널에서 설정, 인라인은 상태 표시만
   if (toolType === 'ppt_setup') {
     return (
       <div className="text-sm text-gray-500">
-        PPT 세부 설정 UI는 별도 컴포넌트에서 렌더링됩니다.
+        {status === 'completed'
+          ? 'PPT 세부 설정이 완료되었습니다.'
+          : 'PPT 세부 설정 대기 중...'}
       </div>
     );
   }

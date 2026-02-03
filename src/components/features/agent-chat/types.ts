@@ -157,16 +157,13 @@ export interface ScenarioMessage {
   linkedSlideIds?: number[];
 }
 
-// 도구 메타데이터
+// 도구 메타데이터 (텍스트 스타일용)
 export interface ToolMetadata {
   id: ToolType;
   label: string;
   labelRunning: string;
   labelComplete: string;
   icon: string;
-  color: string;
-  bgColor: string;
-  borderColor: string;
 }
 
 // 시나리오 단계 정의
@@ -277,3 +274,23 @@ export interface CenterPanelState {
 
 // 레이아웃 모드
 export type LayoutMode = 'two-panel' | 'three-panel';
+
+// =============================================
+// Task Group Types (Claude Cowork 스타일 다중 아코디언)
+// =============================================
+
+// 작업 그룹 정의 (렌더링용 외부 아코디언 단위)
+export interface TaskGroup {
+  id: string;                        // 그룹 고유 ID
+  label: string;                     // 그룹 라벨 (예: "데이터 수집")
+  toolStepIds: string[];             // 포함된 도구 단계 ID들
+  followingTextStepId?: string;      // 그룹 후 표시될 텍스트 단계 ID
+}
+
+// 렌더링 세그먼트 (그룹 또는 텍스트)
+export type RenderSegment =
+  | { type: 'tool-group'; group: TaskGroup; messages: ScenarioMessage[] }
+  | { type: 'text'; message: ScenarioMessage };
+
+// 그룹별 펼침 상태
+export type GroupExpandState = Record<string, boolean>;

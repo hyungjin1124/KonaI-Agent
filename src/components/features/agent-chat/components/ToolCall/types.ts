@@ -88,7 +88,6 @@ export interface ToolCallContentProps {
 // ToolCallStatusIndicator Props
 export interface ToolCallStatusIndicatorProps {
   status: ToolStatus;
-  color?: string;
 }
 
 // 개별 도구 변형 컴포넌트 공통 Props
@@ -155,6 +154,10 @@ export interface SlideGenerationToolProps extends ToolVariantProps {
 
 // ToolCallGroup Props (외부 아코디언)
 export interface ToolCallGroupProps {
+  /** 그룹 ID (Claude Cowork 스타일 다중 그룹용) */
+  groupId?: string;
+  /** 그룹 라벨 (예: "데이터 수집") */
+  groupLabel?: string;
   /** 그룹 내 모든 메시지 (tool-call만 필터링됨) */
   messages: ScenarioMessage[];
   /** 그룹 펼침 상태 */
@@ -194,11 +197,13 @@ export interface ToolCallGroupProps {
 
 // ToolCallGroupHeader Props (외부 아코디언 헤더)
 export interface ToolCallGroupHeaderProps {
+  /** 그룹 라벨 (예: "데이터 수집") - Claude Cowork 스타일 */
+  label?: string;
   /** 완료된 Tool 수 */
   completedCount: number;
   /** 전체 Tool 수 */
   totalCount: number;
-  /** 시나리오 완료 여부 */
+  /** 시나리오 완료 여부 (그룹 단위) */
   isComplete: boolean;
   /** 시나리오 진행 중 여부 */
   isRunning: boolean;

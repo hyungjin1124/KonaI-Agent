@@ -1,9 +1,17 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { ToolCallGroup } from './ToolCall';
 import { PPTDoneResponse } from './AgentResponse';
-import { ProgressTask } from '../types';
-import { PPTConfig } from '../../../../types';
+import { ProgressTask, ToolType } from '../types';
+import { PPTConfig, HitlOption } from '../../../../types';
 import usePPTScenario from '../../../../hooks/usePPTScenario';
+
+// HITL 플로팅 패널용 상태 타입
+export interface ActiveHitl {
+  stepId: string;
+  toolType: ToolType;
+  question: string;
+  options: HitlOption[];
+}
 
 interface PPTScenarioRendererProps {
   userQuery: string;
@@ -16,6 +24,7 @@ interface PPTScenarioRendererProps {
   onOpenRightPanel: () => void;
   onOpenCenterPanel?: () => void; // 가운데 패널 열기 콜백
   onProgressUpdate?: (tasks: ProgressTask[]) => void; // Progress 업데이트 콜백
+  onActiveHitlChange?: (hitl: ActiveHitl | null, resumeCallback: (stepId: string, selectedOption: string) => void) => void; // 수정 3: HITL 플로팅 패널 상태 전달
   slideGenerationState?: {
     currentSlide: number;
     completedSlides: number[];
@@ -40,6 +49,7 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
   onOpenRightPanel,
   onOpenCenterPanel,
   onProgressUpdate,
+  onActiveHitlChange,
   slideGenerationState,
   isSlideGenerationComplete,
 }) => {
@@ -52,6 +62,7 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
     validationData,
     completedStepIds,
     progressTasks,
+    activeHitl,
     startScenario,
     resumeWithHitlSelection,
     confirmValidation,
@@ -59,8 +70,9 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
     completeSlideGeneration,
     toggleMessageExpand,
     activeToolMessageId,
-    isGroupExpanded,
+    groupExpandState,
     toggleGroup,
+    renderSegments,
   } = usePPTScenario({
     onScenarioComplete: () => {
       onPptStatusChange('done');
@@ -79,78 +91,113 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
     },
   });
 
-  // todo_update 메시지 필터링
-  const filteredMessages = useMemo(() => {
-    return messages.filter(msg => msg.toolType !== 'todo_update');
-  }, [messages]);
-
   // Progress 업데이트 전달
   useEffect(() => {
     onProgressUpdate?.(progressTasks);
   }, [progressTasks, onProgressUpdate]);
 
+  // 슬라이드 생성 완료 처리 추적 (중복 호출 방지)
+  const slideCompletionHandledRef = useRef(false);
+
+  // completeSlideGeneration 함수의 최신 참조 유지 (stale closure 방지)
+  const completeSlideGenerationRef = useRef(completeSlideGeneration);
+  completeSlideGenerationRef.current = completeSlideGeneration;
+
+  // resumeWithHitlSelection 함수의 최신 참조 유지 (무한 루프 방지)
+  const resumeWithHitlSelectionRef = useRef(resumeWithHitlSelection);
+  resumeWithHitlSelectionRef.current = resumeWithHitlSelection;
+
+  // 수정 3: HITL 플로팅 패널 상태 전달
+  // resumeWithHitlSelection을 ref로 전달하여 의존성 배열에서 제거 (무한 루프 방지)
+  useEffect(() => {
+    onActiveHitlChange?.(activeHitl, resumeWithHitlSelectionRef.current);
+  }, [activeHitl, onActiveHitlChange]);
+
   // 시나리오 자동 시작 (완료 상태에서는 재시작하지 않음)
   useEffect(() => {
     if (userQuery && !isRunning && !isComplete && messages.length === 0) {
+      // 시나리오 시작 시 ref 초기화
+      slideCompletionHandledRef.current = false;
       startScenario();
       onPptStatusChange('setup');
     }
   }, [userQuery, isRunning, isComplete, messages.length, startScenario, onPptStatusChange]);
 
   // PPTGenPanel에서 슬라이드 생성 완료 시 시나리오 진행
+  // isSlideGenerationComplete만 확인 - PPTGenPanel의 완료 신호를 신뢰
   useEffect(() => {
-    if (isSlideGenerationComplete && currentStepId === 'tool_slide_generation' && isPaused) {
-      completeSlideGeneration();
+    if (isSlideGenerationComplete && !slideCompletionHandledRef.current) {
+      slideCompletionHandledRef.current = true;
+      completeSlideGenerationRef.current?.();
     }
-  }, [isSlideGenerationComplete, currentStepId, isPaused, completeSlideGeneration]);
+  }, [isSlideGenerationComplete]);
 
-  // 에이전트 텍스트 메시지만 필터링 (최초 인사 등)
-  const agentMessages = useMemo(() => {
-    return filteredMessages.filter(msg => msg.type === 'agent-text' && msg.content !== 'final');
-  }, [filteredMessages]);
-
-  // Tool 메시지가 있는지 확인 (그룹 렌더링용)
-  const hasToolMessages = useMemo(() => {
-    return filteredMessages.some(msg => msg.type === 'tool-call');
-  }, [filteredMessages]);
+  // 초기 인사 메시지 (agent_greeting - 첫 번째 그룹 전에 표시)
+  const greetingMessage = useMemo(() => {
+    return messages.find(
+      msg => msg.type === 'agent-text' && msg.id.includes('agent_greeting')
+    );
+  }, [messages]);
 
   return (
-    <div className="space-y-2">
-      {/* 에이전트 초기 메시지 */}
-      {agentMessages.map((message) => (
-        <div key={message.id} className="flex gap-4 mb-4 animate-fade-in-up">
+    <div className="space-y-4">
+      {/* 초기 인사 메시지 */}
+      {greetingMessage && (
+        <div className="flex gap-4 mb-4 animate-fade-in-up">
           <div className="w-8 h-8 rounded bg-[#FF3C42] flex items-center justify-center shrink-0 mt-1 shadow-sm">
             <span className="text-white font-bold text-xs">K</span>
           </div>
           <div className="flex-1">
             <p className="text-gray-900 font-medium text-sm leading-relaxed">
-              {message.content}
+              {greetingMessage.content}
             </p>
           </div>
         </div>
-      ))}
-
-      {/* Tool 그룹 (2단계 아코디언) */}
-      {hasToolMessages && (
-        <ToolCallGroup
-          messages={filteredMessages}
-          isGroupExpanded={isGroupExpanded}
-          onGroupToggle={toggleGroup}
-          activeToolMessageId={activeToolMessageId}
-          onToolToggle={toggleMessageExpand}
-          isScenarioComplete={isComplete}
-          isScenarioRunning={isRunning}
-          currentStepId={currentStepId}
-          completedStepIds={completedStepIds}
-          onHitlSelect={resumeWithHitlSelection}
-          onValidationConfirm={confirmValidation}
-          onPptSetupComplete={completePptSetup}
-          pptConfig={pptConfig}
-          onPptConfigUpdate={onPptConfigUpdate}
-          validationData={validationData}
-          slideGenerationState={slideGenerationState}
-        />
       )}
+
+      {/* 세그먼트별 렌더링 (Claude Cowork 스타일) */}
+      {renderSegments.map((segment) => {
+        // 텍스트 세그먼트
+        if (segment.type === 'text') {
+          return (
+            <div key={segment.message.id} className="flex gap-4 mb-4 animate-fade-in-up">
+              <div className="w-8 h-8 rounded bg-[#FF3C42] flex items-center justify-center shrink-0 mt-1 shadow-sm">
+                <span className="text-white font-bold text-xs">K</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-gray-900 font-medium text-sm leading-relaxed">
+                  {segment.message.content}
+                </p>
+              </div>
+            </div>
+          );
+        }
+
+        // 도구 그룹 세그먼트
+        return (
+          <ToolCallGroup
+            key={segment.group.id}
+            groupId={segment.group.id}
+            groupLabel={segment.group.label}
+            messages={segment.messages}
+            isGroupExpanded={groupExpandState[segment.group.id] ?? false}
+            onGroupToggle={() => toggleGroup(segment.group.id)}
+            activeToolMessageId={activeToolMessageId}
+            onToolToggle={toggleMessageExpand}
+            isScenarioComplete={isComplete}
+            isScenarioRunning={isRunning}
+            currentStepId={currentStepId}
+            completedStepIds={completedStepIds}
+            onHitlSelect={resumeWithHitlSelection}
+            onValidationConfirm={confirmValidation}
+            onPptSetupComplete={completePptSetup}
+            pptConfig={pptConfig}
+            onPptConfigUpdate={onPptConfigUpdate}
+            validationData={validationData}
+            slideGenerationState={slideGenerationState}
+          />
+        );
+      })}
 
       {/* 최종 완료 응답 */}
       {isComplete && (

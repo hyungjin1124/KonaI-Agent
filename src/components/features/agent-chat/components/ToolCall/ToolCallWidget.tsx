@@ -81,14 +81,10 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
         metadata={metadata}
       />
 
-      {/* 상세 내용 (펼쳤을 때만 표시) - 아코디언 애니메이션 */}
+      {/* 상세 내용 (펼쳤을 때만 표시) - 텍스트 스타일 */}
       {isExpanded && (
         <div
-          className={`
-            mt-1.5 p-3 bg-white border rounded-xl
-            animate-accordion-down
-            ${metadata.borderColor}
-          `}
+          className="ml-3 pl-2 border-l border-gray-200 mt-1 text-xs animate-accordion-down"
         >
           <ToolCallContent
             toolType={toolType}
