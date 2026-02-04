@@ -83,11 +83,6 @@ export const ProgressSection: React.FC<ProgressSectionProps> = ({
                 <span className={`text-sm ${getStatusColor(task.status)}`}>
                   {task.label}
                 </span>
-                {task.progress !== undefined && task.status === 'running' && (
-                  <span className="text-xs text-gray-400 ml-auto">
-                    {task.progress}%
-                  </span>
-                )}
               </div>
             ))
           )}

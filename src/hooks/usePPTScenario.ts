@@ -183,12 +183,12 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
   // 현재 활성화된 도구 메시지 ID (아코디언 방식 - 하나만 펼쳐짐)
   const [activeToolMessageId, setActiveToolMessageId] = useState<string | null>(null);
 
-  // 외부 아코디언(그룹) 펼침 상태 - 그룹별 독립 관리
+  // 외부 아코디언(그룹) 펼침 상태 - 그룹별 독립 관리 (기본 접힘)
   const [groupExpandState, setGroupExpandState] = useState<GroupExpandState>({
-    data_source_selection: true,
-    data_collection: true,
-    data_validation: true,
-    ppt_generation: true,
+    data_source_selection: false,
+    data_collection: false,
+    data_validation: false,
+    ppt_generation: false,
   });
 
   // 타이머 ref
@@ -389,12 +389,12 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     setIsComplete(false);
     setSelectedDataSource(null);
     setActiveToolMessageId(null);
-    // 시나리오 시작 시 모든 그룹 펼치기
+    // 시나리오 시작 시 모든 그룹 접힘 유지
     setGroupExpandState({
-      data_source_selection: true,
-      data_collection: true,
-      data_validation: true,
-      ppt_generation: true,
+      data_source_selection: false,
+      data_collection: false,
+      data_validation: false,
+      ppt_generation: false,
     });
     // 자동 접힘 추적 초기화
     autoCollapsedGroupsRef.current.clear();
@@ -544,12 +544,12 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     setSelectedDataSource(null);
     setCompletedStepIds(new Set());
     setActiveToolMessageId(null);
-    // 리셋 시 모든 그룹 펼침 상태로
+    // 리셋 시 모든 그룹 접힘 상태로
     setGroupExpandState({
-      data_source_selection: true,
-      data_collection: true,
-      data_validation: true,
-      ppt_generation: true,
+      data_source_selection: false,
+      data_collection: false,
+      data_validation: false,
+      ppt_generation: false,
     });
     // 자동 접힘 추적 초기화
     autoCollapsedGroupsRef.current.clear();

@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 // PPT Config Type
 export interface PPTConfig {
   theme: 'Corporate Blue' | 'Modern Dark' | 'Nature Green';
-  tone: 'Data-driven' | 'Formal' | 'Storytelling';
   topics: string[];
   titleFont: string;
   bodyFont: string;

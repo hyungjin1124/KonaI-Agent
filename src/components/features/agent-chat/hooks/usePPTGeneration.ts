@@ -4,7 +4,6 @@ import { PPTStatus } from '../types';
 
 const DEFAULT_PPT_CONFIG: PPTConfig = {
   theme: 'Corporate Blue',
-  tone: 'Data-driven',
   topics: ['Executive Summary', 'Q4 Revenue Overview'],
   titleFont: 'Pretendard',
   bodyFont: 'Pretendard',

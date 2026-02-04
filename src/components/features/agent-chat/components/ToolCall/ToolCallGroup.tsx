@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import ToolCallGroupHeader from './ToolCallGroupHeader';
 import ToolCallWidget from './ToolCallWidget';
-import { DEFAULT_DATA_SOURCE_OPTIONS } from './constants';
+import { DEFAULT_DATA_SOURCE_OPTIONS, TOOL_METADATA } from './constants';
 import type { ToolCallGroupProps } from './types';
+import type { ToolType } from '../../types';
 
 /**
  * Tool 그룹 외부 아코디언 컴포넌트 (Claude Chat 스타일)
@@ -44,6 +45,22 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
 
   const totalCount = toolMessages.length;
 
+  // 현재 실행 중이거나 입력 대기 중인 도구 확인
+  const hasActiveTool = useMemo(
+    () => toolMessages.some(msg => msg.toolStatus === 'running' || msg.toolStatus === 'awaiting-input'),
+    [toolMessages]
+  );
+
+  // 현재 실행 중이거나 입력 대기 중인 도구의 라벨 계산
+  const activeToolLabel = useMemo(() => {
+    const activeTool = toolMessages.find(
+      msg => msg.toolStatus === 'running' || msg.toolStatus === 'awaiting-input'
+    );
+    if (!activeTool?.toolType) return undefined;
+    const metadata = TOOL_METADATA[activeTool.toolType as ToolType];
+    return metadata?.labelRunning;
+  }, [toolMessages]);
+
   // Tool 메시지가 없으면 렌더링하지 않음
   if (totalCount === 0) {
     return null;
@@ -57,9 +74,10 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
         completedCount={completedCount}
         totalCount={totalCount}
         isComplete={completedCount === totalCount && totalCount > 0}
-        isRunning={isScenarioRunning && completedCount < totalCount}
+        isRunning={hasActiveTool}
         isExpanded={isGroupExpanded}
         onToggle={onGroupToggle}
+        activeToolLabel={activeToolLabel}
       />
 
       {/* 외부 아코디언 콘텐츠 (내부 Tool 목록) */}

@@ -211,4 +211,6 @@ export interface ToolCallGroupHeaderProps {
   isExpanded: boolean;
   /** 토글 핸들러 */
   onToggle: () => void;
+  /** 현재 실행 중인 하위 도구의 라벨 (예: "데이터 조회 중...") */
+  activeToolLabel?: string;
 }

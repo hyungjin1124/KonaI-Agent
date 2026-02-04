@@ -1,4 +1,38 @@
 import { ToolType, ToolMetadata, HitlOption, ParallelDataQuery, DataQueryResult } from '../../types';
+import { PPTConfig } from '../../../../../types';
+
+// =============================================
+// PPT Setup Step 정의 (3단계 Wizard UI)
+// =============================================
+
+export type PPTSetupStepId = 'design' | 'content' | 'confirm';
+
+export interface PPTSetupStep {
+  id: PPTSetupStepId;
+  title: string;
+  description: string;
+}
+
+export const PPT_SETUP_STEPS: PPTSetupStep[] = [
+  { id: 'design', title: '디자인 설정', description: '테마와 폰트를 선택해 주세요.' },
+  { id: 'content', title: '콘텐츠 설정', description: '포함할 내용과 슬라이드 수를 설정해 주세요.' },
+  { id: 'confirm', title: '설정 확인', description: '선택한 설정을 확인하고 생성을 시작합니다.' },
+];
+
+// 테마 옵션
+export const PPT_THEME_OPTIONS: PPTConfig['theme'][] = ['Corporate Blue', 'Modern Dark', 'Nature Green'];
+
+// 폰트 옵션
+export const PPT_FONT_OPTIONS = ['Pretendard', 'Noto Sans KR', 'Montserrat'];
+
+// 토픽 옵션
+export const PPT_TOPIC_OPTIONS = [
+  'Executive Summary',
+  'Q4 Revenue Overview',
+  'YoY Comparison',
+  'Regional Performance',
+  'Future Outlook',
+];
 
 // 도구별 메타데이터 (텍스트 스타일용)
 export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {

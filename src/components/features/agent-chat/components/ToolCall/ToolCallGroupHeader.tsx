@@ -1,11 +1,12 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import type { ToolCallGroupHeaderProps } from './types';
 
 /**
- * Tool 그룹 외부 아코디언 헤더 (텍스트 스타일)
- * - 호버시 배경 효과 및 화살표 표시
- * - 실행 중 애니메이션 적용
+ * Tool 그룹 외부 아코디언 헤더 (Reasoning 스타일)
+ * - Chevron 왼쪽 배치
+ * - 텍스트에만 hover 효과
+ * - 실행 중 shimmer-text 애니메이션 (텍스트 자체가 반짝임)
  */
 const ToolCallGroupHeader: React.FC<ToolCallGroupHeaderProps> = ({
   label,
@@ -15,45 +16,47 @@ const ToolCallGroupHeader: React.FC<ToolCallGroupHeaderProps> = ({
   isRunning,
   isExpanded,
   onToggle,
+  activeToolLabel,
 }) => {
-  // 상태에 따른 라벨
+  // 상태에 따른 라벨 (숫자 제거)
   const getLabel = () => {
     if (isComplete) {
       return label ? `${label} 완료` : `${totalCount}개 도구 사용됨`;
     }
     if (isRunning) {
-      return label
-        ? `${label} (${completedCount}/${totalCount})`
-        : `작업 진행 중 (${completedCount}/${totalCount})`;
+      return activeToolLabel || label || '작업 진행 중';
     }
     return label || '도구 호출 대기 중';
   };
 
+  const displayLabel = getLabel();
+
   return (
     <button
       onClick={onToggle}
-      className={`
-        flex items-center gap-1.5 w-full py-1
-        transition-all duration-200 text-left group
-        text-xs text-muted-foreground
-        hover:text-foreground hover:bg-muted/50 rounded px-1 -mx-1
-      `}
+      className="flex items-center gap-1.5 w-full py-1 text-left text-xs group"
       aria-expanded={isExpanded}
     >
-      {/* 라벨 (실행 중이면 애니메이션) */}
-      <span className={`flex-1 ${isRunning ? 'animate-pulse' : ''}`}>
-        {getLabel()}
-      </span>
-
-      {/* 펼침/접힘 아이콘 (우측) */}
-      <ChevronRight
+      {/* 펼침/접힘 아이콘 (좌측) */}
+      <ChevronDown
         size={12}
         className={`
-          opacity-0 group-hover:opacity-100
-          text-gray-400 transition-all duration-200
-          ${isExpanded ? 'rotate-90' : ''}
+          text-gray-400 transition-transform duration-200 flex-shrink-0
+          group-hover:text-gray-600
+          ${isExpanded ? 'rotate-0' : '-rotate-90'}
         `}
       />
+
+      {/* 라벨 + Shimmer 효과 (텍스트에만 hover) */}
+      <span
+        key={displayLabel}
+        className={`
+          flex-1
+          ${isRunning ? 'shimmer-text-fade' : 'text-completed'}
+        `}
+      >
+        {displayLabel}
+      </span>
     </button>
   );
 };
