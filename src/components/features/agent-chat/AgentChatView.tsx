@@ -13,7 +13,9 @@ import { SalesAnalysisResponse, AnomalyResponse, DefaultResponse, PPTDoneRespons
 import { ChainOfThought } from './components/ChainOfThought';
 import { ArtifactsPanel } from './components/ArtifactsPanel';
 import ScrollToBottomButton from './components/ScrollToBottomButton';
-import PPTScenarioRenderer from './components/PPTScenarioRenderer';
+import PPTScenarioRenderer, { ActiveHitl } from './components/PPTScenarioRenderer';
+import { HITLFloatingPanel } from './components/HITLFloatingPanel';
+import { DEFAULT_VALIDATION_DATA } from './scenarios/pptScenario';
 import { CoworkLayout } from './layouts';
 import { RightSidebar } from './components/RightSidebar';
 import { ArtifactPreviewPanel } from './components/ArtifactPreviewPanel';
@@ -104,6 +106,10 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   const [sidebarExpandedSections, setSidebarExpandedSections] = useState<SidebarSection[]>(['progress', 'artifacts', 'context']);
   const [progressTasks, setProgressTasks] = useState<ProgressTask[]>([]);
   const [contextItems, setContextItems] = useState<ContextItem[]>([]);
+
+  // 수정 3: HITL 플로팅 패널 상태
+  const [activeHitl, setActiveHitl] = useState<ActiveHitl | null>(null);
+  const [hitlResumeCallback, setHitlResumeCallback] = useState<((stepId: string, selectedOption: string) => void) | null>(null);
   const [artifactPreview, setArtifactPreview] = useState<ArtifactPreviewState>({
     isOpen: false,
     selectedArtifact: null,
@@ -496,6 +502,8 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setRightPanelType('dashboard'); // Reset panel type
     hasProcessedInitialQuery.current = false; // Reset initial query flag
     setIsSlideGenerationComplete(false); // 슬라이드 생성 완료 상태 리셋
+    setActiveHitl(null); // HITL 상태 리셋
+    setHitlResumeCallback(null); // HITL 콜백 리셋
   }, []);
 
   // PPT 완료 후 → 매출 분석 시나리오로 전환
@@ -671,6 +679,21 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       isOpen: false,
       content: null,
     });
+    // 아티팩트 프리뷰도 함께 닫기
+    setArtifactPreview({
+      isOpen: false,
+      selectedArtifact: null,
+      previewType: null,
+    });
+  }, []);
+
+  // 수정 3: HITL 플로팅 패널 상태 변경 핸들러
+  const handleActiveHitlChange = useCallback((
+    hitl: ActiveHitl | null,
+    resumeCallback: (stepId: string, selectedOption: string) => void
+  ) => {
+    setActiveHitl(hitl);
+    setHitlResumeCallback(() => resumeCallback);
   }, []);
 
   // PPT 시나리오 Progress Task 매핑
@@ -788,6 +811,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                 })}
                 onOpenCenterPanel={() => handleOpenCenterPanel('ppt-preview')}
                 onProgressUpdate={setProgressTasks}
+                onActiveHitlChange={handleActiveHitlChange}
                 slideGenerationState={slideGenerationState}
                 isSlideGenerationComplete={isSlideGenerationComplete}
               />
@@ -1296,7 +1320,31 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
     // 입력 영역
     const inputAreaContent = (
-      <div className="p-4 pb-6 bg-white border-t border-gray-100 flex justify-center">
+      <div className="p-4 pb-6 bg-white border-t border-gray-100 flex flex-col items-center">
+        {/* 수정 3: HITL 플로팅 패널 - 입력창 위에 표시 */}
+        {activeHitl && hitlResumeCallback && (
+          <div className="w-full max-w-3xl">
+            <HITLFloatingPanel
+              isVisible={true}
+              question={activeHitl.question}
+              options={activeHitl.options}
+              onSelect={(optionId) => hitlResumeCallback(activeHitl.stepId, optionId)}
+              onSkip={() => hitlResumeCallback(activeHitl.stepId, 'skip')}
+              onClose={() => setActiveHitl(null)}
+              toolType={activeHitl.toolType}
+              // data_validation용
+              validationData={activeHitl.toolType === 'data_validation' ? DEFAULT_VALIDATION_DATA : undefined}
+              // ppt_setup용
+              pptConfig={activeHitl.toolType === 'ppt_setup' ? pptConfig : undefined}
+              onPptConfigUpdate={activeHitl.toolType === 'ppt_setup' ? updatePptConfig : undefined}
+              onPptSetupComplete={activeHitl.toolType === 'ppt_setup' ? () => {
+                hitlResumeCallback(activeHitl.stepId, 'complete');
+                handleGenerateStart(); // PPT 생성 시작
+              } : undefined}
+            />
+          </div>
+        )}
+
         <div className="w-full max-w-3xl">
           {/* 추천 프롬프트 칩 - 시나리오 완료 상태에 따라 표시 */}
           {(pptStatus === 'done' || salesAnalysisComplete) && (

@@ -22,13 +22,17 @@ const StreamingTextSpan: React.FC<{
   const [cursorVisible, setCursorVisible] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // 1. 타이핑 애니메이션 useEffect
   useEffect(() => {
+    // 이미 완료된 경우 인터벌 시작하지 않음
+    if (displayLength >= text.length) {
+      return;
+    }
+
     intervalRef.current = setInterval(() => {
       setDisplayLength((prev) => {
         if (prev >= text.length) {
           if (intervalRef.current) clearInterval(intervalRef.current);
-          setIsComplete(true);
-          onComplete?.();
           return prev;
         }
         return prev + 1;
@@ -38,7 +42,15 @@ const StreamingTextSpan: React.FC<{
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [text, typingSpeed, onComplete]);
+  }, [text, typingSpeed, displayLength]);
+
+  // 2. 완료 감지 useEffect (별도로 분리하여 렌더링 중 setState 방지)
+  useEffect(() => {
+    if (displayLength >= text.length && !isComplete) {
+      setIsComplete(true);
+      onComplete?.();
+    }
+  }, [displayLength, text.length, isComplete, onComplete]);
 
   useEffect(() => {
     if (isComplete) {

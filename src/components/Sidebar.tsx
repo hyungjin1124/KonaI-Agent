@@ -7,7 +7,8 @@ import {
   UserCog,
   History,
   Bell,
-  Cpu
+  Cpu,
+  MessageSquare
 } from './icons';
 import { ViewType } from '../types';
 import { useNotification, Anomaly } from '../context/NotificationContext';
@@ -31,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyCli
 
   const navItems = [
     { id: 'dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+    { id: 'general-chat', icon: <MessageSquare size={20} />, label: '채팅' },
     { id: 'data', icon: <Database size={20} />, label: 'Data Management' },
     { id: 'admin', icon: <UserCog size={20} />, label: 'Admin' },
     { id: 'history', icon: <History size={20} />, label: 'Chat History' },
@@ -66,6 +68,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyCli
                 let isActive = false;
                 if (item.id === 'dashboard') {
                    isActive = currentView === 'dashboard' || currentView === 'chat';
+                } else if (item.id === 'general-chat') {
+                   isActive = currentView === 'general-chat';
                 } else if (item.id === 'data') {
                    isActive = currentView === 'data';
                 } else if (item.id === 'admin') {
@@ -121,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyCli
                     <button 
                         key={item.id}
                         // Modified onClick to pass correct ID
-                        onClick={() => onNavigate(item.id === 'data' ? 'data' : item.id === 'dashboard' ? 'dashboard' : item.id === 'admin' ? 'admin' : item.id === 'history' ? 'history' : 'chat')}
+                        onClick={() => onNavigate(item.id === 'data' ? 'data' : item.id === 'dashboard' ? 'dashboard' : item.id === 'admin' ? 'admin' : item.id === 'history' ? 'history' : item.id === 'general-chat' ? 'general-chat' : 'chat')}
                         className={`p-2 rounded-lg transition-all ${
                             isActive 
                             ? 'text-[#FF3C42] bg-red-50' 

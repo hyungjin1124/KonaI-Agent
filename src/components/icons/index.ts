@@ -101,6 +101,8 @@ export { default as Move } from 'lucide-react/dist/esm/icons/move';
 
 // P
 export { default as Palette } from 'lucide-react/dist/esm/icons/palette';
+export { default as PanelLeftClose } from 'lucide-react/dist/esm/icons/panel-left-close';
+export { default as PanelLeftOpen } from 'lucide-react/dist/esm/icons/panel-left-open';
 export { default as PanelRightClose } from 'lucide-react/dist/esm/icons/panel-right-close';
 export { default as PanelRightOpen } from 'lucide-react/dist/esm/icons/panel-right-open';
 export { default as Paperclip } from 'lucide-react/dist/esm/icons/paperclip';

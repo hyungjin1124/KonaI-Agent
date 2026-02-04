@@ -3,7 +3,7 @@ import { ViewType } from '../types';
 export interface NavItem {
   id: string;
   label: string;
-  iconName: 'LayoutDashboard' | 'Database' | 'UserCog' | 'History' | 'Settings' | 'Cpu';
+  iconName: 'LayoutDashboard' | 'Database' | 'UserCog' | 'History' | 'Settings' | 'Cpu' | 'MessageSquare';
   viewType: ViewType;
   hasDropdown?: boolean;
   dropdownItems?: DropdownItem[];
@@ -22,6 +22,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     iconName: 'LayoutDashboard',
     viewType: 'dashboard',
+  },
+  {
+    id: 'general-chat',
+    label: '채팅',
+    iconName: 'MessageSquare',
+    viewType: 'general-chat',
   },
   {
     id: 'data',

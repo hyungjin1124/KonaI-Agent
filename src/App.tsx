@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import { AgentChatView } from './components/features/agent-chat';
+import { GeneralChatView } from './components/features/general-chat';
 import DataManagementView from './components/DataManagementView';
 import SkillManagementView from './components/SkillManagementView';
 import AdminView from './components/AdminView';
@@ -70,6 +71,14 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
         return;
     }
 
+    // If user clicks "General Chat"
+    if (view === 'general-chat') {
+        setViewMode('general_chat');
+        setAgentContext(null);
+        setAgentQuery(undefined);
+        return;
+    }
+
     // If user clicks "Dashboard" (which maps to 'dashboard' ID in Sidebar), go to Landing
     if (view === 'dashboard') {
       setViewMode('landing');
@@ -122,6 +131,7 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
       if (viewMode === 'skills_management') return 'skills';
       if (viewMode === 'admin_management') return 'admin';
       if (viewMode === 'history_view') return 'history';
+      if (viewMode === 'general_chat') return 'general-chat';
       return viewMode === 'landing' ? 'dashboard' : 'chat';
   };
 
@@ -140,7 +150,9 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 w-full h-full relative">
-           {viewMode === 'data_management' ? (
+           {viewMode === 'general_chat' ? (
+             <GeneralChatView />
+           ) : viewMode === 'data_management' ? (
              <DataManagementView />
            ) : viewMode === 'skills_management' ? (
              <SkillManagementView />

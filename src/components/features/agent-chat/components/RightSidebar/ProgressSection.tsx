@@ -70,7 +70,9 @@ export const ProgressSection: React.FC<ProgressSectionProps> = ({
       {isExpanded && (
         <div className="px-4 pb-3 space-y-1">
           {tasks.length === 0 ? (
-            <p className="text-sm text-gray-400 py-2">작업이 없습니다</p>
+            <div className="py-2 text-sm text-gray-400">
+              <span>작업의 진행 상황을 확인하세요.</span>
+            </div>
           ) : (
             tasks.map((task) => (
               <div
