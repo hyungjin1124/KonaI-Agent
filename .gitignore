@@ -28,6 +28,7 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
+nul
 
 # IDE files
 .vscode/
@@ -38,6 +39,18 @@ Thumbs.db
 .project
 .classpath
 .settings/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Personal work references
+references/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # Testing
 coverage/
@@ -53,5 +66,7 @@ tmp/
 temp/
 *.tmp
 
-# Image files
+# Image files (screenshots are in outputs/)
 *.png
+*.jpg
+*.jpeg
