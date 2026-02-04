@@ -43,9 +43,6 @@ nul
 # Claude Code local settings
 .claude/settings.local.json
 
-# Personal work references
-references/
-
 # Python
 __pycache__/
 *.pyc
@@ -67,6 +64,6 @@ temp/
 *.tmp
 
 # Image files (screenshots are in outputs/)
-*.png
-*.jpg
-*.jpeg
+# *.png
+# *.jpg
+# *.jpeg
