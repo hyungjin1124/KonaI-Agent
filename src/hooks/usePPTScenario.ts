@@ -36,6 +36,8 @@ const STEP_TO_TOOL_TYPE: Record<string, ToolType> = {
   tool_ppt_setup: 'ppt_setup',
   tool_web_search: 'web_search',
   tool_slide_planning: 'slide_planning',
+  tool_slide_outline_review: 'slide_outline_review',
+  tool_theme_font_select: 'theme_font_select', // NEW: 테마/폰트 선택
   tool_slide_generation: 'slide_generation',
   tool_completion: 'completion',
 };
@@ -68,7 +70,10 @@ const PROGRESS_TASK_GROUPS = [
   { id: 'data_query', label: '데이터 조회', stepIds: ['tool_erp_connect', 'tool_parallel_query', 'tool_data_query_1', 'tool_data_query_2', 'tool_data_query_3', 'tool_data_query_4'] },
   { id: 'data_validation', label: '데이터 검증', stepIds: ['tool_data_validation', 'agent_validation_confirm'] },
   { id: 'ppt_setup', label: 'PPT 설정', stepIds: ['tool_ppt_setup', 'agent_setup_confirm'] },
-  { id: 'slide_generation', label: '슬라이드 생성', stepIds: ['tool_web_search', 'tool_slide_planning', 'tool_slide_generation'] },
+  { id: 'slide_planning', label: '슬라이드 구성', stepIds: ['tool_web_search', 'tool_slide_planning', 'agent_slide_planning_confirm'] },
+  { id: 'slide_outline_review', label: '슬라이드 개요 검토', stepIds: ['tool_slide_outline_review', 'agent_outline_approved'] },
+  { id: 'theme_font_select', label: '테마/폰트 선택', stepIds: ['tool_theme_font_select', 'agent_theme_font_confirm'] },
+  { id: 'slide_generation', label: '슬라이드 생성', stepIds: ['tool_slide_generation'] },
   { id: 'completion', label: '완료', stepIds: ['tool_completion', 'agent_final'] },
 ];
 
@@ -93,9 +98,27 @@ const RENDER_TASK_GROUPS: TaskGroup[] = [
     followingTextStepId: 'agent_validation_confirm',
   },
   {
+    id: 'ppt_setup',
+    label: 'PPT 설정',
+    toolStepIds: ['tool_ppt_setup', 'tool_web_search', 'tool_slide_planning'],
+    followingTextStepId: 'agent_slide_planning_confirm',
+  },
+  {
+    id: 'slide_outline_review',
+    label: '슬라이드 개요 검토',
+    toolStepIds: ['tool_slide_outline_review'],
+    followingTextStepId: 'agent_outline_approved',
+  },
+  {
+    id: 'theme_font_select',
+    label: '테마/폰트 선택',
+    toolStepIds: ['tool_theme_font_select'],
+    followingTextStepId: 'agent_theme_font_confirm',
+  },
+  {
     id: 'ppt_generation',
     label: 'PPT 생성',
-    toolStepIds: ['tool_ppt_setup', 'tool_web_search', 'tool_slide_planning', 'tool_slide_generation', 'tool_completion'],
+    toolStepIds: ['tool_slide_generation', 'tool_completion'],
     followingTextStepId: 'agent_final',
   },
 ];
@@ -140,6 +163,9 @@ interface UsePPTScenarioReturn {
   resumeWithHitlSelection: (stepId: string, selectedOption: string) => void;
   confirmValidation: () => void;
   completePptSetup: () => void;
+  completeSlideOutlineReview: () => void; // 슬라이드 개요 검토 완료 시 호출
+  completeThemeFontSelect: () => void; // 테마/폰트 선택 완료 시 호출
+  completeSlidePlanning: () => void; // 모든 마크다운 파일 생성 완료 시 호출
   completeSlideGeneration: () => void; // PPTGenPanel 완료 시 호출
   pauseScenario: () => void;
   resetScenario: () => void;
@@ -188,6 +214,9 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     data_source_selection: false,
     data_collection: false,
     data_validation: false,
+    ppt_setup: false,
+    slide_outline_review: false,
+    theme_font_select: false,
     ppt_generation: false,
   });
 
@@ -263,6 +292,8 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
         data_source_selection: false,
         data_collection: false,
         data_validation: false,
+        ppt_setup: false,
+        slide_outline_review: false,
         ppt_generation: false,
       });
       onScenarioComplete?.();
@@ -299,6 +330,7 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
       // 자동 펼침 제거 - 사용자가 클릭해야만 펼침
 
       // HITL 단계인 경우 일시 중지 및 플로팅 패널 활성화
+      // (slide_outline_review는 isHitl 제거됨 - isAsyncTool로 처리됨)
       if (step.isHitl) {
         // 현재 단계 인덱스를 명시적으로 기록 (HITL 완료 시 참조)
         stepIndexRef.current = stepIndex;
@@ -394,6 +426,8 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
       data_source_selection: false,
       data_collection: false,
       data_validation: false,
+      ppt_setup: false,
+      slide_outline_review: false,
       ppt_generation: false,
     });
     // 자동 접힘 추적 초기화
@@ -499,6 +533,76 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     executeStep(nextIndex);
   }, [executeStep, onStepComplete]);
 
+  // 슬라이드 개요 검토 완료 (모든 슬라이드 승인 시 호출)
+  const completeSlideOutlineReview = useCallback(() => {
+    const stepId = 'tool_slide_outline_review';
+    // HITL 플로팅 패널 비활성화 (slide_outline_review는 가운데 패널 사용)
+    setActiveHitl(null);
+
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id.includes(stepId)
+          ? { ...msg, toolStatus: 'completed' as ToolStatus }
+          : msg
+      )
+    );
+
+    // 완료된 단계 추가
+    setCompletedStepIds(prev => new Set([...prev, stepId]));
+    setIsPaused(false);
+    onStepComplete?.(stepId);
+
+    const nextIndex = stepIndexRef.current + 1;
+    stepIndexRef.current = nextIndex;
+    executeStep(nextIndex);
+  }, [executeStep, onStepComplete]);
+
+  // 테마/폰트 선택 완료 (NEW)
+  const completeThemeFontSelect = useCallback(() => {
+    const stepId = 'tool_theme_font_select';
+    // HITL 플로팅 패널 비활성화
+    setActiveHitl(null);
+
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id.includes(stepId)
+          ? { ...msg, toolStatus: 'completed' as ToolStatus }
+          : msg
+      )
+    );
+
+    // 완료된 단계 추가
+    setCompletedStepIds(prev => new Set([...prev, stepId]));
+    setIsPaused(false);
+    onStepComplete?.(stepId);
+
+    const nextIndex = stepIndexRef.current + 1;
+    stepIndexRef.current = nextIndex;
+    executeStep(nextIndex);
+  }, [executeStep, onStepComplete]);
+
+  // 슬라이드 계획 완료 (모든 마크다운 파일 생성 시 호출)
+  const completeSlidePlanning = useCallback(() => {
+    const stepId = 'tool_slide_planning';
+
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id.includes(stepId)
+          ? { ...msg, toolStatus: 'completed' as ToolStatus }
+          : msg
+      )
+    );
+
+    // 완료된 단계 추가
+    setCompletedStepIds(prev => new Set([...prev, stepId]));
+    setIsPaused(false);
+    onStepComplete?.(stepId);
+
+    const nextIndex = stepIndexRef.current + 1;
+    stepIndexRef.current = nextIndex;
+    executeStep(nextIndex);
+  }, [executeStep, onStepComplete]);
+
   // 슬라이드 생성 완료 (PPTGenPanel에서 모든 슬라이드 완료 시 호출)
   const completeSlideGeneration = useCallback(() => {
     const stepId = 'tool_slide_generation';
@@ -549,6 +653,9 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
       data_source_selection: false,
       data_collection: false,
       data_validation: false,
+      ppt_setup: false,
+      slide_outline_review: false,
+      theme_font_select: false,
       ppt_generation: false,
     });
     // 자동 접힘 추적 초기화
@@ -643,6 +750,9 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     resumeWithHitlSelection,
     confirmValidation,
     completePptSetup,
+    completeThemeFontSelect,
+    completeSlideOutlineReview,
+    completeSlidePlanning,
     completeSlideGeneration,
     pauseScenario,
     resetScenario,

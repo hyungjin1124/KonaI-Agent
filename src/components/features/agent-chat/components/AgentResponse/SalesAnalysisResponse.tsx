@@ -2,8 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FileText } from '../../../../icons';
 import TypingCursor from '../../../../shared/TypingCursor';
 
+// 섹션 타입 정의
+export interface SectionItem {
+  id: string;
+  type: 'h3' | 'h4' | 'p' | 'ul' | 'box' | 'footer';
+  text?: string;
+  items?: string[];
+  title?: string;
+  className?: string;
+}
+
 // 섹션별 텍스트 데이터
-const SECTIONS = [
+export const SECTIONS: SectionItem[] = [
   {
     id: 'title',
     type: 'h3',
@@ -82,7 +92,7 @@ const SECTIONS = [
 ];
 
 // Bold 텍스트 파싱 함수 (**text** -> <strong>text</strong>)
-const parseTextWithBold = (text: string, displayLength?: number): React.ReactNode[] => {
+export const parseTextWithBold = (text: string, displayLength?: number): React.ReactNode[] => {
   const displayText = displayLength !== undefined ? text.slice(0, displayLength) : text;
   const parts = displayText.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
@@ -93,14 +103,14 @@ const parseTextWithBold = (text: string, displayLength?: number): React.ReactNod
   });
 };
 
-interface StreamingTextProps {
+export interface StreamingTextProps {
   text: string;
   typingSpeed?: number;
   onComplete?: () => void;
   showCursor?: boolean;
 }
 
-const StreamingTextSpan: React.FC<StreamingTextProps> = ({
+export const StreamingTextSpan: React.FC<StreamingTextProps> = ({
   text,
   typingSpeed = 15,
   onComplete,
@@ -151,7 +161,7 @@ const StreamingTextSpan: React.FC<StreamingTextProps> = ({
 };
 
 // 지연 후 완료 콜백을 호출하는 유틸리티 컴포넌트
-const DelayedComplete: React.FC<{
+export const DelayedComplete: React.FC<{
   delayMs: number;
   onComplete: () => void;
 }> = ({ delayMs, onComplete }) => {

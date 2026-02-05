@@ -35,6 +35,7 @@ export interface DashboardProps {
   type?: 'financial' | 'did' | 'ppt';
   scenario?: DashboardScenario;
   onTogglePanel?: () => void;
+  isLoading?: boolean; // Skeleton UI 표시 여부
 }
 
 export type DashboardScenario =

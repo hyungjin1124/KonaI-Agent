@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ToolCallGroup } from './ToolCall';
 import { PPTDoneResponse } from './AgentResponse';
 import { ProgressTask, ToolType } from '../types';
 import { PPTConfig, HitlOption } from '../../../../types';
 import usePPTScenario from '../../../../hooks/usePPTScenario';
+import { AnalysisScopeData, DataVerificationData } from './HITLFloatingPanel';
+import type { SlideFile } from './ToolCall/constants';
 
 // HITL 플로팅 패널용 상태 타입
 export interface ActiveHitl {
@@ -11,6 +13,9 @@ export interface ActiveHitl {
   toolType: ToolType;
   question: string;
   options: HitlOption[];
+  // 매출 분석 시나리오 HITL 데이터 (옵셔널)
+  analysisScopeData?: AnalysisScopeData;
+  dataVerificationData?: DataVerificationData;
 }
 
 interface PPTScenarioRendererProps {
@@ -31,6 +36,15 @@ interface PPTScenarioRendererProps {
     totalSlides: number;
   };
   isSlideGenerationComplete?: boolean; // PPTGenPanel에서 모든 슬라이드 완료 시 true
+  // Slide Outline Review Props
+  onSlideOutlineReviewStart?: () => void; // 슬라이드 개요 검토 단계 시작 시 콜백
+  isSlideOutlineReviewComplete?: boolean; // 모든 슬라이드 개요 승인 시 true
+  // Theme/Font Select Props
+  onThemeFontComplete?: (completeCallback: () => void) => void; // 테마/폰트 선택 완료 콜백 전달
+  // 마크다운 파일 생성 콜백
+  onMarkdownFileGenerated?: (file: SlideFile) => void;
+  // 슬라이드 계획 완료 콜백 전달 (모든 파일 생성 완료 시 호출)
+  onSlidePlanningComplete?: (completeCallback: () => void) => void;
 }
 
 /**
@@ -52,7 +66,32 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
   onActiveHitlChange,
   slideGenerationState,
   isSlideGenerationComplete,
+  // Slide Outline Review
+  onSlideOutlineReviewStart,
+  isSlideOutlineReviewComplete,
+  // Theme/Font Select
+  onThemeFontComplete,
+  // 마크다운 파일 생성
+  onMarkdownFileGenerated,
+  // 슬라이드 계획 완료
+  onSlidePlanningComplete,
 }) => {
+  // 무한 루프 방지: usePPTScenario에 전달하는 콜백을 메모이제이션
+  const handleScenarioComplete = useCallback(() => {
+    onPptStatusChange('done');
+    onScenarioComplete();
+  }, [onPptStatusChange, onScenarioComplete]);
+
+  const handleStepStart = useCallback((stepId: string) => {
+    // tool_ppt_setup: 중앙 패널 열지 않음 (HITL 플로팅 패널만 사용)
+    // tool_slide_outline_review: HITL 플로팅 패널로 처리 (중앙 패널 열지 않음)
+
+    // 슬라이드 생성 단계 - PPT 생성은 theme_font_select 완료 시 시작됨
+    if (stepId === 'tool_slide_generation') {
+      onOpenCenterPanel?.();
+    }
+  }, [onOpenCenterPanel]);
+
   const {
     messages,
     currentStepId,
@@ -67,6 +106,9 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
     resumeWithHitlSelection,
     confirmValidation,
     completePptSetup,
+    completeThemeFontSelect,
+    completeSlideOutlineReview,
+    completeSlidePlanning,
     completeSlideGeneration,
     toggleMessageExpand,
     activeToolMessageId,
@@ -74,21 +116,8 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
     toggleGroup,
     renderSegments,
   } = usePPTScenario({
-    onScenarioComplete: () => {
-      onPptStatusChange('done');
-      onScenarioComplete();
-    },
-    onStepStart: (stepId) => {
-      // 조건 A: PPT 세부 설정 단계에서 가운데 패널 열기
-      if (stepId === 'tool_ppt_setup') {
-        onOpenCenterPanel?.();
-      }
-      // 조건 B: 슬라이드 생성 단계에서 가운데 패널 열기 (닫혀있었다면)
-      if (stepId === 'tool_slide_generation') {
-        onPptStatusChange('generating');
-        onOpenCenterPanel?.();
-      }
-    },
+    onScenarioComplete: handleScenarioComplete,
+    onStepStart: handleStepStart,
   });
 
   // Progress 업데이트 전달
@@ -96,8 +125,15 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
     onProgressUpdate?.(progressTasks);
   }, [progressTasks, onProgressUpdate]);
 
+  // 슬라이드 개요 검토 완료 처리 추적 (중복 호출 방지)
+  const slideOutlineReviewCompletionHandledRef = useRef(false);
+
   // 슬라이드 생성 완료 처리 추적 (중복 호출 방지)
   const slideCompletionHandledRef = useRef(false);
+
+  // completeSlideOutlineReview 함수의 최신 참조 유지 (stale closure 방지)
+  const completeSlideOutlineReviewRef = useRef(completeSlideOutlineReview);
+  completeSlideOutlineReviewRef.current = completeSlideOutlineReview;
 
   // completeSlideGeneration 함수의 최신 참조 유지 (stale closure 방지)
   const completeSlideGenerationRef = useRef(completeSlideGeneration);
@@ -107,21 +143,68 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
   const resumeWithHitlSelectionRef = useRef(resumeWithHitlSelection);
   resumeWithHitlSelectionRef.current = resumeWithHitlSelection;
 
+  // completeThemeFontSelect 함수의 최신 참조 유지 (무한 루프 방지)
+  const completeThemeFontSelectRef = useRef(completeThemeFontSelect);
+  completeThemeFontSelectRef.current = completeThemeFontSelect;
+
+  // completeSlidePlanning 함수의 최신 참조 유지 (무한 루프 방지)
+  const completeSlidePlanningRef = useRef(completeSlidePlanning);
+  completeSlidePlanningRef.current = completeSlidePlanning;
+
+  // 테마/폰트 선택 완료 콜백 전달 여부 추적
+  const themeFontCompleteHandledRef = useRef(false);
+
+  // 슬라이드 계획 완료 콜백 전달 여부 추적
+  const slidePlanningCompleteHandledRef = useRef(false);
+
   // 수정 3: HITL 플로팅 패널 상태 전달
   // resumeWithHitlSelection을 ref로 전달하여 의존성 배열에서 제거 (무한 루프 방지)
   useEffect(() => {
     onActiveHitlChange?.(activeHitl, resumeWithHitlSelectionRef.current);
   }, [activeHitl, onActiveHitlChange]);
 
+  // 테마/폰트 선택 완료 콜백 전달 (ref 패턴으로 무한 루프 방지)
+  useEffect(() => {
+    // 이미 처리됨 - 중복 호출 방지
+    if (themeFontCompleteHandledRef.current) return;
+
+    if (onThemeFontComplete) {
+      themeFontCompleteHandledRef.current = true;
+      onThemeFontComplete(completeThemeFontSelectRef.current);
+    }
+  }, [onThemeFontComplete]);  // completeThemeFontSelect 의존성 제거
+
+  // 슬라이드 계획 완료 콜백 전달 (ref 패턴으로 무한 루프 방지)
+  useEffect(() => {
+    // 이미 처리됨 - 중복 호출 방지
+    if (slidePlanningCompleteHandledRef.current) return;
+
+    if (onSlidePlanningComplete) {
+      slidePlanningCompleteHandledRef.current = true;
+      onSlidePlanningComplete(completeSlidePlanningRef.current);
+    }
+  }, [onSlidePlanningComplete]);  // completeSlidePlanning 의존성 제거
+
   // 시나리오 자동 시작 (완료 상태에서는 재시작하지 않음)
   useEffect(() => {
     if (userQuery && !isRunning && !isComplete && messages.length === 0) {
       // 시나리오 시작 시 ref 초기화
+      slideOutlineReviewCompletionHandledRef.current = false;
       slideCompletionHandledRef.current = false;
+      themeFontCompleteHandledRef.current = false;
+      slidePlanningCompleteHandledRef.current = false;
       startScenario();
       onPptStatusChange('setup');
     }
   }, [userQuery, isRunning, isComplete, messages.length, startScenario, onPptStatusChange]);
+
+  // 슬라이드 개요 검토 완료 시 시나리오 진행
+  useEffect(() => {
+    if (isSlideOutlineReviewComplete && !slideOutlineReviewCompletionHandledRef.current) {
+      slideOutlineReviewCompletionHandledRef.current = true;
+      completeSlideOutlineReviewRef.current?.();
+    }
+  }, [isSlideOutlineReviewComplete]);
 
   // PPTGenPanel에서 슬라이드 생성 완료 시 시나리오 진행
   // isSlideGenerationComplete만 확인 - PPTGenPanel의 완료 신호를 신뢰
@@ -195,6 +278,7 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
             onPptConfigUpdate={onPptConfigUpdate}
             validationData={validationData}
             slideGenerationState={slideGenerationState}
+            onMarkdownFileGenerated={onMarkdownFileGenerated}
           />
         );
       })}

@@ -171,6 +171,24 @@
         .react-flow__attribution {
             display: none;
         }
+        /* Skeleton shimmer effect */
+        @keyframes skeleton-shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .skeleton-shimmer {
+            background: linear-gradient(
+                90deg,
+                #f3f4f6 0%,
+                #e5e7eb 20%,
+                #f9fafb 40%,
+                #e5e7eb 60%,
+                #f3f4f6 80%,
+                #f3f4f6 100%
+            );
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.8s ease-in-out infinite;
+        }
     </style>
 <script type="importmap">
 {

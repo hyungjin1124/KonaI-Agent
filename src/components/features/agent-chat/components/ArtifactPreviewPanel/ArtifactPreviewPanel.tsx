@@ -1,12 +1,15 @@
-import React from 'react';
-import { X, Maximize2, Minimize2, Download } from 'lucide-react';
+import React, { useState } from 'react';
+import { PanelRightClose, Maximize2, Minimize2, Download } from 'lucide-react';
 import PPTGenPanel, { PPTConfig } from '../../../../PPTGenPanel';
-import { Artifact, SlideItem, DashboardType } from '../../types';
+import { Artifact, SlideItem, DashboardType, SlideOutlineDeck, SlideOutline, SlideLayoutType } from '../../types';
+import { SlideOutlineFileList } from '../SlideOutlineHITL/sidebar/SlideOutlineFileList';
+import { SlideOutlineEditor } from '../SlideOutlineHITL/editor/SlideOutlineEditor';
+import { MarkdownPreviewPanel } from '../MarkdownPreviewPanel';
 
 interface ArtifactPreviewPanelProps {
   isOpen: boolean;
   artifact: Artifact | null;
-  previewType: 'ppt' | 'dashboard' | 'chart' | null;
+  previewType: 'ppt' | 'dashboard' | 'chart' | 'slide-outline' | 'markdown' | null;
   onClose: () => void;
   onDownload?: () => void;
   // PPT Preview Props
@@ -25,6 +28,27 @@ interface ArtifactPreviewPanelProps {
   dashboardType?: DashboardType;
   dashboardScenario?: string;
   dashboardComponent?: React.ReactNode;
+  // Slide Outline HITL Props
+  slideOutlineDeck?: SlideOutlineDeck | null;
+  selectedOutlineId?: string | null;
+  selectedOutline?: SlideOutline | null;
+  onSelectOutline?: (id: string) => void;
+  onOutlineContentChange?: (id: string, content: string) => void;
+  onOutlineLayoutChange?: (id: string, layout: SlideLayoutType) => void;
+  onApproveOutline?: (id: string) => void;
+  onMarkNeedsRevision?: (id: string) => void;
+  onApproveAll?: () => void;
+  onPreviousOutline?: () => void;
+  onNextOutline?: () => void;
+  onGeneratePPT?: () => void;
+  isAllOutlinesApproved?: boolean;
+  approvedOutlineCount?: number;
+  totalOutlineCount?: number;
+  // Markdown Preview Props
+  markdownContent?: string;
+  markdownMode?: 'read' | 'edit';
+  onMarkdownModeChange?: (mode: 'read' | 'edit') => void;
+  onMarkdownContentChange?: (content: string) => void;
 }
 
 export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
@@ -47,13 +71,36 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
   onPptCancel,
   // Dashboard Props
   dashboardComponent,
+  // Slide Outline HITL Props
+  slideOutlineDeck,
+  selectedOutlineId,
+  selectedOutline,
+  onSelectOutline,
+  onOutlineContentChange,
+  onOutlineLayoutChange,
+  onApproveOutline,
+  onMarkNeedsRevision,
+  onApproveAll,
+  onPreviousOutline,
+  onNextOutline,
+  onGeneratePPT,
+  isAllOutlinesApproved = false,
+  approvedOutlineCount = 0,
+  totalOutlineCount = 0,
+  // Markdown Props
+  markdownContent = '',
+  markdownMode = 'read',
+  onMarkdownModeChange,
+  onMarkdownContentChange,
 }) => {
-  const [isMaximized, setIsMaximized] = React.useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [isFileListExpanded, setIsFileListExpanded] = useState(true);
 
   if (!isOpen) return null;
 
   const renderPreview = () => {
-    if (!artifact && previewType !== 'ppt') {
+    // dashboard/chart/slide-outline/markdown 타입은 artifact 없이도 렌더링 가능
+    if (!artifact && previewType !== 'ppt' && previewType !== 'dashboard' && previewType !== 'chart' && previewType !== 'slide-outline' && previewType !== 'markdown') {
       return (
         <div className="flex-1 flex items-center justify-center text-gray-400">
           <p>미리보기할 항목을 선택해주세요</p>
@@ -62,6 +109,72 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
     }
 
     switch (previewType) {
+      case 'slide-outline':
+        if (!slideOutlineDeck || !onSelectOutline) {
+          return (
+            <div className="flex-1 flex items-center justify-center text-gray-400">
+              <p>슬라이드 개요를 불러오는 중...</p>
+            </div>
+          );
+        }
+        const currentOutlineIndex = slideOutlineDeck.outlines.findIndex(
+          (o) => o.id === selectedOutlineId
+        );
+        return (
+          <div className="h-full flex">
+            {/* 좌측: 파일 목록 사이드바 */}
+            <div className="w-64 border-r border-gray-200 overflow-y-auto flex-shrink-0">
+              <SlideOutlineFileList
+                deck={slideOutlineDeck}
+                selectedOutlineId={selectedOutlineId ?? null}
+                isExpanded={isFileListExpanded}
+                onToggle={() => setIsFileListExpanded(!isFileListExpanded)}
+                onSelectOutline={onSelectOutline}
+                onQuickApprove={onApproveOutline || (() => {})}
+                onApproveAll={onApproveAll || (() => {})}
+                onGeneratePPT={onGeneratePPT || onClose}
+                isAllApproved={isAllOutlinesApproved}
+                approvedCount={approvedOutlineCount}
+                totalCount={totalOutlineCount}
+              />
+            </div>
+            {/* 우측: 편집기 */}
+            <div className="flex-1 min-w-0">
+              <SlideOutlineEditor
+                outline={selectedOutline ?? null}
+                currentIndex={currentOutlineIndex >= 0 ? currentOutlineIndex : 0}
+                totalCount={slideOutlineDeck.outlines.length}
+                onContentChange={onOutlineContentChange || (() => {})}
+                onLayoutChange={onOutlineLayoutChange || (() => {})}
+                onApprove={onApproveOutline || (() => {})}
+                onMarkNeedsRevision={onMarkNeedsRevision || (() => {})}
+                onPrevious={onPreviousOutline || (() => {})}
+                onNext={onNextOutline || (() => {})}
+                onClose={onClose}
+              />
+            </div>
+          </div>
+        );
+
+      case 'markdown':
+        if (!artifact) {
+          return (
+            <div className="flex-1 flex items-center justify-center text-gray-400">
+              <p>마크다운 파일을 선택해주세요</p>
+            </div>
+          );
+        }
+        return (
+          <MarkdownPreviewPanel
+            artifact={artifact}
+            content={markdownContent}
+            mode={markdownMode}
+            onModeChange={onMarkdownModeChange || (() => {})}
+            onContentChange={onMarkdownContentChange || (() => {})}
+            onClose={onClose}
+          />
+        );
+
       case 'ppt':
         if (!pptConfig || !onPptSlidesChange) {
           return (
@@ -124,8 +237,8 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
     }
   };
 
-  // PPT 미리보기의 경우 PPTGenPanel 자체에 헤더가 있으므로 별도 헤더 표시 안함
-  const showHeader = previewType !== 'ppt';
+  // PPT, Dashboard, Chart, Slide Outline, Markdown 미리보기의 경우 별도 헤더 표시 안함 (내부에 자체 헤더 있음)
+  const showHeader = previewType !== 'ppt' && previewType !== 'dashboard' && previewType !== 'chart' && previewType !== 'slide-outline' && previewType !== 'markdown';
 
   return (
     <div className={`h-full flex flex-col bg-white border-l border-r border-gray-200 transition-all duration-300 ${isMaximized ? 'fixed inset-0 z-50' : ''}`}>
@@ -166,9 +279,9 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
             <button
               onClick={onClose}
               className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-              title="닫기"
+              title="패널 접기"
             >
-              <X size={16} className="text-gray-500" />
+              <PanelRightClose size={16} className="text-gray-500" />
             </button>
           </div>
         </div>

@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
-import { Pencil, X, Check, ChevronDown, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
+import React from 'react';
+import { Pencil, X, Check, ChevronDown, Wand2, Calendar, Database, BarChart3, TrendingUp } from 'lucide-react';
 import { HitlOption, ToolType, DataValidationSummary } from '../types';
 import { PPTConfig } from '../../../../types';
 import {
-  PPT_SETUP_STEPS,
   PPT_THEME_OPTIONS,
   PPT_FONT_OPTIONS,
   PPT_TOPIC_OPTIONS,
-  PPTSetupStepId
 } from './ToolCall/constants';
+
+// 분석 범위 확인 데이터 타입
+export interface AnalysisScopeData {
+  period: string;
+  comparisonPeriod: string;
+  analysisScope: string[];
+  dataSources: string[];
+}
+
+// 데이터 검증 데이터 타입
+export interface DataVerificationData {
+  keyMetrics: Array<{ label: string; value: string; change: string }>;
+  dataAsOf: string;
+  sources: string[];
+}
 
 interface HITLFloatingPanelProps {
   isVisible: boolean;
@@ -22,16 +35,18 @@ interface HITLFloatingPanelProps {
   currentQuestion?: number;
   // 도구 타입별 분기용
   toolType?: ToolType;
-  // data_validation용
+  // data_validation용 (PPT 시나리오)
   validationData?: DataValidationSummary;
   // ppt_setup용
   pptConfig?: PPTConfig;
   onPptConfigUpdate?: <K extends keyof PPTConfig>(key: K, value: PPTConfig[K]) => void;
   onPptSetupComplete?: () => void;
+  // theme_font_select용
+  onThemeFontComplete?: () => void;
+  // 매출 분석 시나리오 HITL용
+  analysisScopeData?: AnalysisScopeData;
+  dataVerificationData?: DataVerificationData;
 }
-
-// 인라인 수정 타입
-type EditingField = 'theme' | 'font' | 'topics' | 'slideCount' | null;
 
 /**
  * HITL 플로팅 패널 컴포넌트
@@ -55,105 +70,13 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
   pptConfig,
   onPptConfigUpdate,
   onPptSetupComplete,
+  onThemeFontComplete,
+  analysisScopeData,
+  dataVerificationData,
 }) => {
-  // PPT Setup Wizard 상태
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [editingField, setEditingField] = useState<EditingField>(null);
-
   if (!isVisible) return null;
 
-  // Step 네비게이션
-  const currentStep = PPT_SETUP_STEPS[currentStepIndex];
-  const totalSteps = PPT_SETUP_STEPS.length;
-  const isFirstStep = currentStepIndex === 0;
-  const isLastStep = currentStepIndex === totalSteps - 1;
-
-  const handleNext = () => {
-    if (currentStepIndex < totalSteps - 1) {
-      setCurrentStepIndex(prev => prev + 1);
-      setEditingField(null);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStepIndex > 0) {
-      setCurrentStepIndex(prev => prev - 1);
-      setEditingField(null);
-    }
-  };
-
-  // 테마 선택 시 자동으로 다음 단계 이동
-  const handleThemeSelect = (theme: PPTConfig['theme']) => {
-    onPptConfigUpdate?.('theme', theme);
-    // 폰트가 선택되어 있으면 자동으로 다음 단계로
-    setTimeout(() => {
-      if (pptConfig?.titleFont) {
-        handleNext();
-      }
-    }, 300);
-  };
-
-  // Progress Indicator 렌더링
-  const renderProgressIndicator = () => (
-    <div className="flex items-center gap-1.5">
-      {PPT_SETUP_STEPS.map((step, index) => (
-        <div
-          key={step.id}
-          className={`w-2 h-2 rounded-full transition-all duration-300 ${
-            index < currentStepIndex
-              ? 'bg-green-500'
-              : index === currentStepIndex
-                ? 'bg-[#FF3C42] scale-125'
-                : 'bg-gray-300'
-          }`}
-        />
-      ))}
-    </div>
-  );
-
-  // Step 1: 디자인 설정 (테마 + 폰트)
-  const renderDesignStep = () => (
-    <div className="space-y-5">
-      {/* 테마 선택 */}
-      <div className="space-y-2">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">테마</label>
-        <div className="grid grid-cols-3 gap-2">
-          {PPT_THEME_OPTIONS.map((theme) => (
-            <button
-              key={theme}
-              onClick={() => handleThemeSelect(theme)}
-              className={`px-3 py-3 rounded-xl text-sm font-medium border-2 transition-all ${
-                pptConfig?.theme === theme
-                  ? 'border-[#FF3C42] bg-red-50 text-[#FF3C42] shadow-sm'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white hover:bg-gray-50'
-              }`}
-            >
-              {theme}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 폰트 선택 */}
-      <div className="space-y-2">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">폰트 스타일</label>
-        <div className="relative">
-          <select
-            value={pptConfig?.titleFont || 'Pretendard'}
-            onChange={(e) => onPptConfigUpdate?.('titleFont', e.target.value)}
-            className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:border-[#FF3C42] focus:ring-2 focus:ring-[#FF3C42]/20 transition-all"
-          >
-            {PPT_FONT_OPTIONS.map((font) => (
-              <option key={font} value={font}>{font}</option>
-            ))}
-          </select>
-          <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
-      </div>
-    </div>
-  );
-
-  // Step 2: 콘텐츠 설정 (토픽 + 슬라이드 수)
+  // 콘텐츠 설정 (토픽 + 슬라이드 수)
   const renderContentStep = () => (
     <div className="space-y-5">
       {/* 포함할 주요 내용 */}
@@ -210,202 +133,81 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     </div>
   );
 
-  // Step 3: 설정 확인 (요약 + 인라인 수정)
-  const renderConfirmStep = () => {
-    const topicsText = pptConfig?.topics.length === 1
-      ? pptConfig.topics[0]
-      : pptConfig?.topics.length
-        ? `${pptConfig.topics[0]} 외 ${pptConfig.topics.length - 1}개`
-        : '선택 없음';
+  // PPT 콘텐츠 설정 UI 렌더링 (단일 단계로 단순화)
+  const renderPptSetupContent = () => {
+    if (!pptConfig || !onPptConfigUpdate || !onPptSetupComplete) return null;
 
     return (
       <div className="space-y-4">
-        <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-          {/* 테마 */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">테마</span>
-            {editingField === 'theme' ? (
-              <select
-                value={pptConfig?.theme}
-                onChange={(e) => {
-                  onPptConfigUpdate?.('theme', e.target.value as PPTConfig['theme']);
-                  setEditingField(null);
-                }}
-                onBlur={() => setEditingField(null)}
-                autoFocus
-                className="text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:border-[#FF3C42]"
-              >
-                {PPT_THEME_OPTIONS.map((theme) => (
-                  <option key={theme} value={theme}>{theme}</option>
-                ))}
-              </select>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">{pptConfig?.theme}</span>
-                <button
-                  onClick={() => setEditingField('theme')}
-                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
-                >
-                  <Pencil size={12} />
-                </button>
-              </div>
-            )}
-          </div>
+        {renderContentStep()}
 
-          {/* 폰트 */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">폰트</span>
-            {editingField === 'font' ? (
-              <select
-                value={pptConfig?.titleFont}
-                onChange={(e) => {
-                  onPptConfigUpdate?.('titleFont', e.target.value);
-                  setEditingField(null);
-                }}
-                onBlur={() => setEditingField(null)}
-                autoFocus
-                className="text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:border-[#FF3C42]"
-              >
-                {PPT_FONT_OPTIONS.map((font) => (
-                  <option key={font} value={font}>{font}</option>
-                ))}
-              </select>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">{pptConfig?.titleFont}</span>
-                <button
-                  onClick={() => setEditingField('font')}
-                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
-                >
-                  <Pencil size={12} />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* 포함 내용 */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">포함 내용</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-900">{topicsText}</span>
-              <button
-                onClick={() => setCurrentStepIndex(1)}
-                className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
-              >
-                <Pencil size={12} />
-              </button>
-            </div>
-          </div>
-
-          {/* 슬라이드 수 */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">슬라이드</span>
-            {editingField === 'slideCount' ? (
-              <div className="flex items-center gap-1">
-                <input
-                  type="number"
-                  value={pptConfig?.slideCount || ''}
-                  onChange={(e) => onPptConfigUpdate?.('slideCount', e.target.value === '' ? '' : parseInt(e.target.value))}
-                  onBlur={() => setEditingField(null)}
-                  onKeyDown={(e) => e.key === 'Enter' && setEditingField(null)}
-                  autoFocus
-                  className="w-16 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:border-[#FF3C42]"
-                  min={5}
-                  max={50}
-                />
-                <span className="text-sm text-gray-500">장</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">{pptConfig?.slideCount}장</span>
-                <button
-                  onClick={() => setEditingField('slideCount')}
-                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
-                >
-                  <Pencil size={12} />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 생성 버튼 */}
+        {/* 설정 완료 버튼 */}
         <button
           onClick={onPptSetupComplete}
-          className="w-full py-3.5 bg-black text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl transform active:scale-[0.99]"
+          className="w-full py-3.5 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
         >
           <Wand2 size={18} />
-          설정 완료 및 생성
+          설정 완료
         </button>
       </div>
     );
   };
 
-  // PPT 세부 설정 Wizard UI 렌더링
-  const renderPptSetupContent = () => {
-    if (!pptConfig || !onPptConfigUpdate || !onPptSetupComplete) return null;
-
-    const stepRenderers: Record<PPTSetupStepId, () => JSX.Element> = {
-      design: renderDesignStep,
-      content: renderContentStep,
-      confirm: renderConfirmStep,
-    };
+  // 테마/폰트 선택 UI 렌더링 (NEW)
+  const renderThemeFontContent = () => {
+    if (!pptConfig || !onPptConfigUpdate || !onThemeFontComplete) return null;
 
     return (
-      <div className="space-y-4">
-        {stepRenderers[currentStep.id]()}
-
-        {/* 네비게이션 버튼 (확인 단계 제외) */}
-        {!isLastStep && (
-          <div className="flex items-center justify-between pt-2">
-            <button
-              onClick={handleBack}
-              disabled={isFirstStep}
-              className={`flex items-center gap-1 text-sm font-medium transition-colors ${
-                isFirstStep
-                  ? 'text-gray-300 cursor-not-allowed'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <ChevronLeft size={16} />
-              이전
-            </button>
-
-            <span className="text-xs text-gray-400">
-              {currentStepIndex + 1} / {totalSteps}
-            </span>
-
-            <button
-              onClick={handleNext}
-              className="flex items-center gap-1 text-sm font-medium text-[#FF3C42] hover:text-[#E63338] transition-colors"
-            >
-              다음
-              <ChevronRight size={16} />
-            </button>
+      <div className="space-y-5">
+        {/* 테마 선택 */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">테마</label>
+          <div className="grid grid-cols-3 gap-2">
+            {PPT_THEME_OPTIONS.map((theme) => (
+              <button
+                key={theme}
+                onClick={() => onPptConfigUpdate?.('theme', theme)}
+                className={`px-3 py-3 rounded-xl text-sm font-medium border-2 transition-all ${
+                  pptConfig?.theme === theme
+                    ? 'border-[#FF3C42] bg-red-50 text-[#FF3C42] shadow-sm'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white hover:bg-gray-50'
+                }`}
+              >
+                {theme}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
-        {/* 확인 단계에서 이전 버튼만 표시 */}
-        {isLastStep && (
-          <div className="flex items-center justify-between pt-2">
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+        {/* 폰트 선택 */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">폰트 스타일</label>
+          <div className="relative">
+            <select
+              value={pptConfig?.titleFont || 'Pretendard'}
+              onChange={(e) => onPptConfigUpdate?.('titleFont', e.target.value)}
+              className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:border-[#FF3C42] focus:ring-2 focus:ring-[#FF3C42]/20 transition-all"
             >
-              <ChevronLeft size={16} />
-              이전
-            </button>
-            <span className="text-xs text-gray-400">
-              {currentStepIndex + 1} / {totalSteps}
-            </span>
-            <div className="w-12" /> {/* 균형을 위한 빈 공간 */}
+              {PPT_FONT_OPTIONS.map((font) => (
+                <option key={font} value={font}>{font}</option>
+              ))}
+            </select>
+            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
-        )}
+        </div>
+
+        {/* 적용 버튼 */}
+        <button
+          onClick={onThemeFontComplete}
+          className="w-full py-3.5 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors"
+        >
+          적용하기
+        </button>
       </div>
     );
   };
 
-  // 데이터 검증 UI 렌더링
+  // 데이터 검증 UI 렌더링 (PPT 시나리오용)
   const renderValidationContent = () => {
     if (!validationData) return null;
 
@@ -432,6 +234,129 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
           <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500 space-y-0.5">
             <p>데이터 기준일: {validationData.dataDate}</p>
             <p>출처: {validationData.dataSources.join(', ')}</p>
+          </div>
+        </div>
+
+        {/* 확인/수정 버튼 */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => onSelect('confirm')}
+            className="flex-1 py-3 bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all shadow-md"
+          >
+            확인
+          </button>
+          <button
+            onClick={() => onSelect('modify')}
+            className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-400 transition-all"
+          >
+            수정 요청
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // 분석 범위 확인 UI 렌더링 (매출 분석 시나리오용)
+  const renderAnalysisScopeContent = () => {
+    if (!analysisScopeData) return null;
+
+    return (
+      <div className="space-y-4">
+        {/* 분석 범위 정보 박스 */}
+        <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm space-y-3">
+          {/* 분석 기간 */}
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+              <Calendar size={16} className="text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <span className="text-xs text-gray-500 font-medium">분석 기간</span>
+              <p className="text-sm font-semibold text-gray-900 mt-0.5">{analysisScopeData.period}</p>
+              <p className="text-xs text-gray-500 mt-0.5">비교: {analysisScopeData.comparisonPeriod}</p>
+            </div>
+          </div>
+
+          {/* 분석 범위 */}
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+              <BarChart3 size={16} className="text-green-600" />
+            </div>
+            <div className="flex-1">
+              <span className="text-xs text-gray-500 font-medium">분석 범위</span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {analysisScopeData.analysisScope.map((scope, idx) => (
+                  <span key={idx} className="px-2 py-0.5 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                    {scope}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 데이터 소스 */}
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+              <Database size={16} className="text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <span className="text-xs text-gray-500 font-medium">데이터 소스</span>
+              <p className="text-sm text-gray-700 mt-0.5">{analysisScopeData.dataSources.join(', ')}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 확인/수정 버튼 */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => onSelect('confirm')}
+            className="flex-1 py-3 bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all shadow-md"
+          >
+            확인
+          </button>
+          <button
+            onClick={() => onSelect('modify_period')}
+            className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-400 transition-all"
+          >
+            기간 변경
+          </button>
+          <button
+            onClick={() => onSelect('modify_scope')}
+            className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-400 transition-all"
+          >
+            범위 조정
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // 데이터 검증 UI 렌더링 (매출 분석 시나리오용)
+  const renderDataVerificationContent = () => {
+    if (!dataVerificationData) return null;
+
+    return (
+      <div className="space-y-4">
+        {/* 주요 지표 박스 */}
+        <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="grid grid-cols-2 gap-3">
+            {dataVerificationData.keyMetrics.map((metric, idx) => (
+              <div key={idx} className="space-y-1">
+                <span className="text-xs text-gray-500 font-medium">{metric.label}</span>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-lg font-bold text-gray-900">{metric.value}</p>
+                  <span className={`text-xs font-medium ${
+                    metric.change.startsWith('+') ? 'text-green-600' : metric.change.startsWith('-') ? 'text-red-600' : 'text-gray-500'
+                  }`}>
+                    {metric.change.startsWith('+') && <TrendingUp size={10} className="inline mr-0.5" />}
+                    {metric.change}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500 space-y-0.5">
+            <p>데이터 기준일: {dataVerificationData.dataAsOf}</p>
+            <p>출처: {dataVerificationData.sources.join(', ')}</p>
           </div>
         </div>
 
@@ -520,16 +445,25 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     if (toolType === 'ppt_setup' && pptConfig && onPptConfigUpdate) {
       return renderPptSetupContent();
     }
+    if (toolType === 'theme_font_select' && pptConfig && onPptConfigUpdate) {
+      return renderThemeFontContent();
+    }
     if (toolType === 'data_validation' && validationData) {
       return renderValidationContent();
+    }
+    // 매출 분석 시나리오 HITL
+    if (toolType === 'analysis_scope_confirm' && analysisScopeData) {
+      return renderAnalysisScopeContent();
+    }
+    if (toolType === 'data_verification' && dataVerificationData) {
+      return renderDataVerificationContent();
     }
     return renderDefaultOptions();
   };
 
-  // PPT Setup일 때 헤더 정보
-  const isPptSetup = toolType === 'ppt_setup' && pptConfig && onPptConfigUpdate;
-  const headerTitle = isPptSetup ? currentStep.title : question;
-  const headerDescription = isPptSetup ? currentStep.description : null;
+  // 헤더 정보 (ppt_setup과 theme_font_select는 question 사용)
+  const headerTitle = question;
+  const headerDescription: string | null = null;
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 mb-4 animate-fade-in-up ring-1 ring-black/5">
@@ -544,14 +478,10 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
           )}
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          {isPptSetup ? (
-            renderProgressIndicator()
-          ) : (
-            totalQuestions > 1 && (
-              <span className="text-xs text-gray-400 font-medium">
-                {totalQuestions}개 중 {currentQuestion}개
-              </span>
-            )
+          {totalQuestions > 1 && (
+            <span className="text-xs text-gray-400 font-medium">
+              {totalQuestions}개 중 {currentQuestion}개
+            </span>
           )}
           {onClose && (
             <button

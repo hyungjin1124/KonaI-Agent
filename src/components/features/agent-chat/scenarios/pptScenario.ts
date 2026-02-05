@@ -144,23 +144,71 @@ export const PPT_SCENARIO_STEPS: ScenarioStep[] = [
     dependsOn: 'agent_setup_confirm',
   },
 
-  // 13. 도구 사용 #9: 슬라이드 계획
+  // 13. 도구 사용 #9: 슬라이드 계획 (비동기 - 모든 파일 생성 완료 대기)
   {
     id: 'tool_slide_planning',
     type: 'tool-call',
     toolType: 'slide_planning',
-    delayMs: 3000,
+    isAsyncTool: true, // 모든 마크다운 파일 생성 완료까지 대기
+    delayMs: 500, // 초기 표시 지연만
     dependsOn: 'tool_web_search',
   },
 
-  // 14. 도구 사용 #10: 슬라이드 제작 (비동기 - PPTGenPanel 완료 대기)
+  // 14. 에이전트 응답 (슬라이드 계획 완료 후)
+  {
+    id: 'agent_slide_planning_confirm',
+    type: 'agent-text',
+    agentContent: '슬라이드 구성이 완료되었습니다. 각 슬라이드 개요를 검토하시고 수정하거나 승인해 주세요.',
+    delayMs: 500,
+    dependsOn: 'tool_slide_planning',
+  },
+
+  // 15. 도구 사용 #10: 슬라이드 개요 검토 (HITL - 플로팅 패널에서 승인/수정)
+  {
+    id: 'tool_slide_outline_review',
+    type: 'tool-call',
+    toolType: 'slide_outline_review',
+    isHitl: true, // HITL 플로팅 패널로 승인/수정 처리
+    delayMs: 500,
+    dependsOn: 'agent_slide_planning_confirm',
+  },
+
+  // 16. 에이전트 응답 (슬라이드 개요 승인 후)
+  {
+    id: 'agent_outline_approved',
+    type: 'agent-text',
+    agentContent: '슬라이드 구성이 승인되었습니다. 이제 테마와 폰트를 선택해 주세요.',
+    delayMs: 500,
+    dependsOn: 'tool_slide_outline_review',
+  },
+
+  // 17. 도구 사용 #11: 테마/폰트 선택 (HITL)
+  {
+    id: 'tool_theme_font_select',
+    type: 'tool-call',
+    toolType: 'theme_font_select',
+    isHitl: true,
+    delayMs: 500,
+    dependsOn: 'agent_outline_approved',
+  },
+
+  // 18. 에이전트 응답 (테마/폰트 선택 후)
+  {
+    id: 'agent_theme_font_confirm',
+    type: 'agent-text',
+    agentContent: '테마와 폰트가 설정되었습니다. 이제 PPT 슬라이드를 생성합니다.',
+    delayMs: 500,
+    dependsOn: 'tool_theme_font_select',
+  },
+
+  // 19. 도구 사용 #12: 슬라이드 제작 (비동기 - PPTGenPanel 완료 대기)
   {
     id: 'tool_slide_generation',
     type: 'tool-call',
     toolType: 'slide_generation',
     isAsyncTool: true, // PPTGenPanel의 onComplete 콜백을 기다림
     delayMs: 500, // 초기 UI 표시 지연만
-    dependsOn: 'tool_slide_planning',
+    dependsOn: 'agent_theme_font_confirm',
   },
 
   // 15. 도구 사용 #11: 완료

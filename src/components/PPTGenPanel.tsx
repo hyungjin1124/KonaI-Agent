@@ -89,7 +89,7 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Initialize slides when generation starts
+  // Initialize slides when generation starts or when viewing completed PPT
   useEffect(() => {
     if (status === 'generating' && slides.length === 0) {
       const mockSlides = generateMockSlides(config.slideCount);
@@ -103,9 +103,17 @@ const PPTGenPanel: React.FC<PPTGenPanelProps> = ({ status, config, progress, cur
     } else if (status === 'setup') {
       setSlides([]);
       setSelectedSlideId(1);
+    } else if (status === 'done' && slides.length === 0) {
+      // 완성된 PPT 아티팩트 클릭 시 슬라이드가 없으면 완료된 상태로 초기화
+      const mockSlides = generateMockSlides(config.slideCount);
+      const completedSlides: SlideItem[] = mockSlides.map((content, idx) => ({
+        id: idx + 1,
+        status: 'completed',
+        content
+      }));
+      setSlides(completedSlides);
+      setSelectedSlideId(1);
     }
-    // Note: Removed status === 'done' slides update to prevent flickering
-    // Slides status is already managed by progress-based completion in the next useEffect
   }, [status, config.slideCount]);
 
   // Note: Removed force complete logic - slides completion is now managed by typing effect

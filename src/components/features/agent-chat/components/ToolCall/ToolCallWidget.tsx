@@ -29,6 +29,7 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
   onValidationModify,
   currentStepId,
   completedStepIds,
+  onMarkdownFileGenerated,
 }) => {
   // 내부 상태 (외부에서 제어하지 않는 경우)
   const [internalExpanded, setInternalExpanded] = useState(false);
@@ -104,6 +105,7 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
             currentStepId={currentStepId}
             completedStepIds={completedStepIds}
             skipStreaming={hasBeenCollapsedAfterComplete}
+            onMarkdownFileGenerated={onMarkdownFileGenerated}
           />
         </div>
       )}

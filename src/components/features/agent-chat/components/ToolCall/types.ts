@@ -1,5 +1,6 @@
 import { ToolType, ToolStatus, ToolCallResult, HitlOption, ToolMetadata, ScenarioMessage, DataValidationSummary } from '../../types';
 import { PPTConfig } from '../../../../../types';
+import { SlideFile } from './constants';
 
 // ToolCallWidget Props
 export interface ToolCallWidgetProps {
@@ -36,6 +37,9 @@ export interface ToolCallWidgetProps {
   // 시나리오 진행 상태 (동적 Todo list 용)
   currentStepId?: string | null;
   completedStepIds?: Set<string>;
+
+  // 마크다운 파일 생성 콜백 (slide_planning용)
+  onMarkdownFileGenerated?: (file: SlideFile) => void;
 }
 
 // ToolCallHeader Props
@@ -83,6 +87,9 @@ export interface ToolCallContentProps {
 
   // 스트리밍 건너뛰기 (완료 후 재펼침 시)
   skipStreaming?: boolean;
+
+  // 마크다운 파일 생성 콜백 (slide_planning용)
+  onMarkdownFileGenerated?: (file: SlideFile) => void;
 }
 
 // ToolCallStatusIndicator Props
@@ -193,6 +200,9 @@ export interface ToolCallGroupProps {
     completedSlides: number[];
     totalSlides: number;
   };
+
+  // 마크다운 파일 생성 콜백 (slide_planning용)
+  onMarkdownFileGenerated?: (file: SlideFile) => void;
 }
 
 // ToolCallGroupHeader Props (외부 아코디언 헤더)

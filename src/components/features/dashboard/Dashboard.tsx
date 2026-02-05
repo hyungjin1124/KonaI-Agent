@@ -296,7 +296,52 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({ id, children, className =
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario, onTogglePanel }) => {
+// --- Skeleton Components ---
+const KPICardSkeleton: React.FC = () => (
+  <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+    <div className="h-3 skeleton-shimmer rounded w-1/3 mb-3" />
+    <div className="h-7 skeleton-shimmer rounded w-2/3 mb-2" />
+    <div className="h-2.5 skeleton-shimmer rounded w-1/4" />
+  </div>
+);
+
+const ChartSkeleton: React.FC<{ height?: string }> = ({ height = 'h-64' }) => (
+  <div className={`bg-white rounded-xl p-4 border border-gray-100 shadow-sm ${height}`}>
+    <div className="h-3 skeleton-shimmer rounded w-1/5 mb-4" />
+    <div className="flex items-end justify-around h-[calc(100%-2.5rem)] gap-1.5 px-2">
+      {[35, 55, 40, 70, 45, 60, 42, 75, 50, 65, 48, 80].map((h, i) => (
+        <div key={i} className="skeleton-shimmer rounded-t flex-1" style={{ height: `${h}%` }} />
+      ))}
+    </div>
+  </div>
+);
+
+const DashboardSkeleton: React.FC = () => (
+  <div className="flex flex-col gap-4 h-full p-4">
+    {/* Header Skeleton */}
+    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+      <div className="h-5 skeleton-shimmer rounded w-48" />
+      <div className="flex gap-2">
+        <div className="h-8 w-8 skeleton-shimmer rounded-lg" />
+        <div className="h-8 w-8 skeleton-shimmer rounded-lg" />
+        <div className="h-8 w-8 skeleton-shimmer rounded-lg" />
+      </div>
+    </div>
+    {/* KPI Cards Row */}
+    <div className="grid grid-cols-3 gap-3">
+      <KPICardSkeleton />
+      <KPICardSkeleton />
+      <KPICardSkeleton />
+    </div>
+    {/* Charts Row */}
+    <div className="flex-1 grid grid-cols-2 gap-4">
+      <ChartSkeleton height="h-full" />
+      <ChartSkeleton height="h-full" />
+    </div>
+  </div>
+);
+
+const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario, onTogglePanel, isLoading = false }) => {
   const [compositionView, setCompositionView] = useState<'overview' | 'platform_detail'>('overview');
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -850,8 +895,13 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario, onT
      );
   }
 
+  // Skeleton UI 렌더링 (isLoading일 때)
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
   return (
-    <div className="w-full flex flex-col gap-6 animate-fade-in-up pb-10 h-full relative">
+    <div className="w-full flex flex-col gap-4 animate-fade-in-up p-4 h-full relative">
       {/* Toast Notification Container */}
       <Toast />
 

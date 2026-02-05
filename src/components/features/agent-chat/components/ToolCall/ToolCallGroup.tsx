@@ -30,6 +30,7 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
   onPptConfigUpdate,
   validationData,
   slideGenerationState,
+  onMarkdownFileGenerated,
 }) => {
   // Tool 메시지만 필터링 (todo_update 제외)
   const toolMessages = useMemo(
@@ -181,6 +182,7 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
                 result={message.toolResult}
                 currentStepId={currentStepId}
                 completedStepIds={completedStepIds}
+                onMarkdownFileGenerated={message.toolType === 'slide_planning' ? onMarkdownFileGenerated : undefined}
               />
             );
           })}

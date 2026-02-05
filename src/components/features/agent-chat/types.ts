@@ -77,7 +77,7 @@ export interface StreamingState {
 }
 
 // Artifact Types for generated files
-export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image';
+export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image' | 'slide-outline';
 
 export interface Artifact {
   id: string;
@@ -86,6 +86,74 @@ export interface Artifact {
   createdAt: Date;
   messageId: string;
   fileSize?: string;
+}
+
+// =============================================
+// Slide Outline HITL Types (슬라이드 개요 검토)
+// =============================================
+
+// 슬라이드 레이아웃 유형
+export type SlideLayoutType =
+  | 'title-only'       // 제목만
+  | 'title-subtitle'   // 제목 + 부제목
+  | 'title-bullets'    // 제목 + 글머리표
+  | 'two-column'       // 2단 레이아웃
+  | 'title-image-right'// 제목 + 우측 이미지
+  | 'title-image-left' // 제목 + 좌측 이미지
+  | 'chart-full'       // 차트 전체
+  | 'comparison'       // 비교 레이아웃
+  | 'quote'            // 인용문
+  | 'section-divider'  // 섹션 구분
+  | 'summary-grid';    // 요약 그리드
+
+// 슬라이드 개요 섹션
+export interface SlideOutlineSection {
+  id: string;
+  type: 'heading' | 'subheading' | 'bullet' | 'chart-placeholder' | 'image-placeholder' | 'data-point' | 'speaker-note';
+  content: string;
+  placeholder?: string;      // 비어있을 때 표시할 플레이스홀더
+  dataSource?: string;       // 연결된 데이터 소스 참조
+  isEdited?: boolean;        // 사용자 편집 여부
+}
+
+// 슬라이드 개요 상태
+export type SlideOutlineStatus = 'draft' | 'pending-review' | 'needs-revision' | 'approved';
+
+// 개별 슬라이드 개요
+export interface SlideOutline {
+  id: string;
+  slideNumber: number;
+  title: string;
+  fileName: string;          // 예: "01_표지.md"
+  layoutType: SlideLayoutType;
+  markdownContent: string;   // 실제 마크다운 내용
+  speakerNotes?: string;
+  estimatedDuration?: string;  // 예: "2 min"
+  dataConnections?: string[];  // 사용된 데이터 소스 목록
+  status: SlideOutlineStatus;
+  lastModifiedAt: Date;
+}
+
+// 슬라이드 개요 덱 전체
+export interface SlideOutlineDeck {
+  id: string;
+  title: string;
+  outlines: SlideOutline[];
+  overallStatus: 'generating' | 'review' | 'approved' | 'generating-ppt';
+  metadata: {
+    estimatedTotalDuration: string;
+    totalSlides: number;
+    approvedSlides: number;
+    createdAt: Date;
+    lastModifiedAt: Date;
+  };
+}
+
+// 슬라이드 개요 아티팩트 (Artifact 확장)
+export interface SlideOutlineArtifact extends Artifact {
+  type: 'slide-outline';
+  outline: SlideOutline;
+  deckId: string;
 }
 
 // Right Panel Type
@@ -100,6 +168,7 @@ export type ScenarioMessageType = 'user' | 'agent-text' | 'tool-call';
 
 // 도구 타입
 export type ToolType =
+  // PPT 시나리오 도구
   | 'ppt_init'             // 프레젠테이션 초기화
   | 'deep_thinking'        // 심층 사고 (계획 수립)
   | 'data_source_select'   // 데이터 소스 선택 (HITL)
@@ -110,9 +179,29 @@ export type ToolType =
   | 'ppt_setup'            // PPT 세부 설정 (HITL)
   | 'web_search'           // 웹 검색
   | 'slide_planning'       // 슬라이드 개요 계획
+  | 'slide_outline_review' // 슬라이드 개요 검토 (HITL) - 사용자가 개요 승인
+  | 'theme_font_select'    // 테마/폰트 선택 (HITL)
   | 'slide_generation'     // 슬라이드 제작
   | 'completion'           // 완료
-  | 'todo_update';         // 진행 상황 업데이트
+  | 'todo_update'          // 진행 상황 업데이트
+  // 매출 분석 시나리오 전용 (신규)
+  | 'request_analysis'           // 요청 분석
+  | 'analysis_scope_confirm'     // 분석 범위 확인 (HITL)
+  | 'data_source_connect'        // 데이터 소스 연결
+  | 'financial_data_collection'  // 재무 데이터 수집
+  | 'division_data_collection'   // 사업부별 실적 수집
+  | 'operation_data_collection'  // 운영 지표 수집
+  | 'revenue_driver_analysis'    // 매출 동인 분석
+  | 'profitability_analysis'     // 수익성 분석
+  | 'anomaly_detection'          // 이상 징후 탐지
+  | 'data_verification'          // 데이터 검증 (HITL)
+  | 'key_insight_generation'     // 핵심 인사이트 도출
+  | 'visualization_generation'   // 시각화 생성
+  | 'analysis_completion'        // 분석 완료
+  // 레거시 (호환성 유지)
+  | 'trend_analysis'       // 트렌드 분석
+  | 'insight_generation'   // 인사이트 도출
+  | 'visualization';       // 시각화 생성
 
 // 도구 상태
 export type ToolStatus = 'pending' | 'running' | 'completed' | 'awaiting-input';
@@ -157,6 +246,17 @@ export interface ScenarioMessage {
   linkedSlideIds?: number[];
 }
 
+// 하위 도구 (Subtool) 인터페이스
+export interface Subtool {
+  id: string;
+  label: string;
+  description?: string;
+  source?: string;        // 데이터 소스명
+  metrics?: string[];     // 조회 지표 목록
+  finding?: string;       // 분석 결과/발견
+  findings?: Array<{ type: 'positive' | 'warning' | 'neutral'; text: string }>;
+}
+
 // 도구 메타데이터 (텍스트 스타일용)
 export interface ToolMetadata {
   id: ToolType;
@@ -164,6 +264,7 @@ export interface ToolMetadata {
   labelRunning: string;
   labelComplete: string;
   icon: string;
+  subtools?: Subtool[];   // 하위 도구 목록
 }
 
 // 시나리오 단계 정의
@@ -263,13 +364,14 @@ export interface RightSidebarState {
 export interface ArtifactPreviewState {
   isOpen: boolean;
   selectedArtifact: Artifact | null;
-  previewType: 'ppt' | 'dashboard' | 'chart' | null;
+  previewType: 'ppt' | 'dashboard' | 'chart' | 'slide-outline' | 'markdown' | null;
+  markdownMode?: 'read' | 'edit'; // 마크다운 미리보기 모드
 }
 
 // 가운데 패널 상태 (Artifact Preview 독립 제어)
 export interface CenterPanelState {
   isOpen: boolean;
-  content: 'ppt-preview' | 'dashboard' | null;
+  content: 'ppt-preview' | 'ppt-result' | 'dashboard' | 'slide-outline' | 'markdown-preview' | null;
 }
 
 // 레이아웃 모드
