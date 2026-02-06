@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 // 이상 징후 데이터 인터페이스 정의
 export interface Anomaly {
@@ -63,20 +63,24 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const unreadCount = anomalies.filter(a => !a.isRead).length;
 
-  const markAsRead = (id: string) => {
+  const markAsRead = useCallback((id: string) => {
     setAnomalies(prev => prev.map(a => a.id === id ? { ...a, isRead: true } : a));
-  };
+  }, []);
 
-  const markAllAsRead = () => {
+  const markAllAsRead = useCallback(() => {
     setAnomalies(prev => prev.map(a => ({ ...a, isRead: true })));
-  };
+  }, []);
 
-  const addAnomaly = (anomaly: Anomaly) => {
+  const addAnomaly = useCallback((anomaly: Anomaly) => {
     setAnomalies(prev => [anomaly, ...prev]);
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    anomalies, unreadCount, markAsRead, markAllAsRead, addAnomaly
+  }), [anomalies, unreadCount, markAsRead, markAllAsRead, addAnomaly]);
 
   return (
-    <NotificationContext.Provider value={{ anomalies, unreadCount, markAsRead, markAllAsRead, addAnomaly }}>
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );

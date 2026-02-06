@@ -1,17 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
-import { AgentChatView } from './components/features/agent-chat';
-import { GeneralChatView } from './components/features/general-chat';
-import DataManagementView from './components/DataManagementView';
-import SkillManagementView from './components/SkillManagementView';
-import AdminView from './components/AdminView';
-import ChatHistoryView from './components/ChatHistoryView';
 import LoginView from './components/LoginView';
-import { LiveboardView } from './components/features/liveboard';
 import { ViewType, SampleInterfaceContext, AppViewMode } from './types';
 import { NotificationProvider, Anomaly, ToastProvider } from './context';
 import { useCaptureStateInjection, StateInjectionHandlers } from './hooks';
+
+// Lazy-loaded heavy views (bundle-dynamic-imports)
+const AgentChatView = lazy(() => import('./components/features/agent-chat/AgentChatView'));
+const GeneralChatView = lazy(() => import('./components/features/general-chat/GeneralChatView'));
+const LiveboardView = lazy(() => import('./components/features/liveboard/LiveboardView'));
+const DataManagementView = lazy(() => import('./components/DataManagementView'));
+const SkillManagementView = lazy(() => import('./components/SkillManagementView'));
+const AdminView = lazy(() => import('./components/AdminView'));
+const ChatHistoryView = lazy(() => import('./components/ChatHistoryView'));
 
 // Scenario trigger data type
 interface ScenarioTriggerData {
@@ -25,7 +27,7 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
   const [viewMode, setViewMode] = useState<AppViewMode>('landing');
-  const [agentContext, setAgentContext] = useState<AgentChatViewContext | null>(null);
+  const [agentContext, setAgentContext] = useState<SampleInterfaceContext | null>(null);
   const [agentQuery, setAgentQuery] = useState<string | undefined>(undefined);
 
   // 캡처 자동화용 상태 주입 핸들러
@@ -38,60 +40,25 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
   // 외부 상태 주입 훅 사용 (Puppeteer 캡처 자동화 지원)
   useCaptureStateInjection(stateInjectionHandlers);
 
-  const handleSidebarNavigate = (view: ViewType) => {
-    // If user clicks "Data Management"
-    if (view === 'data') {
-        setViewMode('data_management');
-        setAgentContext(null);
-        setAgentQuery(undefined);
-        return;
-    }
-    
-    // If user clicks "Skill Management"
-    if (view === 'skills') {
-        setViewMode('skills_management');
-        setAgentContext(null);
-        setAgentQuery(undefined);
-        return;
-    }
+  // Map-based routing (simplified from repetitive if/else)
+  const VIEW_ROUTES: Record<ViewType, AppViewMode> = {
+    data: 'data_management',
+    skills: 'skills_management',
+    admin: 'admin_management',
+    history: 'history_view',
+    'general-chat': 'general_chat',
+    dashboard: 'landing',
+    chat: 'landing',
+  };
 
-    // If user clicks "Admin"
-    if (view === 'admin') {
-        setViewMode('admin_management');
-        setAgentContext(null);
-        setAgentQuery(undefined);
-        return;
-    }
-
-    // If user clicks "History"
-    if (view === 'history') {
-        setViewMode('history_view');
-        setAgentContext(null);
-        setAgentQuery(undefined);
-        return;
-    }
-
-    // If user clicks "General Chat"
-    if (view === 'general-chat') {
-        setViewMode('general_chat');
-        setAgentContext(null);
-        setAgentQuery(undefined);
-        return;
-    }
-
-    // If user clicks "Dashboard" (which maps to 'dashboard' ID in Sidebar), go to Landing
-    if (view === 'dashboard') {
-      setViewMode('landing');
+  const handleSidebarNavigate = useCallback((view: ViewType) => {
+    const targetMode = VIEW_ROUTES[view];
+    if (targetMode) {
+      setViewMode(targetMode);
       setAgentContext(null);
       setAgentQuery(undefined);
     }
-    // 'chat' is technically the current default view in Sidebar logic, keeping it consistent
-    if (view === 'chat') {
-        setViewMode('landing');
-        setAgentContext(null);
-        setAgentQuery(undefined);
-    }
-  };
+  }, []);
 
   const handleScenarioTrigger = (mode: AppViewMode, data?: ScenarioTriggerData | SampleInterfaceContext) => {
     // Handle composite data { context, query } from ChatInterface
@@ -150,6 +117,7 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 w-full h-full relative">
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
            {viewMode === 'general_chat' ? (
              <GeneralChatView />
            ) : viewMode === 'data_management' ? (
@@ -177,6 +145,7 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
                 initialContext={viewMode === 'scenario_analysis' ? agentContext : undefined}
              />
            )}
+          </Suspense>
         </div>
       </main>
     </div>

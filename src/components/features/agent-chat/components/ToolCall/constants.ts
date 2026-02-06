@@ -1131,3 +1131,27 @@ Executive Summary
 - 전략과 실행 과제의 연결성 표현
 `,
 };
+
+// =============================================
+// 통합 슬라이드 개요 (단일 마크다운 파일)
+// =============================================
+
+export const CONSOLIDATED_SLIDE_FILE: SlideFile = {
+  id: 0,
+  filename: 'slide_outline.md',
+  title: '슬라이드 개요',
+};
+
+// 기존 SLIDE_OUTLINE_CONTENTS의 모든 내용을 순서대로 합친 단일 문자열
+export const CONSOLIDATED_SLIDE_OUTLINE_CONTENT: string = [
+  SLIDE_OUTLINE_CONTENTS['00_metadata.md'],
+  SLIDE_OUTLINE_CONTENTS['01_cover.md'],
+  SLIDE_OUTLINE_CONTENTS['02_executive_summary.md'],
+  SLIDE_OUTLINE_CONTENTS['03_financial_highlights.md'],
+  SLIDE_OUTLINE_CONTENTS['04_division_performance.md'],
+  SLIDE_OUTLINE_CONTENTS['05_operation_kpi.md'],
+  SLIDE_OUTLINE_CONTENTS['06_market_outlook.md'],
+].join('\n\n---\n\n');
+
+// 스트리밍 섹션 개수 (완료 판단용)
+export const SLIDE_OUTLINE_SECTION_COUNT = Object.keys(SLIDE_OUTLINE_CONTENTS).length;

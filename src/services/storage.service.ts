@@ -16,6 +16,7 @@ export interface StorageResult<T> {
 
 class StorageService {
   private isAvailable: boolean;
+  private cache: Map<string, unknown> = new Map();
 
   constructor() {
     this.isAvailable = this.checkAvailability();
@@ -33,10 +34,15 @@ class StorageService {
     }
   }
 
-  // Generic get with type safety
+  // Generic get with type safety (cached)
   get<T>(key: StorageKey): StorageResult<T> {
     if (!this.isAvailable) {
       return { success: false, error: new Error('Storage not available') };
+    }
+
+    // Return from cache if available
+    if (this.cache.has(key)) {
+      return { success: true, data: this.cache.get(key) as T };
     }
 
     try {
@@ -45,6 +51,7 @@ class StorageService {
         return { success: true, data: undefined };
       }
       const parsed = JSON.parse(item) as T;
+      this.cache.set(key, parsed);
       return { success: true, data: parsed };
     } catch (error) {
       console.error(`Failed to read from storage [${key}]:`, error);
@@ -52,7 +59,7 @@ class StorageService {
     }
   }
 
-  // Generic set with type safety
+  // Generic set with type safety (invalidates cache)
   set<T>(key: StorageKey, value: T): StorageResult<void> {
     if (!this.isAvailable) {
       return { success: false, error: new Error('Storage not available') };
@@ -60,14 +67,18 @@ class StorageService {
 
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      // Update cache with the new value
+      this.cache.set(key, value);
       return { success: true };
     } catch (error) {
       console.error(`Failed to write to storage [${key}]:`, error);
+      // Invalidate cache on failure to stay consistent
+      this.cache.delete(key);
       return { success: false, error: error as Error };
     }
   }
 
-  // Remove item
+  // Remove item (invalidates cache)
   remove(key: StorageKey): StorageResult<void> {
     if (!this.isAvailable) {
       return { success: false, error: new Error('Storage not available') };
@@ -75,9 +86,11 @@ class StorageService {
 
     try {
       localStorage.removeItem(key);
+      this.cache.delete(key);
       return { success: true };
     } catch (error) {
       console.error(`Failed to remove from storage [${key}]:`, error);
+      this.cache.delete(key);
       return { success: false, error: error as Error };
     }
   }
@@ -128,6 +141,11 @@ class StorageService {
   clearDashboard(): void {
     this.remove(StorageKey.DASHBOARD_LAYOUT);
     this.remove(StorageKey.DASHBOARD_WIDGETS);
+  }
+
+  // Clear the entire in-memory cache
+  clearCache(): void {
+    this.cache.clear();
   }
 }
 

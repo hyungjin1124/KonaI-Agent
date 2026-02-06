@@ -12,6 +12,7 @@ interface MarkdownPreviewPanelProps {
   onModeChange: (mode: 'read' | 'edit') => void;
   onContentChange: (content: string) => void;
   onClose: () => void;
+  editingState?: 'idle' | 'editing' | 'shimmer';
 }
 
 /**
@@ -27,6 +28,7 @@ const MarkdownPreviewPanel: React.FC<MarkdownPreviewPanelProps> = ({
   onModeChange,
   onContentChange,
   onClose,
+  editingState = 'idle',
 }) => {
   const [localContent, setLocalContent] = useState(content);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,8 +132,25 @@ const MarkdownPreviewPanel: React.FC<MarkdownPreviewPanelProps> = ({
         <div className="flex justify-center min-h-full">
           <div className="w-full max-w-4xl">
             {mode === 'read' ? (
-              <div className="p-8 md:p-12">
-                <article className="max-w-none">
+              <div className="p-8 md:p-12 relative">
+                {/* 편집 중 오버레이 */}
+                {(editingState === 'editing' || editingState === 'shimmer') && (
+                  <div
+                    className={`absolute inset-0 z-10 flex items-start justify-center pt-8 transition-opacity duration-300 ${
+                      editingState === 'shimmer' ? 'bg-white/40' : 'bg-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-gray-200">
+                      <div className="w-2 h-2 bg-[#FF3C42] rounded-full animate-pulse" />
+                      <span className="text-sm font-medium text-gray-700">
+                        {editingState === 'editing' ? '파일 분석 중...' : 'KPI 테이블 수정 적용 중...'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <article className={`max-w-none transition-opacity duration-500 ${
+                  editingState === 'shimmer' ? 'opacity-40' : 'opacity-100'
+                }`}>
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={markdownComponents}

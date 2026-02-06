@@ -2,31 +2,22 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 // NOTE: 아이콘들은 HomeView, ChatInputArea 등 하위 컴포넌트에서 직접 import함
 import Dashboard from '../dashboard/Dashboard';
 import { SampleInterfaceContext, PPTConfig } from '../../../types';
-import { SlideItem, Artifact, RightPanelType, ProgressTask, ContextItem, SidebarSection, ArtifactPreviewState, CenterPanelState } from './types';
+import { SlideItem, Artifact, RightPanelType, ProgressTask, ContextItem, SidebarSection, ArtifactPreviewState, CenterPanelState, AttachedFile } from './types';
 import { useCaptureStateInjection, StateInjectionHandlers, useScrollToBottomButton, useSlideOutlineHITL } from '../../../hooks';
 import { AnomalyResponse, DefaultResponse, PPTDoneResponse, SalesAnalysisDoneResponse } from './components/AgentResponse';
-import { ChainOfThought } from './components/ChainOfThought';
-import ScrollToBottomButton from './components/ScrollToBottomButton';
 import PPTScenarioRenderer, { ActiveHitl } from './components/PPTScenarioRenderer';
-import { SLIDE_OUTLINE_CONTENTS, type SlideFile } from './components/ToolCall/constants';
+import { SLIDE_OUTLINE_CONTENTS, type SlideFile, CONSOLIDATED_SLIDE_FILE, CONSOLIDATED_SLIDE_OUTLINE_CONTENT, SLIDE_OUTLINE_SECTION_COUNT } from './components/ToolCall/constants';
 import SalesAnalysisScenarioRenderer from './components/SalesAnalysisScenarioRenderer';
 import { CoworkLayout } from './layouts';
 import { RightSidebar } from './components/RightSidebar';
 import { ArtifactPreviewPanel } from './components/ArtifactPreviewPanel';
 import { ChatInputArea } from './components/ChatInputArea';
 import { HomeView } from './views';
+import { generateMockModifiedMarkdown } from './utils/markdownUtils';
+import ChatHistoryPanel, { ChatMessage } from './components/ChatHistoryPanel';
 
-// 대화 메시지 타입 정의
-interface ChatMessage {
-  id: string;
-  type: 'user' | 'agent';
-  content: string;
-  timestamp: Date;
-  dashboardType?: 'financial' | 'did' | 'ppt';
-  dashboardScenario?: string;
-  pptStatus?: 'idle' | 'setup' | 'generating' | 'done';
-  cotComplete?: boolean; // Chain of Thought 완료 여부
-}
+// Re-export ChatMessage for external use
+export type { ChatMessage };
 
 const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleInterfaceContext }> = ({
   initialQuery,
@@ -45,9 +36,6 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // 대화 히스토리 상태
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-
-  // Chain of Thought 완료 상태 (메시지 ID별 관리)
-  const [cotCompleteMap, setCotCompleteMap] = useState<Record<string, boolean>>({});
 
   // Context state
   const [contextData, setContextData] = useState<SampleInterfaceContext | null>(initialContext || null);
@@ -99,6 +87,8 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // --- 아티팩트 상태 ---
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const artifactsRef = useRef<Artifact[]>([]); // stale closure 방지용 ref
+  artifactsRef.current = artifacts;
   const [rightPanelType, setRightPanelType] = useState<RightPanelType>('dashboard');
 
   // --- 마크다운 콘텐츠 상태 (artifact ID → content 매핑) ---
@@ -115,6 +105,11 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   const [themeFontCompleteCallback, setThemeFontCompleteCallback] = useState<(() => void) | null>(null);
   const [slidePlanningCompleteCallback, setSlidePlanningCompleteCallback] = useState<(() => void) | null>(null);
   const [generatedFileCount, setGeneratedFileCount] = useState(0);
+  const generatedFileIdsRef = useRef<Set<string>>(new Set());
+  const slidePlanningTimersRef = useRef<NodeJS.Timeout[]>([]);
+  const [isOutlineRevisionMode, setIsOutlineRevisionMode] = useState(false);
+  const [markdownEditingState, setMarkdownEditingState] = useState<'idle' | 'editing' | 'shimmer'>('idle');
+  const revisionTimersRef = useRef<NodeJS.Timeout[]>([]);
   const [artifactPreview, setArtifactPreview] = useState<ArtifactPreviewState>({
     isOpen: false,
     selectedArtifact: null,
@@ -156,8 +151,33 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   // 슬라이드 개요 검토 시작 핸들러 (PPTScenarioRenderer에서 호출)
   const handleSlideOutlineReviewStart = useCallback(() => {
     slideOutlineHITL.initializeDeck();
-    setCenterPanelState({ isOpen: true, content: 'slide-outline' });
+    // 첫 번째 마크다운 아티팩트를 선택하여 MarkdownPreviewPanel로 표시
+    // artifactsRef 사용: usePPTScenario 타이머 체인의 stale closure 방지
+    const firstMdArtifact = artifactsRef.current.find(a => a.type === 'markdown');
+    if (firstMdArtifact) {
+      setArtifactPreview({
+        isOpen: true,
+        selectedArtifact: firstMdArtifact,
+        previewType: 'markdown',
+        markdownMode: 'read',
+      });
+    }
+    setCenterPanelState({ isOpen: true, content: 'markdown-preview' });
   }, [slideOutlineHITL.initializeDeck]);
+
+  // 슬라이드 개요 수정 모드 진입 핸들러 ("수정 필요" 클릭 시)
+  const handleEnterRevisionMode = useCallback((outlineId: string) => {
+    setIsOutlineRevisionMode(true);
+
+    // 에이전트 안내 메시지를 채팅에 추가
+    const guideMessage: ChatMessage = {
+      id: `agent-revision-${Date.now()}`,
+      type: 'agent',
+      content: '해당 슬라이드에 수정이 필요하시군요. 수정할 파일을 첨부하고 요청 사항을 입력해 주세요. 직접 편집기에서 수정하실 수도 있습니다. 수정이 완료되면 "슬라이드 생성"이라고 입력해 주세요.',
+      timestamp: new Date(),
+    };
+    setChatHistory(prev => [...prev, guideMessage]);
+  }, []);
 
   // PPT 생성 핸들러 (슬라이드 개요 모두 승인 후 호출)
   const handleGeneratePPTFromOutline = useCallback(() => {
@@ -165,8 +185,8 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setCenterPanelState({ isOpen: true, content: 'ppt-preview' });
   }, []);
 
-  // 마크다운 파일 생성 콜백 (slide_planning 도구에서 호출)
-  const TOTAL_SLIDE_FILES = 7; // PPT_SLIDE_FILES.length
+  // 마크다운 파일 생성 콜백 (slide_planning 시작 시 타이머에서 호출)
+  const TOTAL_SLIDE_FILES = SLIDE_OUTLINE_SECTION_COUNT;
 
   const handleMarkdownFileGenerated = useCallback((file: SlideFile) => {
     if (!file?.filename || !file?.title) {
@@ -176,7 +196,11 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
     const artifactId = `artifact-md-${file.filename}`;
 
-    // 중복 체크 및 아티팩트 추가
+    // 중복 카운트 방지 (타이머 + UI 렌더링 양쪽에서 호출될 수 있음)
+    if (generatedFileIdsRef.current.has(artifactId)) return;
+    generatedFileIdsRef.current.add(artifactId);
+
+    // 아티팩트 추가
     setArtifacts(prev => {
       if (prev.find(a => a.id === artifactId)) return prev;
       return [...prev, {
@@ -199,6 +223,45 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
     // 생성된 파일 수 추적 (슬라이드 계획 완료 판단용)
     setGeneratedFileCount(prev => prev + 1);
+  }, [chatHistory]);
+
+  // slide_planning 단계 시작 시 단일 마크다운 파일을 섹션별 스트리밍으로 생성
+  const handleSlidePlanningStart = useCallback(() => {
+    // 이전 타이머 정리
+    slidePlanningTimersRef.current.forEach(t => clearTimeout(t));
+    slidePlanningTimersRef.current = [];
+    generatedFileIdsRef.current.clear();
+    setGeneratedFileCount(0);
+
+    const artifactId = `artifact-md-${CONSOLIDATED_SLIDE_FILE.filename}`;
+    const sections = CONSOLIDATED_SLIDE_OUTLINE_CONTENT.split('\n\n---\n\n');
+
+    // 아티팩트 1개 즉시 생성
+    setArtifacts(prev => {
+      if (prev.find(a => a.id === artifactId)) return prev;
+      return [...prev, {
+        id: artifactId,
+        title: CONSOLIDATED_SLIDE_FILE.filename,
+        type: 'markdown' as const,
+        createdAt: new Date(),
+        messageId: chatHistory[chatHistory.length - 1]?.id || `generated-${Date.now()}`,
+      }];
+    });
+
+    // 섹션별 스트리밍 (1초 간격으로 콘텐츠 누적)
+    let accumulatedContent = '';
+    sections.forEach((section, idx) => {
+      const timer = setTimeout(() => {
+        accumulatedContent += (idx > 0 ? '\n\n---\n\n' : '') + section;
+        setMarkdownContents(prev => ({
+          ...prev,
+          [artifactId]: accumulatedContent,
+        }));
+        // 섹션 카운트 증가 (기존 완료 판단 로직 재활용)
+        setGeneratedFileCount(prev => prev + 1);
+      }, (idx + 1) * 1000);
+      slidePlanningTimersRef.current.push(timer);
+    });
   }, [chatHistory]);
 
   // 모든 마크다운 파일 생성 완료 시 슬라이드 계획 완료
@@ -232,7 +295,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     if (initialQuery && !hasProcessedInitialQuery.current) {
       hasProcessedInitialQuery.current = true;
       // Pass 'true' to skip animation delay for immediate transition
-      handleSend(initialQuery, true);
+      handleSend(initialQuery, undefined, true);
     }
   }, [initialQuery]);
 
@@ -444,9 +507,185 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   }, [anomalyDetectionComplete]);
 
   // useCallback으로 핸들러 최적화
-  const handleSend = useCallback((text: string, immediate: boolean = false) => {
+  const handleSend = useCallback((text: string, attachedFile?: AttachedFile, immediate: boolean = false) => {
     if (!showDashboard) {
         setInputValue(text);
+    }
+
+    // 수정 모드에서 "슬라이드 생성" 텍스트 감지 → 시나리오 재개
+    if (isOutlineRevisionMode && (
+      text.includes('슬라이드 생성') || text.includes('PPT 생성')
+    )) {
+      setIsOutlineRevisionMode(false);
+
+      // 사용자 메시지 추가
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        type: 'user',
+        content: text,
+        timestamp: new Date(),
+      };
+
+      // 에이전트 확인 메시지 추가
+      const confirmMessage: ChatMessage = {
+        id: `agent-resume-${Date.now()}`,
+        type: 'agent',
+        content: '수정된 슬라이드 개요가 승인되었습니다. 이제 테마와 폰트를 선택해 주세요.',
+        timestamp: new Date(),
+      };
+      setChatHistory(prev => [...prev, userMessage, confirmMessage]);
+
+      // 모든 슬라이드 승인 → isAllApproved=true → PPTScenarioRenderer useEffect → completeSlideOutlineReview()
+      slideOutlineHITL.approveAll();
+
+      setInputValue('');
+      return;
+    }
+
+    // 수정 모드에서 파일 첨부 수정 요청 → 시나리오에 영향 없이 처리
+    if (isOutlineRevisionMode && attachedFile && attachedFile.type === 'markdown') {
+      const userMessageContent = `${text}\n\n📎 첨부: ${attachedFile.name}`;
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        type: 'user',
+        content: userMessageContent,
+        timestamp: new Date(),
+      };
+      const revisionAgentMsgId = `agent-revision-response-${Date.now()}`;
+      setChatHistory(prev => [...prev, userMessage]);
+
+      // 컨텍스트에 파일 추가
+      const fileContextItem: ContextItem = {
+        id: `ctx-${attachedFile.id}`,
+        type: 'file',
+        name: attachedFile.name,
+        icon: 'file-text',
+        status: 'connected',
+      };
+      setContextItems(prev => {
+        const workFilesIndex = prev.findIndex(item => item.name === '작업 파일');
+        if (workFilesIndex >= 0) {
+          const updated = [...prev];
+          const workFiles = { ...updated[workFilesIndex] };
+          workFiles.children = [...(workFiles.children || []), fileContextItem];
+          updated[workFilesIndex] = workFiles;
+          return updated;
+        }
+        return [...prev, fileContextItem];
+      });
+
+      // 3단계 프로그레시브 편집 애니메이션
+      const capturedAttachedFile = attachedFile;
+      const capturedText = text;
+
+      // 이전 타이머 정리
+      revisionTimersRef.current.forEach(t => clearTimeout(t));
+      revisionTimersRef.current = [];
+
+      // Phase 1 (즉시): 패널 오픈 + "파일 분석 중..." 오버레이
+      setMarkdownEditingState('editing');
+      const existingArtifactImmediate = artifactsRef.current.find(
+        a => a.type === 'markdown' && a.title === capturedAttachedFile.name
+      );
+      if (existingArtifactImmediate) {
+        setArtifactPreview({
+          isOpen: true,
+          selectedArtifact: existingArtifactImmediate,
+          previewType: 'markdown',
+          markdownMode: 'read',
+        });
+        setCenterPanelState({ isOpen: true, content: 'markdown-preview' });
+      }
+
+      // Phase 2 (800ms): shimmer 전환
+      const t1 = setTimeout(() => {
+        setMarkdownEditingState('shimmer');
+      }, 800);
+      revisionTimersRef.current.push(t1);
+
+      // Phase 3 (1800ms): 수정된 콘텐츠 적용
+      const t2 = setTimeout(() => {
+        let effectiveContent = capturedAttachedFile.content;
+        if (!effectiveContent && capturedAttachedFile.sourceArtifactId) {
+          effectiveContent = markdownContents[capturedAttachedFile.sourceArtifactId] || '';
+          if (!effectiveContent && slideOutlineHITL.deck) {
+            const outline = slideOutlineHITL.deck.outlines.find(
+              o => capturedAttachedFile.sourceArtifactId?.includes(o.fileName)
+            );
+            if (outline) effectiveContent = outline.markdownContent;
+          }
+        }
+
+        const modifiedContent = generateMockModifiedMarkdown(effectiveContent, capturedText);
+
+        // 기존 아티팩트를 찾아서 콘텐츠만 업데이트 (새 파일 생성 X)
+        const existingArtifact = artifactsRef.current.find(
+          a => a.type === 'markdown' && a.title === capturedAttachedFile.name
+        );
+
+        if (existingArtifact) {
+          setMarkdownContents(prev => ({
+            ...prev,
+            [existingArtifact.id]: modifiedContent,
+          }));
+          setArtifactPreview({
+            isOpen: true,
+            selectedArtifact: existingArtifact,
+            previewType: 'markdown',
+            markdownMode: 'read',
+          });
+        } else {
+          const artifactId = `artifact-md-modified-${Date.now()}`;
+          const newArtifact: Artifact = {
+            id: artifactId,
+            title: capturedAttachedFile.name,
+            type: 'markdown',
+            createdAt: new Date(),
+            messageId: revisionAgentMsgId,
+          };
+          setArtifacts(prev => [...prev, newArtifact]);
+          setMarkdownContents(prev => ({
+            ...prev,
+            [artifactId]: modifiedContent,
+          }));
+          setArtifactPreview({
+            isOpen: true,
+            selectedArtifact: newArtifact,
+            previewType: 'markdown',
+            markdownMode: 'read',
+          });
+        }
+
+        // deck에 동기화
+        if (slideOutlineHITL.deck) {
+          const matchingOutline = slideOutlineHITL.deck.outlines.find(
+            o => o.fileName === capturedAttachedFile.name
+          );
+          if (matchingOutline) {
+            slideOutlineHITL.updateOutlineContentAndReset(
+              matchingOutline.id, modifiedContent
+            );
+          }
+        }
+
+        // 에이전트 확인 메시지
+        const confirmMsg: ChatMessage = {
+          id: revisionAgentMsgId,
+          type: 'agent',
+          content: `${capturedAttachedFile.name} 파일이 요청에 맞게 수정되었습니다. 추가 수정이 필요하면 파일을 첨부해 주세요. 수정이 완료되면 "슬라이드 생성"이라고 입력해 주세요.`,
+          timestamp: new Date(),
+        };
+        setChatHistory(prev => [...prev, confirmMsg]);
+        setCenterPanelState({ isOpen: true, content: 'markdown-preview' });
+
+        // 편집 상태 해제 (CSS transition 완료 대기)
+        const t3 = setTimeout(() => setMarkdownEditingState('idle'), 300);
+        revisionTimersRef.current.push(t3);
+      }, 1800);
+      revisionTimersRef.current.push(t2);
+
+      setInputValue('');
+      return;
     }
 
     setUserQuery(text);
@@ -486,10 +725,14 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     }
 
     // 1. 사용자 메시지를 히스토리에 추가
+    const userMessageContent = attachedFile
+      ? `${text}\n\n📎 첨부: ${attachedFile.name}`
+      : text;
+
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       type: 'user',
-      content: text,
+      content: userMessageContent,
       timestamp: new Date(),
     };
 
@@ -505,6 +748,72 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     };
 
     setChatHistory(prev => [...prev, userMessage, agentMessage]);
+
+    // 3. 첨부 파일이 있는 경우 Mock 수정 응답 생성
+    if (attachedFile && attachedFile.type === 'markdown') {
+      // 컨텍스트에 파일 추가
+      const fileContextItem: ContextItem = {
+        id: `ctx-${attachedFile.id}`,
+        type: 'file',
+        name: attachedFile.name,
+        icon: 'file-text',
+        status: 'connected',
+      };
+      setContextItems(prev => {
+        const workFilesIndex = prev.findIndex(item => item.name === '작업 파일');
+        if (workFilesIndex >= 0) {
+          const updated = [...prev];
+          const workFiles = { ...updated[workFilesIndex] };
+          workFiles.children = [...(workFiles.children || []), fileContextItem];
+          updated[workFilesIndex] = workFiles;
+          return updated;
+        }
+        return [...prev, fileContextItem];
+      });
+
+      // Mock 수정된 마크다운 생성 (1.5초 후)
+      setTimeout(() => {
+        // 콘텐츠 해석 (artifact 드래그 시 content가 비어있을 수 있음)
+        let effectiveContent = attachedFile.content;
+        if (!effectiveContent && attachedFile.sourceArtifactId) {
+          effectiveContent = markdownContents[attachedFile.sourceArtifactId] || '';
+          if (!effectiveContent && slideOutlineHITL.deck) {
+            const outline = slideOutlineHITL.deck.outlines.find(
+              o => attachedFile.sourceArtifactId?.includes(o.fileName)
+            );
+            if (outline) effectiveContent = outline.markdownContent;
+          }
+        }
+
+        const modifiedContent = generateMockModifiedMarkdown(effectiveContent, text);
+        const artifactId = `artifact-md-modified-${Date.now()}`;
+
+        // 아티팩트 추가
+        const modifiedArtifact: Artifact = {
+          id: artifactId,
+          title: `수정됨_${attachedFile.name}`,
+          type: 'markdown',
+          createdAt: new Date(),
+          messageId: agentMessage.id,
+        };
+        setArtifacts(prev => [...prev, modifiedArtifact]);
+
+        // 마크다운 콘텐츠 저장
+        setMarkdownContents(prev => ({
+          ...prev,
+          [artifactId]: modifiedContent,
+        }));
+
+        // 중앙 패널에서 미리보기 열기
+        setArtifactPreview({
+          isOpen: true,
+          selectedArtifact: modifiedArtifact,
+          previewType: 'markdown',
+          markdownMode: 'read',
+        });
+        setCenterPanelState({ isOpen: true, content: 'markdown-preview' });
+      }, 1500);
+    }
 
     setDashboardType(targetType);
     if (targetScenario) setDashboardScenario(targetScenario);
@@ -532,7 +841,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
              }, 800);
          }
     }
-  }, [showDashboard, contextData]);
+  }, [showDashboard, contextData, isOutlineRevisionMode, slideOutlineHITL, markdownContents, setContextItems, setArtifacts, setMarkdownContents, setCenterPanelState]);
 
   const handleReset = useCallback(() => {
     setInputValue('');
@@ -548,8 +857,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setAnomalyDetectionComplete(false);
     setIsVisualizationComplete(false); // 시각화 완료 상태 리셋
     setChatHistory([]); // Clear chat history
-    setCotCompleteMap({}); // Clear CoT completion states
-    setArtifacts([]); // Clear artifacts
+setArtifacts([]); // Clear artifacts
     setRightPanelType('dashboard'); // Reset panel type
     hasProcessedInitialQuery.current = false; // Reset initial query flag
     setIsSlideGenerationComplete(false); // 슬라이드 생성 완료 상태 리셋
@@ -558,6 +866,13 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setThemeFontCompleteCallback(null); // 테마/폰트 선택 콜백 리셋
     setSlidePlanningCompleteCallback(null); // 슬라이드 계획 완료 콜백 리셋
     setGeneratedFileCount(0); // 생성된 파일 수 리셋
+    generatedFileIdsRef.current.clear(); // 파일 중복 추적 리셋
+    slidePlanningTimersRef.current.forEach(t => clearTimeout(t)); // 타이머 정리
+    slidePlanningTimersRef.current = [];
+    setIsOutlineRevisionMode(false); // 수정 모드 리셋
+    setMarkdownEditingState('idle'); // 마크다운 편집 상태 리셋
+    revisionTimersRef.current.forEach(t => clearTimeout(t));
+    revisionTimersRef.current = [];
   }, []);
 
   // PPT 완료 후 → 매출 분석 시나리오로 전환
@@ -664,11 +979,6 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setPptConfig(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  // CoT 완료 핸들러
-  const handleCotComplete = useCallback((messageId: string) => {
-    setCotCompleteMap(prev => ({ ...prev, [messageId]: true }));
-  }, []);
-
   // --- Cowork Layout 핸들러 ---
 
   // 사이드바 섹션 토글
@@ -771,25 +1081,14 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     setActiveHitl(hitl);
     setHitlResumeCallback(() => resumeCallback);
 
-    // 슬라이드 개요 검토 HITL 시 중앙 패널 자동 열기
-    if (hitl?.toolType === 'slide_outline_review') {
-      const firstArtifact = artifacts.find(a => a.id === 'artifact-md-00_metadata.md');
-      if (firstArtifact) {
-        setCenterPanelState({ isOpen: true, content: 'markdown-preview' });
-        setArtifactPreview({
-          isOpen: true,
-          selectedArtifact: firstArtifact,
-          previewType: 'markdown',
-          markdownMode: 'read',
-        });
-      }
-    }
+    // 슬라이드 개요 검토 HITL: 가운데 패널은 onSlideOutlineReviewStart에서 이미 열림 (slide-outline)
+    // 여기서 다시 열지 않음
 
     // 테마/폰트 선택 HITL 시 중앙 패널: PPT 미리보기로 전환
     if (hitl?.toolType === 'theme_font_select') {
       setCenterPanelState({ isOpen: true, content: 'ppt-preview' });
     }
-  }, [artifacts]);
+  }, []);
 
   // 테마/폰트 선택 완료 콜백 핸들러
   const handleThemeFontComplete = useCallback((completeCallback: () => void) => {
@@ -905,12 +1204,6 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                 onPptConfigUpdate={updatePptConfig}
                 onPptStatusChange={setPptStatus}
                 onScenarioComplete={handlePptComplete}
-                onRequestSalesAnalysis={handleRequestSalesAnalysis}
-                isRightPanelCollapsed={isRightPanelCollapsed}
-                onOpenRightPanel={() => openRightPanelWithContext({
-                  dashboardType: 'ppt',
-                  pptStatus: pptStatus === 'done' ? 'done' : 'setup'
-                })}
                 onOpenCenterPanel={() => handleOpenCenterPanel('ppt-preview')}
                 onProgressUpdate={setProgressTasks}
                 onActiveHitlChange={handleActiveHitlChange}
@@ -919,12 +1212,16 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
                 // Slide Outline Review Props
                 onSlideOutlineReviewStart={handleSlideOutlineReviewStart}
                 isSlideOutlineReviewComplete={slideOutlineHITL.isAllApproved}
+                isOutlineRevisionMode={isOutlineRevisionMode}
                 // Theme/Font Select Props
                 onThemeFontComplete={handleThemeFontComplete}
                 // 마크다운 파일 생성 콜백
                 onMarkdownFileGenerated={handleMarkdownFileGenerated}
-                // 슬라이드 계획 완료 콜백
+                // 슬라이드 계획 시작/완료 콜백
+                onSlidePlanningStart={handleSlidePlanningStart}
                 onSlidePlanningComplete={handleSlidePlanningComplete}
+                // 슬라이드 개요 수정 필요 콜백 (HITL 플로팅 패널에서 호출)
+                onSlideOutlineRevisionRequested={() => handleEnterRevisionMode('')}
               />
             );
         } else {
@@ -933,12 +1230,10 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
               <PPTDoneResponse
                 slideCount={pptConfig.slideCount}
                 onRequestSalesAnalysis={handleRequestSalesAnalysis}
-                isRightPanelCollapsed={isRightPanelCollapsed}
-                currentDashboardType={dashboardType}
-                onOpenRightPanel={() => openRightPanelWithContext({
-                  dashboardType: 'ppt',
-                  pptStatus: 'done'
-                })}
+                isCenterPanelOpen={centerPanelState.isOpen || artifactPreview.isOpen}
+                onOpenCenterPanel={() => {
+                  setCenterPanelState({ isOpen: true, content: 'ppt-result' });
+                }}
               />
             );
         }
@@ -1013,36 +1308,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // Helper to render agent response for a specific message
   const renderAgentResponseForMessage = (message: ChatMessage, isLatest: boolean) => {
-    const msgDashboardType = message.dashboardType || 'financial';
-    const msgDashboardScenario = message.dashboardScenario;
-    const msgPptStatus = isLatest ? pptStatus : (message.pptStatus || 'done');
-    const isCotComplete = cotCompleteMap[message.id] ?? false;
-
-    // PPT 시나리오와 Sales Analysis 시나리오는 자체 렌더러 사용 (CoT 대신 도구 호출/답변 번갈아 표시)
-    if (msgDashboardType === 'ppt' || msgDashboardScenario === 'sales_analysis') {
-      return renderActualResponse(message, isLatest);
-    }
-
-    // 다른 시나리오는 기존 CoT 패턴 유지
-    const shouldShowCot = isLatest;
-
-    // CoT와 실제 응답을 함께 렌더링
-    return (
-      <>
-        {/* CoT 섹션 - 진행 중이거나 완료된 경우 모두 표시 */}
-        {shouldShowCot && (
-          <ChainOfThought
-            isActive={!isCotComplete}
-            isComplete={isCotComplete}
-            onComplete={() => handleCotComplete(message.id)}
-            stepDuration={1200}
-          />
-        )}
-
-        {/* 실제 응답 - CoT 완료 후 표시 */}
-        {isCotComplete && renderActualResponse(message, isLatest)}
-      </>
-    );
+    return renderActualResponse(message, isLatest);
   };
 
   // 이전 메시지 응답 렌더링 (히스토리용 - CoT 없이)
@@ -1075,54 +1341,23 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
     // 좌측 패널 (채팅 영역)
     const leftPanelContent = (
-      <div ref={leftPanelRef} className="h-full overflow-y-auto custom-scrollbar scroll-smooth relative">
-        <div className="py-6 max-w-3xl mx-auto px-6">
-          {/* 대화 히스토리 렌더링 */}
-          {chatHistory.length > 0 ? (
-            chatHistory.map((message, index) => {
-              const isLatestAgent = message.type === 'agent' &&
-                index === chatHistory.length - 1;
-
-              return (
-                <div key={message.id}>
-                  {message.type === 'user' ? (
-                    // User Query Bubble
-                    <div className="flex justify-end mb-10 mt-6">
-                      <div className="bg-gray-100 text-black px-5 py-4 rounded-2xl rounded-tr-sm max-w-[90%] border border-gray-200 shadow-sm">
-                        <p className="text-sm leading-relaxed whitespace-pre-line font-medium">{message.content}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    // Agent Response
-                    <div className="mb-6">
-                      {renderAgentResponseForMessage(message, isLatestAgent)}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            // Fallback: 기존 단일 메시지 렌더링 (초기 상태)
-            <>
-              <div className="flex justify-end mb-10 mt-6">
-                <div className="bg-gray-100 text-black px-5 py-4 rounded-2xl rounded-tr-sm max-w-[90%] border border-gray-200 shadow-sm">
-                  <p className="text-sm leading-relaxed whitespace-pre-line font-medium">{userQuery}</p>
-                </div>
-              </div>
-              {renderAgentResponse()}
-            </>
-          )}
-
-          <div className="h-6"></div>
-        </div>
-
-        {/* Scroll to Bottom Button */}
-        <ScrollToBottomButton
-          isVisible={showScrollButton}
-          unreadCount={unreadCount}
-          onClick={scrollToBottom}
-        />
-      </div>
+      <ChatHistoryPanel
+        leftPanelRef={leftPanelRef}
+        chatHistory={chatHistory}
+        userQuery={userQuery}
+        pptStatus={pptStatus}
+        isOutlineRevisionMode={isOutlineRevisionMode}
+        pptConfig={pptConfig}
+        centerPanelState={centerPanelState}
+        artifactPreview={artifactPreview}
+showScrollButton={showScrollButton}
+        unreadCount={unreadCount}
+        scrollToBottom={scrollToBottom}
+        renderAgentResponseForMessage={renderAgentResponseForMessage}
+        renderAgentResponse={renderAgentResponse}
+        onRequestSalesAnalysis={handleRequestSalesAnalysis}
+        onOpenCenterPanel={(content) => setCenterPanelState({ isOpen: true, content })}
+      />
     );
 
     // 입력 영역 - ChatInputArea 컴포넌트 사용
@@ -1205,6 +1440,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
         onPreviousOutline={slideOutlineHITL.selectPreviousOutline}
         onNextOutline={slideOutlineHITL.selectNextOutline}
         onGeneratePPT={handleGeneratePPTFromOutline}
+        onEnterRevisionMode={handleEnterRevisionMode}
         isAllOutlinesApproved={slideOutlineHITL.isAllApproved}
         approvedOutlineCount={slideOutlineHITL.approvedCount}
         totalOutlineCount={slideOutlineHITL.totalCount}
@@ -1212,6 +1448,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
         markdownContent={artifactPreview.selectedArtifact ? markdownContents[artifactPreview.selectedArtifact.id] || '' : ''}
         markdownMode={artifactPreview.markdownMode || 'read'}
         onMarkdownModeChange={handleMarkdownModeChange}
+        markdownEditingState={markdownEditingState}
         onMarkdownContentChange={(content) => {
           if (artifactPreview.selectedArtifact) {
             handleMarkdownContentChange(artifactPreview.selectedArtifact.id, content);

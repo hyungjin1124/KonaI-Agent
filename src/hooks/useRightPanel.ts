@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, RefObject } from 'react';
+import { useState, useCallback, useEffect, useRef, RefObject } from 'react';
 import { RightPanelType, Artifact } from '../components/features/agent-chat/types';
 
 /**
@@ -134,26 +134,33 @@ export function useRightPanel(
 
   /**
    * 리사이즈 마우스 이동 및 해제 이벤트 처리
+   * RAF throttling으로 60fps 제한 (js-batch-dom-css)
    */
+  const rafRef = useRef<number>(0);
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing || !containerRef.current) return;
 
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const containerWidth = containerRect.width;
-      const mouseX = e.clientX - containerRect.left;
+      // RAF throttle: 한 프레임에 한 번만 DOM 업데이트
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const mouseX = e.clientX - containerRect.left;
 
-      // 좌측 패널 비율 계산 (마우스 위치 기준)
-      const leftPanelPercent = (mouseX / containerWidth) * 100;
-      const rightPanelPercent = 100 - leftPanelPercent;
+        const leftPanelPercent = (mouseX / containerWidth) * 100;
+        const rightPanelPercent = 100 - leftPanelPercent;
 
-      // 범위 제한
-      if (rightPanelPercent >= minWidth! && rightPanelPercent <= maxWidth!) {
-        setPanelWidth(rightPanelPercent);
-      }
+        if (rightPanelPercent >= minWidth! && rightPanelPercent <= maxWidth!) {
+          setPanelWidth(rightPanelPercent);
+        }
+      });
     };
 
     const handleMouseUp = () => {
+      cancelAnimationFrame(rafRef.current);
       setIsResizing(false);
     };
 
@@ -165,6 +172,7 @@ export function useRightPanel(
     }
 
     return () => {
+      cancelAnimationFrame(rafRef.current);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = '';

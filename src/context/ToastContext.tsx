@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { Toast, ToastOptions, ToastContextType } from '../types';
 import { ToastContainer } from '../components/ToastContainer';
 
@@ -37,8 +37,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts([]);
   }, []);
 
+  const value = useMemo(() => ({
+    toasts, showToast, dismissToast, clearAllToasts
+  }), [toasts, showToast, dismissToast, clearAllToasts]);
+
   return (
-    <ToastContext.Provider value={{ toasts, showToast, dismissToast, clearAllToasts }}>
+    <ToastContext.Provider value={value}>
       {children}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </ToastContext.Provider>

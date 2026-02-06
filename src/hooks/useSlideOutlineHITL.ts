@@ -391,6 +391,7 @@ interface UseSlideOutlineHITLReturn {
   selectNextOutline: () => void;
   selectPreviousOutline: () => void;
   updateOutlineContent: (id: string, markdownContent: string) => void;
+  updateOutlineContentAndReset: (id: string, markdownContent: string) => void;
   updateOutlineLayout: (id: string, layoutType: SlideLayoutType) => void;
   approveOutline: (id: string) => void;
   markNeedsRevision: (id: string) => void;
@@ -513,6 +514,14 @@ export const useSlideOutlineHITL = ({
     [updateOutline]
   );
 
+  // 마크다운 내용 업데이트 + 상태 리셋 (수정 모드에서 사용)
+  const updateOutlineContentAndReset = useCallback(
+    (id: string, markdownContent: string) => {
+      updateOutline(id, { markdownContent, status: 'pending-review' as SlideOutlineStatus });
+    },
+    [updateOutline]
+  );
+
   // 레이아웃 업데이트
   const updateOutlineLayout = useCallback(
     (id: string, layoutType: SlideLayoutType) => {
@@ -599,6 +608,7 @@ export const useSlideOutlineHITL = ({
     selectNextOutline,
     selectPreviousOutline,
     updateOutlineContent,
+    updateOutlineContentAndReset,
     updateOutlineLayout,
     approveOutline,
     markNeedsRevision,

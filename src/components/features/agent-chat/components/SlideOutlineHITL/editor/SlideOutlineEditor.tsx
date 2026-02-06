@@ -23,6 +23,7 @@ interface SlideOutlineEditorProps {
   onNext: () => void;
   onClose: () => void;
   onAddToContext?: (text: string) => void;
+  onEnterRevisionMode?: (outlineId: string) => void;
 }
 
 export const SlideOutlineEditor: React.FC<SlideOutlineEditorProps> = ({
@@ -37,6 +38,7 @@ export const SlideOutlineEditor: React.FC<SlideOutlineEditorProps> = ({
   onNext,
   onClose,
   onAddToContext,
+  onEnterRevisionMode,
 }) => {
   const [localContent, setLocalContent] = useState(outline?.markdownContent || '');
   const [selectedText, setSelectedText] = useState('');
@@ -241,7 +243,10 @@ export const SlideOutlineEditor: React.FC<SlideOutlineEditorProps> = ({
           <div className="flex items-center gap-2">
             {/* 수정 필요 버튼 */}
             <button
-              onClick={() => onMarkNeedsRevision(outline.id)}
+              onClick={() => {
+                onMarkNeedsRevision(outline.id);
+                onEnterRevisionMode?.(outline.id);
+              }}
               className={`
                 flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg
                 transition-colors

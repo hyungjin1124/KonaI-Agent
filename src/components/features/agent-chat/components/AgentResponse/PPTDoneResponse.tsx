@@ -5,9 +5,8 @@ import TypingCursor from '../../../../shared/TypingCursor';
 interface PPTDoneResponseProps {
   slideCount: number;
   onRequestSalesAnalysis?: () => void;
-  isRightPanelCollapsed?: boolean;
-  currentDashboardType?: 'financial' | 'did' | 'ppt';
-  onOpenRightPanel?: () => void;
+  isCenterPanelOpen?: boolean;
+  onOpenCenterPanel?: () => void;
 }
 
 // 스트리밍 텍스트 컴포넌트
@@ -76,9 +75,8 @@ const StreamingTextSpan: React.FC<{
 export const PPTDoneResponse: React.FC<PPTDoneResponseProps> = ({
   slideCount,
   onRequestSalesAnalysis,
-  isRightPanelCollapsed,
-  currentDashboardType,
-  onOpenRightPanel
+  isCenterPanelOpen,
+  onOpenCenterPanel
 }) => {
   const [phase, setPhase] = useState(0); // 0: title, 1: description, 2: actions
 
@@ -125,11 +123,11 @@ export const PPTDoneResponse: React.FC<PPTDoneResponseProps> = ({
         {phase >= 2 && (
           <>
             {/* 우측 패널 열기 버튼 - 현재 패널이 열려있으면 비활성화 */}
-            {onOpenRightPanel && (() => {
-              const isDisabled = !isRightPanelCollapsed && currentDashboardType === 'ppt';
+            {onOpenCenterPanel && (() => {
+              const isDisabled = isCenterPanelOpen === true;
               return (
                 <button
-                  onClick={onOpenRightPanel}
+                  onClick={onOpenCenterPanel}
                   disabled={isDisabled}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium shadow-sm mb-4 ${
                     isDisabled

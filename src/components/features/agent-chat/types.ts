@@ -396,3 +396,29 @@ export type RenderSegment =
 
 // 그룹별 펼침 상태
 export type GroupExpandState = Record<string, boolean>;
+
+// =============================================
+// Attached File Types (파일 첨부 기능)
+// =============================================
+
+// Artifact 드래그 앤 드롭 MIME 타입
+export const ARTIFACT_DRAG_MIME_TYPE = 'application/x-konai-artifact';
+
+// 첨부된 파일 타입
+export interface AttachedFile {
+  id: string;
+  name: string;
+  type: 'markdown' | 'text' | 'other';
+  content: string;
+  size: number;
+  lastModified: Date;
+  sourceArtifactId?: string;
+  artifactType?: ArtifactType;
+}
+
+// 확장된 컨텍스트 아이템 (파일 내용 포함)
+export interface FileContextItem extends ContextItem {
+  type: 'file';
+  content?: string;
+  originalContent?: string;
+}

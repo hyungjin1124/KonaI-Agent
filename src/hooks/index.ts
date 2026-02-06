@@ -7,6 +7,8 @@ export type { InjectedState, StateInjectionHandlers } from './useCaptureStateInj
 export { useTextStreaming } from './useTextStreaming';
 export type { UseTextStreamingConfig, UseTextStreamingReturn } from './useTextStreaming';
 export { useScrollToBottomButton } from './useScrollToBottomButton';
+export { useScenarioOrchestration } from './useScenarioOrchestration';
+export type { ScenarioOrchestrationConfig, ScenarioOrchestrationReturn, ActiveHitl, ProgressTaskGroup } from './useScenarioOrchestration';
 export { usePPTScenario } from './usePPTScenario';
 export { useSlideOutlineHITL } from './useSlideOutlineHITL';
 export { useChatHistory } from './useChatHistory';

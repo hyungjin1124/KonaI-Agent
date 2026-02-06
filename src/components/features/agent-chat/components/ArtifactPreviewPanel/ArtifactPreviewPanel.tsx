@@ -41,6 +41,7 @@ interface ArtifactPreviewPanelProps {
   onPreviousOutline?: () => void;
   onNextOutline?: () => void;
   onGeneratePPT?: () => void;
+  onEnterRevisionMode?: (outlineId: string) => void;
   isAllOutlinesApproved?: boolean;
   approvedOutlineCount?: number;
   totalOutlineCount?: number;
@@ -49,6 +50,7 @@ interface ArtifactPreviewPanelProps {
   markdownMode?: 'read' | 'edit';
   onMarkdownModeChange?: (mode: 'read' | 'edit') => void;
   onMarkdownContentChange?: (content: string) => void;
+  markdownEditingState?: 'idle' | 'editing' | 'shimmer';
 }
 
 export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
@@ -84,6 +86,7 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
   onPreviousOutline,
   onNextOutline,
   onGeneratePPT,
+  onEnterRevisionMode,
   isAllOutlinesApproved = false,
   approvedOutlineCount = 0,
   totalOutlineCount = 0,
@@ -92,6 +95,7 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
   markdownMode = 'read',
   onMarkdownModeChange,
   onMarkdownContentChange,
+  markdownEditingState = 'idle',
 }) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isFileListExpanded, setIsFileListExpanded] = useState(true);
@@ -151,6 +155,7 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
                 onPrevious={onPreviousOutline || (() => {})}
                 onNext={onNextOutline || (() => {})}
                 onClose={onClose}
+                onEnterRevisionMode={onEnterRevisionMode}
               />
             </div>
           </div>
@@ -172,6 +177,7 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
             onModeChange={onMarkdownModeChange || (() => {})}
             onContentChange={onMarkdownContentChange || (() => {})}
             onClose={onClose}
+            editingState={markdownEditingState}
           />
         );
 

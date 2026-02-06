@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronDown, ChevronRight, FileText, BarChart2, Image, File, Download, Presentation } from 'lucide-react';
-import { Artifact } from '../../types';
+import { Artifact, ARTIFACT_DRAG_MIME_TYPE } from '../../types';
 
 interface ArtifactsSectionProps {
   artifacts: Artifact[];
@@ -65,7 +65,15 @@ export const ArtifactsSection: React.FC<ArtifactsSectionProps> = ({
             artifacts.map((artifact) => (
               <div
                 key={artifact.id}
-                className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer group transition-colors ${
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(
+                    ARTIFACT_DRAG_MIME_TYPE,
+                    JSON.stringify({ id: artifact.id, title: artifact.title, type: artifact.type, fileSize: artifact.fileSize })
+                  );
+                  e.dataTransfer.effectAllowed = 'copy';
+                }}
+                className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-grab active:cursor-grabbing group transition-colors ${
                   selectedArtifactId === artifact.id
                     ? 'bg-orange-50 border border-orange-200'
                     : 'hover:bg-gray-50'
@@ -95,4 +103,4 @@ export const ArtifactsSection: React.FC<ArtifactsSectionProps> = ({
   );
 };
 
-export default ArtifactsSection;
+export default React.memo(ArtifactsSection);
