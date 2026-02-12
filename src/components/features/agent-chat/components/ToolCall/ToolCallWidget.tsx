@@ -3,6 +3,7 @@ import ToolCallHeader from './ToolCallHeader';
 import ToolCallContent from './ToolCallContent';
 import { TOOL_METADATA, isHitlTool } from './constants';
 import type { ToolCallWidgetProps } from './types';
+import { Collapsible, CollapsibleContent } from '../../../../ui/collapsible';
 
 /**
  * 도구 호출 위젯 메인 컴포넌트
@@ -72,7 +73,7 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
     : status;
 
   return (
-    <div className="animate-fade-in-up">
+    <Collapsible open={isExpanded} className="animate-fade-in-up">
       {/* 헤더 (항상 표시) */}
       <ToolCallHeader
         toolType={toolType}
@@ -82,34 +83,30 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
         metadata={metadata}
       />
 
-      {/* 상세 내용 (펼쳤을 때만 표시) - 텍스트 스타일 */}
-      {isExpanded && (
-        <div
-          className="ml-3 pl-2 border-l border-gray-200 mt-1 text-xs animate-accordion-down"
-        >
-          <ToolCallContent
-            toolType={toolType}
-            status={effectiveStatus}
-            input={input}
-            result={result}
-            isHitl={isHitlTool_}
-            hitlOptions={hitlOptions}
-            selectedOption={selectedOption}
-            onHitlSelect={onHitlSelect}
-            pptConfig={pptConfig}
-            onPptConfigUpdate={onPptConfigUpdate}
-            onPptSetupComplete={onPptSetupComplete}
-            validationData={validationData}
-            onValidationConfirm={onValidationConfirm}
-            onValidationModify={onValidationModify}
-            currentStepId={currentStepId}
-            completedStepIds={completedStepIds}
-            skipStreaming={hasBeenCollapsedAfterComplete}
-            onMarkdownFileGenerated={onMarkdownFileGenerated}
-          />
-        </div>
-      )}
-    </div>
+      {/* 상세 내용 (Collapsible이 관리) */}
+      <CollapsibleContent className="ml-3 pl-2 border-l border-gray-200 mt-1 text-xs data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
+        <ToolCallContent
+          toolType={toolType}
+          status={effectiveStatus}
+          input={input}
+          result={result}
+          isHitl={isHitlTool_}
+          hitlOptions={hitlOptions}
+          selectedOption={selectedOption}
+          onHitlSelect={onHitlSelect}
+          pptConfig={pptConfig}
+          onPptConfigUpdate={onPptConfigUpdate}
+          onPptSetupComplete={onPptSetupComplete}
+          validationData={validationData}
+          onValidationConfirm={onValidationConfirm}
+          onValidationModify={onValidationModify}
+          currentStepId={currentStepId}
+          completedStepIds={completedStepIds}
+          skipStreaming={hasBeenCollapsedAfterComplete}
+          onMarkdownFileGenerated={onMarkdownFileGenerated}
+        />
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 

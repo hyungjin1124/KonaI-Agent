@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { SlideOutline, SlideLayoutType } from '../../../types';
 import { LayoutSelector } from './LayoutSelector';
+import { Button } from '../../../../../ui/button';
+import { Textarea } from '../../../../../ui/textarea';
 
 interface SlideOutlineEditorProps {
   outline: SlideOutline | null;
@@ -114,22 +116,26 @@ export const SlideOutlineEditor: React.FC<SlideOutlineEditorProps> = ({
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50/50">
         {/* Left: Navigation */}
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onPrevious}
             disabled={currentIndex === 0}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="h-8 w-8"
             title="이전 슬라이드"
           >
             <ChevronLeft className="w-4 h-4 text-gray-600" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onNext}
             disabled={currentIndex >= totalCount - 1}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="h-8 w-8"
             title="다음 슬라이드"
           >
             <ChevronRight className="w-4 h-4 text-gray-600" />
-          </button>
+          </Button>
           <span className="text-sm font-medium text-gray-900 ml-2">
             {outline.fileName}
           </span>
@@ -142,12 +148,14 @@ export const SlideOutlineEditor: React.FC<SlideOutlineEditorProps> = ({
         <div className="flex items-center gap-2">
           {/* Layout Selector */}
           <div className="relative">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowLayoutSelector(!showLayoutSelector)}
-              className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="text-xs font-medium text-gray-600"
             >
               레이아웃: {outline.layoutType}
-            </button>
+            </Button>
             {showLayoutSelector && (
               <LayoutSelector
                 currentLayout={outline.layoutType}
@@ -161,21 +169,25 @@ export const SlideOutlineEditor: React.FC<SlideOutlineEditorProps> = ({
           </div>
 
           {/* Preview Button */}
-          <button
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
             title="미리보기"
           >
             <Eye className="w-4 h-4 text-gray-500" />
-          </button>
+          </Button>
 
           {/* Close Button */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+            className="h-8 w-8"
             title="닫기"
           >
             <X className="w-4 h-4 text-gray-500" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -189,12 +201,12 @@ export const SlideOutlineEditor: React.FC<SlideOutlineEditorProps> = ({
             backgroundColor: '#FAFAF9',
           }}
         >
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={localContent}
             onChange={(e) => handleContentChange(e.target.value)}
             onSelect={handleSelect}
-            className="w-full h-full p-6 bg-transparent resize-none focus:outline-none font-mono text-sm text-gray-800 leading-relaxed"
+            className="w-full h-full p-6 bg-transparent resize-none border-none focus-visible:ring-0 shadow-none font-mono text-sm text-gray-800 leading-relaxed min-h-0"
             placeholder="마크다운 형식으로 슬라이드 내용을 작성하세요..."
             spellCheck={false}
           />
@@ -209,13 +221,15 @@ export const SlideOutlineEditor: React.FC<SlideOutlineEditorProps> = ({
             <span className="text-xs text-blue-700">
               "{selectedText.slice(0, 30)}{selectedText.length > 30 ? '...' : ''}" 선택됨
             </span>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleAddToContext}
-              className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+              className="text-xs font-medium text-blue-700 border-blue-200 hover:bg-blue-50"
             >
               <Paperclip className="w-3.5 h-3.5" />
               채팅에 추가
-            </button>
+            </Button>
           </div>
         )}
 
@@ -230,62 +244,59 @@ export const SlideOutlineEditor: React.FC<SlideOutlineEditorProps> = ({
         {/* Action Buttons */}
         <div className="flex items-center justify-between px-4 py-3">
           {/* Left: Navigation */}
-          <button
+          <Button
+            variant="ghost"
             onClick={onPrevious}
             disabled={currentIndex === 0}
-            className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-sm text-gray-600"
           >
             <ChevronLeft className="w-4 h-4" />
             이전
-          </button>
+          </Button>
 
           {/* Center: Approval Actions */}
           <div className="flex items-center gap-2">
             {/* 수정 필요 버튼 */}
-            <button
+            <Button
+              variant="outline"
               onClick={() => {
                 onMarkNeedsRevision(outline.id);
                 onEnterRevisionMode?.(outline.id);
               }}
-              className={`
-                flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg
-                transition-colors
-                ${needsRevision
-                  ? 'bg-red-100 text-red-700 border border-red-200'
-                  : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                }
-              `}
+              className={
+                needsRevision
+                  ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-100'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }
             >
               <AlertCircle className="w-4 h-4" />
               수정 필요
-            </button>
+            </Button>
 
             {/* 승인 버튼 */}
-            <button
+            <Button
               onClick={() => onApprove(outline.id)}
-              className={`
-                flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg
-                transition-colors
-                ${isApproved
-                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+              className={
+                isApproved
+                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
                   : 'bg-[#FF3C42] text-white hover:bg-[#E63538]'
-                }
-              `}
+              }
             >
               <Check className="w-4 h-4" />
               {isApproved ? '승인됨' : '승인'}
-            </button>
+            </Button>
           </div>
 
           {/* Right: Navigation */}
-          <button
+          <Button
+            variant="ghost"
             onClick={onNext}
             disabled={currentIndex >= totalCount - 1}
-            className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-sm text-gray-600"
           >
             다음
             <ChevronRight className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

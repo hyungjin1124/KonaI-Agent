@@ -7,6 +7,8 @@ import { ActiveHitl } from '../PPTScenarioRenderer';
 import { DataValidationSummary, AttachedFile, ARTIFACT_DRAG_MIME_TYPE } from '../../types';
 import { AttachedFileChip } from './AttachedFileChip';
 import { DropZoneOverlay } from './DropZoneOverlay';
+import { Button } from '../../../../ui/button';
+import { Textarea } from '../../../../ui/textarea';
 
 /**
  * 추천 프롬프트 칩 설정
@@ -192,6 +194,8 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     }
   };
 
+  const hasInput = !!(inputValue.trim() || attachedFile);
+
   return (
     <div className={`p-4 pb-6 bg-white flex flex-col items-center ${
       activeHitl && hitlResumeCallback ? '' : 'border-t border-gray-100'
@@ -207,21 +211,16 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             onSkip={() => hitlResumeCallback(activeHitl.stepId, 'skip')}
             onClose={onHitlClose}
             toolType={activeHitl.toolType}
-            // data_validation용 (PPT 시나리오)
             validationData={activeHitl.toolType === 'data_validation' ? DEFAULT_VALIDATION_DATA : undefined}
-            // ppt_setup 및 theme_font_select용
             pptConfig={(activeHitl.toolType === 'ppt_setup' || activeHitl.toolType === 'theme_font_select') ? pptConfig : undefined}
             onPptConfigUpdate={(activeHitl.toolType === 'ppt_setup' || activeHitl.toolType === 'theme_font_select') ? updatePptConfig : undefined}
             onPptSetupComplete={activeHitl.toolType === 'ppt_setup' && hitlResumeCallback ? () => {
               hitlResumeCallback(activeHitl.stepId, 'complete');
-              // onGenerateStart는 theme_font_select 완료 시에만 호출
             } : undefined}
-            // 테마/폰트 선택용 - 완료 시 PPT 생성 시작
             onThemeFontComplete={activeHitl.toolType === 'theme_font_select' && onThemeFontComplete ? () => {
               onThemeFontComplete();
               onGenerateStart?.();
             } : undefined}
-            // 매출 분석 시나리오 HITL용
             analysisScopeData={activeHitl.analysisScopeData}
             dataVerificationData={activeHitl.dataVerificationData}
           />
@@ -251,22 +250,26 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         {(pptStatus === 'done' || salesAnalysisComplete) && (
           <div className="flex flex-wrap gap-2 mb-3">
             {pptStatus === 'done' && PPT_DONE_CHIPS.map((chip, idx) => (
-              <button
+              <Button
                 key={`ppt-${idx}`}
+                variant="outline"
+                size="sm"
                 onClick={() => onSend(chip.prompt)}
-                className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
+                className="rounded-full text-xs font-medium hover:border-[#FF3C42] hover:text-[#FF3C42]"
               >
                 {chip.label}
-              </button>
+              </Button>
             ))}
             {salesAnalysisComplete && SALES_ANALYSIS_CHIPS.map((chip, idx) => (
-              <button
+              <Button
                 key={`sales-${idx}`}
+                variant="outline"
+                size="sm"
                 onClick={() => onSend(chip.prompt)}
-                className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-white hover:border-[#FF3C42] hover:text-[#FF3C42] transition-colors"
+                className="rounded-full text-xs font-medium hover:border-[#FF3C42] hover:text-[#FF3C42]"
               >
                 {chip.label}
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -284,31 +287,38 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           )}
           {/* 입력 행 */}
           <div className="flex items-center gap-2">
-            <button
-              className="p-2 text-gray-400 hover:text-[#FF3C42] transition-colors"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-gray-400 hover:text-[#FF3C42]"
               onClick={() => fileInputRef.current?.click()}
               title="파일 첨부"
             >
               <Plus size={20} />
-            </button>
-            <textarea
+            </Button>
+            <Textarea
               ref={textareaRef}
-              className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-[#000000] placeholder-gray-400 resize-none h-10 py-2 text-sm max-h-32 overflow-y-auto custom-scrollbar"
+              className="flex-1 bg-transparent border-none focus-visible:ring-0 shadow-none text-[#000000] placeholder:text-gray-400 resize-none h-10 py-2 text-sm max-h-32 overflow-y-auto custom-scrollbar min-h-0"
               placeholder="추가 요청이나 질문을 입력하세요..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
             />
-            <button className="p-2 text-gray-400 hover:text-[#FF3C42] transition-colors">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-gray-400 hover:text-[#FF3C42]"
+            >
               <Mic size={20} />
-            </button>
-            <button
-              className={`p-2 rounded-lg transition-all ${(inputValue.trim() || attachedFile) ? 'bg-[#FF3C42] text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-              disabled={!inputValue.trim() && !attachedFile}
+            </Button>
+            <Button
+              size="icon"
+              className={`h-9 w-9 rounded-lg ${hasInput ? 'bg-[#FF3C42] text-white hover:bg-[#E02B31]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+              disabled={!hasInput}
               onClick={handleSubmit}
             >
               <ArrowUp size={18} />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

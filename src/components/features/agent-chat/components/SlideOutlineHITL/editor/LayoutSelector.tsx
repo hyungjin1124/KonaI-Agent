@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { X, Check } from 'lucide-react';
 import { SlideLayoutType } from '../../../types';
+import { Button } from '../../../../../ui/button';
 
 interface LayoutOption {
   type: SlideLayoutType;
@@ -160,12 +161,14 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
         <span className="text-sm font-medium text-gray-900">레이아웃 선택</span>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onClose}
-          className="p-1 hover:bg-gray-100 rounded transition-colors"
+          className="h-7 w-7"
         >
           <X className="w-4 h-4 text-gray-400" />
-        </button>
+        </Button>
       </div>
 
       {/* Layout Grid */}

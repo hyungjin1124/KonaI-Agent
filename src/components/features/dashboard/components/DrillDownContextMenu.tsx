@@ -1,4 +1,5 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, PlusCircle, ChevronRight, ChevronLeft } from '../../../icons';
 
 interface DrillDownContextMenuProps {
@@ -34,7 +35,7 @@ export const DrillDownContextMenu = memo<DrillDownContextMenuProps>(
     const adjustedX = x + MENU_WIDTH > window.innerWidth ? x - MENU_WIDTH - 4 : x;
     const adjustedY = Math.min(y, window.innerHeight - 200);
 
-    return (
+    return createPortal(
       <div
         ref={menuRef}
         className="fixed z-50 bg-white rounded-xl shadow-lg border border-gray-200 py-1 min-w-[220px] animate-fade-in-up"
@@ -83,7 +84,8 @@ export const DrillDownContextMenu = memo<DrillDownContextMenuProps>(
             ))}
           </>
         )}
-      </div>
+      </div>,
+      document.body
     );
   }
 );

@@ -76,8 +76,8 @@ export class ServerManager {
 
       this.process.stdout?.on('data', (data) => {
         output += data.toString();
-        // Vite/Next.js 등의 ready 메시지 감지
-        if (output.includes('ready') || output.includes('Local:') || output.includes('started')) {
+        // Next.js/Vite 등의 ready 메시지 감지
+        if (output.includes('Ready') || output.includes('ready') || output.includes('Local:') || output.includes('started') || output.includes('✓ Ready')) {
           console.log('[ServerManager] Server output detected ready state');
         }
       });

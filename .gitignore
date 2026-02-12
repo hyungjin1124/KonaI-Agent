@@ -69,4 +69,4 @@ temp/
 # Image files (screenshots are in outputs/)
 *.png
 *.jpg
-*.jpeg
+*.jpeg.next/

@@ -1,6 +1,8 @@
 import React from 'react';
 import { FileText, Check, Circle, AlertCircle } from 'lucide-react';
 import { SlideOutline, SlideOutlineStatus } from '../../../types';
+import { Button } from '../../../../../ui/button';
+import { Badge } from '../../../../../ui/badge';
 
 interface SlideOutlineFileItemProps {
   outline: SlideOutline;
@@ -87,33 +89,29 @@ export const SlideOutlineFileItem: React.FC<SlideOutlineFileItemProps> = ({
       <div className="flex items-center gap-2 flex-shrink-0">
         {/* 퀵 승인 버튼 (호버 시 표시, 아직 승인되지 않은 경우만) */}
         {outline.status !== 'approved' && onQuickApprove && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={(e) => {
               e.stopPropagation();
               onQuickApprove(outline.id);
             }}
-            className="
-              opacity-0 group-hover:opacity-100
-              p-1 rounded hover:bg-emerald-100
-              text-emerald-600 transition-opacity
-            "
+            className="opacity-0 group-hover:opacity-100 h-7 w-7 hover:bg-emerald-100 text-emerald-600"
             title="승인"
           >
             <Check className="w-3.5 h-3.5" />
-          </button>
+          </Button>
         )}
 
         {/* 상태 뱃지 */}
-        <div
-          className={`
-            flex items-center gap-1 px-1.5 py-0.5 rounded text-xs
-            ${statusConfig.color} ${statusConfig.bgColor}
-          `}
+        <Badge
+          variant="outline"
+          className={`text-xs border-0 gap-1 ${statusConfig.color} ${statusConfig.bgColor}`}
           title={statusConfig.label}
         >
           {statusConfig.icon}
           <span className="hidden sm:inline">{statusConfig.label}</span>
-        </div>
+        </Badge>
       </div>
     </div>
   );

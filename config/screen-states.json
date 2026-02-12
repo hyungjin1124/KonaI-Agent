@@ -1,12 +1,12 @@
 {
   "$schema": "./screen-states.schema.json",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "screens": [
     {
       "id": "SCR-001",
       "name": "로그인 화면",
       "nameEn": "Login Screen",
-      "route": "/",
+      "route": "/login",
       "component": "LoginView",
       "states": [
         {
@@ -86,26 +86,22 @@
       "id": "SCR-003",
       "name": "시나리오 분석",
       "nameEn": "Scenario Analysis",
-      "route": "/",
-      "component": "SampleInterface",
+      "route": "/agent/analysis",
+      "component": "AgentChatView",
       "requiresAuth": true,
       "states": [
         {
           "stateId": "default",
           "stateName": "분석 화면 기본",
-          "description": "시나리오 분석 화면 초기 상태 (홈 뷰)",
-          "injectState": {
-            "viewMode": "scenario_analysis"
-          },
+          "description": "시나리오 분석 화면 초기 상태",
           "waitFor": "[data-testid='analysis-view']",
           "delay": 1000
         },
         {
           "stateId": "analysis-complete",
           "stateName": "분석 완료",
-          "description": "분석 결과가 표시된 상태 (대시보드 뷰)",
+          "description": "분석 결과가 표시된 상태",
           "injectState": {
-            "viewMode": "scenario_analysis",
             "showDashboard": true
           },
           "waitFor": "[data-testid='analysis-result']",
@@ -117,7 +113,7 @@
       "id": "SCR-004",
       "name": "라이브보드",
       "nameEn": "Liveboard",
-      "route": "/",
+      "route": "/liveboard",
       "component": "LiveboardView",
       "requiresAuth": true,
       "states": [
@@ -125,9 +121,6 @@
           "stateId": "default",
           "stateName": "라이브보드 기본",
           "description": "위젯이 배치된 기본 라이브보드",
-          "injectState": {
-            "viewMode": "liveboard"
-          },
           "waitFor": "[data-testid='liveboard-container']",
           "delay": 2000
         },
@@ -135,9 +128,6 @@
           "stateId": "widget-expanded",
           "stateName": "위젯 확장",
           "description": "특정 위젯이 확장된 상태",
-          "injectState": {
-            "viewMode": "liveboard"
-          },
           "waitFor": "[data-testid='liveboard-container']",
           "interactions": [
             { "action": "click", "selector": "[data-testid='widget-expand-revenue']" }
@@ -151,7 +141,7 @@
       "id": "SCR-005",
       "name": "데이터 관리",
       "nameEn": "Data Management",
-      "route": "/",
+      "route": "/data",
       "component": "DataManagementView",
       "requiresAuth": true,
       "states": [
@@ -159,9 +149,6 @@
           "stateId": "default",
           "stateName": "데이터 관리 기본",
           "description": "데이터 소스 목록이 표시된 상태",
-          "injectState": {
-            "viewMode": "data_management"
-          },
           "waitFor": "[data-testid='data-management-view']",
           "delay": 1000
         }
@@ -171,7 +158,7 @@
       "id": "SCR-006",
       "name": "스킬 관리",
       "nameEn": "Skills Management",
-      "route": "/",
+      "route": "/settings/skills",
       "component": "SkillManagementView",
       "requiresAuth": true,
       "states": [
@@ -179,9 +166,6 @@
           "stateId": "default",
           "stateName": "스킬 관리 기본",
           "description": "등록된 스킬 목록이 표시된 상태",
-          "injectState": {
-            "viewMode": "skills_management"
-          },
           "waitFor": "[data-testid='skills-management-view']",
           "delay": 1000
         },
@@ -189,9 +173,6 @@
           "stateId": "upload-modal",
           "stateName": "스킬 업로드 모달",
           "description": "새 스킬 업로드 모달이 열린 상태",
-          "injectState": {
-            "viewMode": "skills_management"
-          },
           "waitFor": "[data-testid='skills-management-view']",
           "interactions": [
             { "action": "click", "selector": "[data-testid='add-skill-button']" }
@@ -205,7 +186,7 @@
       "id": "SCR-007",
       "name": "관리자 설정",
       "nameEn": "Admin Settings",
-      "route": "/",
+      "route": "/admin",
       "component": "AdminView",
       "requiresAuth": true,
       "states": [
@@ -213,9 +194,6 @@
           "stateId": "default",
           "stateName": "관리자 설정 기본",
           "description": "시스템 설정 화면",
-          "injectState": {
-            "viewMode": "admin_management"
-          },
           "waitFor": "[data-testid='admin-view']",
           "delay": 1000
         }
@@ -225,7 +203,7 @@
       "id": "SCR-008",
       "name": "채팅 히스토리",
       "nameEn": "Chat History",
-      "route": "/",
+      "route": "/history",
       "component": "ChatHistoryView",
       "requiresAuth": true,
       "states": [
@@ -233,9 +211,6 @@
           "stateId": "default",
           "stateName": "채팅 히스토리 기본",
           "description": "이전 대화 목록이 표시된 상태",
-          "injectState": {
-            "viewMode": "history_view"
-          },
           "waitFor": "[data-testid='chat-history-view']",
           "delay": 1000
         }
@@ -245,17 +220,14 @@
       "id": "SCR-009",
       "name": "PPT 생성",
       "nameEn": "PPT Generation",
-      "route": "/",
-      "component": "PPTChatInterface",
+      "route": "/agent/ppt",
+      "component": "AgentChatView",
       "requiresAuth": true,
       "states": [
         {
           "stateId": "default",
           "stateName": "PPT 생성 기본",
           "description": "PPT 생성 채팅 인터페이스",
-          "injectState": {
-            "viewMode": "scenario_ppt"
-          },
           "waitFor": "[data-testid='ppt-chat-interface']",
           "delay": 1000
         },
@@ -264,7 +236,6 @@
           "stateName": "PPT 생성 중",
           "description": "PPT가 생성되고 있는 상태",
           "injectState": {
-            "viewMode": "scenario_ppt",
             "isGenerating": true
           },
           "waitFor": "[data-testid='ppt-generating-indicator']",

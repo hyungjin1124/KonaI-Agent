@@ -2,18 +2,19 @@
 import React, { useState } from 'react';
 import { Search, Plus, MoreHorizontal } from './icons';
 import SkillUploadModal from './SkillUploadModal';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { Switch } from './ui/switch';
 
 interface Skill {
   id: string;
   title: string;
   description: string;
-  // author field removed
   isEnabled: boolean;
   type: 'my' | 'example';
 }
 
 const mockSkills: Skill[] = [
-  // Added sample 'my' skills
   {
     id: 'report-generator',
     title: '비즈니스 리포트 생성기',
@@ -35,7 +36,6 @@ const mockSkills: Skill[] = [
     isEnabled: false,
     type: 'my'
   },
-  // Existing example skills (author removed)
   {
     id: 'algorithmic-art',
     title: '알고리즘 아트 생성',
@@ -86,25 +86,17 @@ const SkillItem: React.FC<{ skill: Skill; onToggle: (id: string) => void }> = ({
       <div className="flex-1 pr-6">
         <h4 className="text-sm font-bold text-gray-900 mb-1">{skill.title}</h4>
         <p className="text-sm text-gray-600 leading-relaxed mb-2 line-clamp-2">{skill.description}</p>
-        {/* Author display removed */}
       </div>
-      
+
       <div className="flex items-center gap-4 shrink-0 mt-1">
-        <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
           <MoreHorizontal size={18} />
-        </button>
-        <button 
-          onClick={() => onToggle(skill.id)}
-          className={`w-11 h-6 rounded-full relative transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF3C42] ${
-            skill.isEnabled ? 'bg-[#FF3C42]' : 'bg-gray-200'
-          }`}
-        >
-          <span 
-            className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 absolute top-0.5 left-0.5 ${
-              skill.isEnabled ? 'translate-x-5' : 'translate-x-0'
-            }`} 
-          />
-        </button>
+        </Button>
+        <Switch
+          checked={skill.isEnabled}
+          onCheckedChange={() => onToggle(skill.id)}
+          className="data-[state=checked]:bg-[#FF3C42]"
+        />
       </div>
     </div>
   );
@@ -117,18 +109,16 @@ const SkillManagementView: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleToggle = (id: string) => {
-    setSkills(skills.map(skill => 
+    setSkills(skills.map(skill =>
       skill.id === id ? { ...skill, isEnabled: !skill.isEnabled } : skill
     ));
   };
 
   const handleUpload = (file: File) => {
-    // Mock upload logic
     const newSkill: Skill = {
       id: `custom-skill-${Date.now()}`,
       title: file.name.replace(/\.(zip|skill)$/, ''),
       description: '업로드된 사용자 정의 스킬 패키지입니다.',
-      // author removed
       isEnabled: true,
       type: 'my'
     };
@@ -137,7 +127,7 @@ const SkillManagementView: React.FC = () => {
   };
 
   const filteredSkills = skills.filter(skill => {
-    const matchesSearch = skill.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = skill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           skill.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = activeTab === 'all' ? true : skill.type === activeTab;
     return matchesSearch && matchesTab;
@@ -145,6 +135,12 @@ const SkillManagementView: React.FC = () => {
 
   const mySkills = filteredSkills.filter(s => s.type === 'my');
   const exampleSkills = filteredSkills.filter(s => s.type === 'example');
+
+  const tabs = [
+    { value: 'all' as const, label: '전체' },
+    { value: 'my' as const, label: '내 스킬' },
+    { value: 'example' as const, label: '스킬 탐색' },
+  ];
 
   return (
     <div data-testid="skills-management-view" className="h-full flex flex-col bg-[#F7F9FB] animate-fade-in-up overflow-hidden">
@@ -162,55 +158,52 @@ const SkillManagementView: React.FC = () => {
       <div className="px-8 py-4 shrink-0">
         <div className="w-full max-w-4xl mx-auto flex items-center justify-between">
           <div className="relative w-80">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="검색" 
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="검색"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-transparent border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#FF3C42] focus:ring-1 focus:ring-[#FF3C42] transition-all"
+              className="pl-10 bg-transparent"
             />
           </div>
-          
-          <button
+
+          <Button
             data-testid="add-skill-button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] hover:bg-black text-white rounded-lg text-sm font-bold transition-colors shadow-sm"
+            className="bg-[#1A1A1A] hover:bg-black text-white shadow-sm"
           >
-            <Plus size={16} />
+            <Plus size={16} className="mr-2" />
             추가
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Filter Tabs */}
       <div className="px-8 shrink-0">
         <div className="w-full max-w-4xl mx-auto flex gap-2">
-          <button 
-             onClick={() => setActiveTab('all')}
-             className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${activeTab === 'all' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'}`}
-          >
-              전체
-          </button>
-          <button 
-             onClick={() => setActiveTab('my')}
-             className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${activeTab === 'my' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'}`}
-          >
-              내 스킬
-          </button>
-          <button 
-             onClick={() => setActiveTab('example')}
-             className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${activeTab === 'example' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'}`}
-          >
-              스킬 탐색
-          </button>
+          {tabs.map(tab => (
+            <Button
+              key={tab.value}
+              variant={activeTab === tab.value ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab(tab.value)}
+              className={`rounded-full text-xs font-bold ${
+                activeTab === tab.value
+                  ? 'bg-black text-white hover:bg-black/90'
+                  : 'bg-white text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              {tab.label}
+            </Button>
+          ))}
         </div>
       </div>
 
       {/* Skills List */}
       <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
         <div className="max-w-4xl mx-auto space-y-8 pb-10">
-          
+
           {/* My Skills Section */}
           {(activeTab === 'all' || activeTab === 'my') && (
              <div>
@@ -249,10 +242,10 @@ const SkillManagementView: React.FC = () => {
       </div>
 
       {/* Upload Modal */}
-      <SkillUploadModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onUpload={handleUpload} 
+      <SkillUploadModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onUpload={handleUpload}
       />
     </div>
   );

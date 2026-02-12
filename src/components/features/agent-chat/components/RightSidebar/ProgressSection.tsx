@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronDown, ChevronRight, CheckCircle2, Circle, Loader2, AlertCircle } from 'lucide-react';
 import { ProgressTask } from '../../types';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../../../ui/collapsible';
 
 interface ProgressSectionProps {
   tasks: ProgressTask[];
@@ -45,29 +46,30 @@ export const ProgressSection: React.FC<ProgressSectionProps> = ({
   const totalCount = tasks.length;
 
   return (
-    <div className="border-b border-gray-200">
+    <Collapsible open={isExpanded} onOpenChange={onToggle} className="border-b border-gray-200">
       {/* Section Header */}
-      <button
-        onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          {isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-gray-500" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-gray-500" />
+      <CollapsibleTrigger asChild>
+        <button
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-gray-500" />
+            )}
+            <span className="text-sm font-medium text-gray-900">진행 상황</span>
+          </div>
+          {totalCount > 0 && (
+            <span className="text-xs text-gray-500">
+              {completedCount}/{totalCount}
+            </span>
           )}
-          <span className="text-sm font-medium text-gray-900">진행 상황</span>
-        </div>
-        {totalCount > 0 && (
-          <span className="text-xs text-gray-500">
-            {completedCount}/{totalCount}
-          </span>
-        )}
-      </button>
+        </button>
+      </CollapsibleTrigger>
 
       {/* Section Content */}
-      {isExpanded && (
+      <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
         <div className="px-4 pb-3 space-y-1">
           {tasks.length === 0 ? (
             <div className="py-2 text-sm text-gray-400">
@@ -87,8 +89,8 @@ export const ProgressSection: React.FC<ProgressSectionProps> = ({
             ))
           )}
         </div>
-      )}
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 

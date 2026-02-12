@@ -2,6 +2,10 @@ import React from 'react';
 import { ChevronDown, ChevronRight, CheckCircle2, Play } from 'lucide-react';
 import { SlideOutlineDeck } from '../../../types';
 import { SlideOutlineFileItem } from './SlideOutlineFileItem';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../../../../ui/collapsible';
+import { Button } from '../../../../../ui/button';
+import { Badge } from '../../../../../ui/badge';
+import { Separator } from '../../../../../ui/separator';
 
 interface SlideOutlineFileListProps {
   deck: SlideOutlineDeck | null;
@@ -33,36 +37,38 @@ export const SlideOutlineFileList: React.FC<SlideOutlineFileListProps> = ({
   if (!deck) return null;
 
   return (
-    <div className="border-b border-gray-200">
+    <Collapsible open={isExpanded} onOpenChange={onToggle} className="border-b border-gray-200">
       {/* Section Header */}
-      <button
-        onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          {isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-gray-500" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-gray-500" />
-          )}
-          <span className="text-sm font-medium text-gray-900">슬라이드 개요</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* 승인 진행 상태 */}
-          <span className={`
-            text-xs px-2 py-0.5 rounded-full
-            ${isAllApproved
-              ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-gray-100 text-gray-600'
-            }
-          `}>
-            {approvedCount}/{totalCount}
-          </span>
-        </div>
-      </button>
+      <CollapsibleTrigger asChild>
+        <button
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-gray-500" />
+            )}
+            <span className="text-sm font-medium text-gray-900">슬라이드 개요</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* 승인 진행 상태 */}
+            <Badge
+              variant="outline"
+              className={`text-xs rounded-full border-0 ${
+                isAllApproved
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              {approvedCount}/{totalCount}
+            </Badge>
+          </div>
+        </button>
+      </CollapsibleTrigger>
 
       {/* Section Content */}
-      {isExpanded && (
+      <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
         <div className="px-3 pb-3">
           {/* File List */}
           <div className="space-y-1 mb-3">
@@ -78,7 +84,7 @@ export const SlideOutlineFileList: React.FC<SlideOutlineFileListProps> = ({
           </div>
 
           {/* Divider */}
-          <div className="border-t border-gray-200 my-3" />
+          <Separator className="my-3" />
 
           {/* Actions */}
           <div className="space-y-2">
@@ -97,41 +103,35 @@ export const SlideOutlineFileList: React.FC<SlideOutlineFileListProps> = ({
             <div className="flex gap-2">
               {/* 모두 승인 버튼 */}
               {!isAllApproved && (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={onApproveAll}
-                  className="
-                    flex-1 py-2 px-3 text-xs font-medium rounded-lg
-                    border border-gray-200 text-gray-700
-                    hover:bg-gray-50 hover:border-gray-300
-                    transition-colors
-                  "
+                  className="flex-1 text-xs font-medium"
                 >
                   모두 승인
-                </button>
+                </Button>
               )}
 
               {/* PPT 생성 버튼 */}
-              <button
+              <Button
+                size="sm"
                 onClick={onGeneratePPT}
                 disabled={!isAllApproved}
-                className={`
-                  flex-1 py-2 px-3 text-xs font-medium rounded-lg
-                  flex items-center justify-center gap-1.5
-                  transition-colors
-                  ${isAllApproved
+                className={`flex-1 text-xs font-medium ${
+                  isAllApproved
                     ? 'bg-[#FF3C42] text-white hover:bg-[#E63538]'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }
-                `}
+                    : 'bg-gray-100 text-gray-400'
+                }`}
               >
                 <Play className="w-3.5 h-3.5" />
                 PPT 생성
-              </button>
+              </Button>
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 

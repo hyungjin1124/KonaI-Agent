@@ -187,10 +187,12 @@ export class StateManager {
 
   /**
    * 로그인 수행
+   * Next.js AuthGuard 패턴: 로그인 성공 시 페이지 네비게이션 없이 React 상태 변경으로
+   * AuthGuard가 children을 렌더링. LoginView의 handleSubmit에 1초 딜레이 있음.
    */
   async performLogin(email: string, password: string): Promise<boolean> {
     try {
-      // 이메일 입력
+      // 로그인 폼 대기
       const emailSelector = '[data-testid="email-input"], input[type="email"], input[name="email"]';
       await this.page.waitForSelector(emailSelector, { visible: true, timeout: 5000 });
       await this.page.type(emailSelector, email);
@@ -204,13 +206,18 @@ export class StateManager {
       const loginButtonSelector = '[data-testid="login-button"], button[type="submit"]';
       await this.page.click(loginButtonSelector);
 
-      // 로그인 완료 대기
-      await this.page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 }).catch(() => {
-        // 페이지 리로드 없이 상태만 변경되는 경우
+      // AuthGuard가 React 상태 변경으로 children을 렌더링할 때까지 대기
+      // LoginView의 setTimeout(1000ms) + React 리렌더링 시간
+      await delay(1500);
+
+      // 로그인 폼이 사라졌는지 확인 (AuthGuard가 children으로 전환)
+      const loginFormGone = await this.page.evaluate(() => {
+        return !document.querySelector('[data-testid="login-form"]');
       });
 
-      // 대시보드가 나타날 때까지 대기
-      await delay(1000);
+      if (!loginFormGone) {
+        console.warn('[StateManager] Login form still visible after login attempt');
+      }
 
       return true;
     } catch (error) {
@@ -220,14 +227,30 @@ export class StateManager {
   }
 
   /**
-   * 현재 뷰 모드 변경 (AppViewMode)
+   * 뷰 모드 변경 (Next.js App Router 네비게이션)
+   * SPA의 상태 기반 뷰 전환 대신 URL 라우팅 사용
    */
-  async changeViewMode(viewMode: string): Promise<void> {
-    await this.page.evaluate((mode) => {
-      (window as unknown as Record<string, unknown>).__KONA_VIEW_MODE__ = mode;
-      window.dispatchEvent(new CustomEvent('kona-view-mode-change', { detail: { viewMode: mode } }));
-    }, viewMode);
+  private static VIEW_MODE_ROUTES: Record<string, string> = {
+    dashboard: '/',
+    scenario_ppt: '/agent/ppt',
+    scenario_analysis: '/agent/analysis',
+    general_chat: '/chat',
+    data_management: '/data',
+    admin_management: '/admin',
+    history_view: '/history',
+    skills_management: '/settings/skills',
+    liveboard: '/liveboard',
+  };
 
+  async changeViewMode(viewMode: string): Promise<void> {
+    const route = StateManager.VIEW_MODE_ROUTES[viewMode];
+    if (route) {
+      const currentUrl = new URL(this.page.url());
+      await this.page.goto(`${currentUrl.origin}${route}`, {
+        waitUntil: 'networkidle0',
+        timeout: 10000,
+      });
+    }
     await delay(500);
   }
 

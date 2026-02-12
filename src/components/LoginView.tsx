@@ -1,6 +1,11 @@
+'use client';
 
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, ShieldCheck } from './icons';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface LoginViewProps {
   onLogin: () => void;
@@ -89,17 +94,18 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
           <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
             <div className="space-y-4">
               {/* Email Input */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Email</label>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider">Email</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                     <Mail size={18} />
                   </div>
-                  <input
+                  <Input
+                    id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:border-[#FF3C42] focus:ring-1 focus:ring-[#FF3C42] transition-all bg-gray-50 focus:bg-white"
+                    className="pl-10 py-3 h-auto rounded-xl bg-gray-50 focus:bg-white border-gray-200 focus-visible:ring-[#FF3C42] focus-visible:border-[#FF3C42]"
                     placeholder="name@company.com"
                     data-testid="email-input"
                   />
@@ -107,17 +113,18 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
               </div>
 
               {/* Password Input */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Password</label>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider">Password</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                     <Lock size={18} />
                   </div>
-                  <input
+                  <Input
+                    id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:border-[#FF3C42] focus:ring-1 focus:ring-[#FF3C42] transition-all bg-gray-50 focus:bg-white"
+                    className="pl-10 pr-10 py-3 h-auto rounded-xl bg-gray-50 focus:bg-white border-gray-200 focus-visible:ring-[#FF3C42] focus-visible:border-[#FF3C42]"
                     placeholder="••••••••"
                     data-testid="password-input"
                   />
@@ -139,16 +146,11 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             )}
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-[#FF3C42] focus:ring-[#FF3C42] border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="remember-me" />
+                <Label htmlFor="remember-me" className="text-sm text-gray-600 font-normal">
                   로그인 상태 유지
-                </label>
+                </Label>
               </div>
 
               <div className="text-sm">
@@ -158,23 +160,23 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-[#1A1A1A] hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all disabled:opacity-70 disabled:cursor-not-allowed group"
+              className="w-full py-3 h-auto rounded-xl bg-[#1A1A1A] hover:bg-black text-sm font-bold group"
               data-testid="login-button"
             >
               {isLoading ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 size={18} className="animate-spin mr-2" />
                   Logging in...
                 </>
               ) : (
                 <>
-                  로그인 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  로그인 <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
-            </button>
+            </Button>
           </form>
 
           <div className="mt-6 text-center">

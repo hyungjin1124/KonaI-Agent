@@ -4,6 +4,7 @@ import ToolCallWidget from './ToolCallWidget';
 import { DEFAULT_DATA_SOURCE_OPTIONS, TOOL_METADATA } from './constants';
 import type { ToolCallGroupProps } from './types';
 import type { ToolType } from '../../types';
+import { Collapsible, CollapsibleContent } from '../../../../ui/collapsible';
 
 /**
  * Tool 그룹 외부 아코디언 컴포넌트 (Claude Chat 스타일)
@@ -68,7 +69,7 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
   }
 
   return (
-    <div className="mb-4 animate-fade-in-up">
+    <Collapsible open={isGroupExpanded} className="mb-4 animate-fade-in-up">
       {/* 외부 아코디언 헤더 */}
       <ToolCallGroupHeader
         label={groupLabel}
@@ -82,113 +83,108 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
       />
 
       {/* 외부 아코디언 콘텐츠 (내부 Tool 목록) */}
-      {isGroupExpanded && (
-        <div
-          className="mt-1 ml-2 pl-2 border-l border-gray-200 space-y-0.5 animate-accordion-down"
-        >
-          {toolMessages.map((message) => {
-            // 모든 도구는 기본적으로 닫힌 상태 (사용자가 클릭해야 펼침)
-            const isExpanded = activeToolMessageId === message.id;
+      <CollapsibleContent className="mt-1 ml-2 pl-2 border-l border-gray-200 space-y-0.5 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
+        {toolMessages.map((message) => {
+          const isExpanded = activeToolMessageId === message.id;
 
-            // PPT 세부 설정 (HITL) - 플로팅 패널에서 설정, 인라인은 상태만 표시
-            if (message.toolType === 'ppt_setup') {
-              return (
-                <ToolCallWidget
-                  key={message.id}
-                  toolType={message.toolType}
-                  status={message.toolStatus || 'pending'}
-                  isExpanded={isExpanded}
-                  onToggle={() => onToolToggle(message.id)}
-                  isHitl={true}
-                  currentStepId={currentStepId}
-                  completedStepIds={completedStepIds}
-                />
-              );
-            }
-
-            // 데이터 소스 선택 (HITL)
-            if (message.toolType === 'data_source_select') {
-              return (
-                <ToolCallWidget
-                  key={message.id}
-                  toolType={message.toolType}
-                  status={message.toolStatus || 'pending'}
-                  isExpanded={isExpanded}
-                  onToggle={() => onToolToggle(message.id)}
-                  isHitl={true}
-                  hitlOptions={DEFAULT_DATA_SOURCE_OPTIONS}
-                  selectedOption={message.hitlSelectedOption}
-                  onHitlSelect={
-                    onHitlSelect
-                      ? (optionId) => onHitlSelect('tool_data_source', optionId)
-                      : undefined
-                  }
-                  currentStepId={currentStepId}
-                  completedStepIds={completedStepIds}
-                />
-              );
-            }
-
-            // 데이터 검증 (HITL)
-            if (message.toolType === 'data_validation') {
-              return (
-                <ToolCallWidget
-                  key={message.id}
-                  toolType={message.toolType}
-                  status={message.toolStatus || 'pending'}
-                  isExpanded={isExpanded}
-                  onToggle={() => onToolToggle(message.id)}
-                  isHitl={true}
-                  validationData={validationData}
-                  onValidationConfirm={onValidationConfirm}
-                  onValidationModify={() => {
-                    console.log('Modification requested');
-                  }}
-                  currentStepId={currentStepId}
-                  completedStepIds={completedStepIds}
-                />
-              );
-            }
-
-            // 슬라이드 생성 (우측 패널과 동기화)
-            if (message.toolType === 'slide_generation') {
-              return (
-                <ToolCallWidget
-                  key={message.id}
-                  toolType={message.toolType}
-                  status={message.toolStatus || 'pending'}
-                  isExpanded={isExpanded}
-                  onToggle={() => onToolToggle(message.id)}
-                  input={{
-                    currentSlide: slideGenerationState?.currentSlide || 1,
-                    totalSlides: slideGenerationState?.totalSlides || pptConfig?.slideCount || 8,
-                    completedSlides: slideGenerationState?.completedSlides || [],
-                  }}
-                  currentStepId={currentStepId}
-                  completedStepIds={completedStepIds}
-                />
-              );
-            }
-
-            // 기타 도구 호출
+          // PPT 세부 설정 (HITL)
+          if (message.toolType === 'ppt_setup') {
             return (
               <ToolCallWidget
                 key={message.id}
-                toolType={message.toolType!}
+                toolType={message.toolType}
                 status={message.toolStatus || 'pending'}
                 isExpanded={isExpanded}
                 onToggle={() => onToolToggle(message.id)}
-                input={message.toolInput}
-                result={message.toolResult}
+                isHitl={true}
                 currentStepId={currentStepId}
                 completedStepIds={completedStepIds}
-                onMarkdownFileGenerated={message.toolType === 'slide_planning' ? onMarkdownFileGenerated : undefined}
               />
             );
-          })}
-        </div>
-      )}
-    </div>
+          }
+
+          // 데이터 소스 선택 (HITL)
+          if (message.toolType === 'data_source_select') {
+            return (
+              <ToolCallWidget
+                key={message.id}
+                toolType={message.toolType}
+                status={message.toolStatus || 'pending'}
+                isExpanded={isExpanded}
+                onToggle={() => onToolToggle(message.id)}
+                isHitl={true}
+                hitlOptions={DEFAULT_DATA_SOURCE_OPTIONS}
+                selectedOption={message.hitlSelectedOption}
+                onHitlSelect={
+                  onHitlSelect
+                    ? (optionId) => onHitlSelect('tool_data_source', optionId)
+                    : undefined
+                }
+                currentStepId={currentStepId}
+                completedStepIds={completedStepIds}
+              />
+            );
+          }
+
+          // 데이터 검증 (HITL)
+          if (message.toolType === 'data_validation') {
+            return (
+              <ToolCallWidget
+                key={message.id}
+                toolType={message.toolType}
+                status={message.toolStatus || 'pending'}
+                isExpanded={isExpanded}
+                onToggle={() => onToolToggle(message.id)}
+                isHitl={true}
+                validationData={validationData}
+                onValidationConfirm={onValidationConfirm}
+                onValidationModify={() => {
+                  console.log('Modification requested');
+                }}
+                currentStepId={currentStepId}
+                completedStepIds={completedStepIds}
+              />
+            );
+          }
+
+          // 슬라이드 생성
+          if (message.toolType === 'slide_generation') {
+            return (
+              <ToolCallWidget
+                key={message.id}
+                toolType={message.toolType}
+                status={message.toolStatus || 'pending'}
+                isExpanded={isExpanded}
+                onToggle={() => onToolToggle(message.id)}
+                input={{
+                  currentSlide: slideGenerationState?.currentSlide || 1,
+                  totalSlides: slideGenerationState?.totalSlides || pptConfig?.slideCount || 8,
+                  completedSlides: slideGenerationState?.completedSlides || [],
+                }}
+                currentStepId={currentStepId}
+                completedStepIds={completedStepIds}
+              />
+            );
+          }
+
+          // 기타 도구 호출
+          return (
+            <ToolCallWidget
+              key={message.id}
+              toolType={message.toolType!}
+              status={message.toolStatus || 'pending'}
+              isExpanded={isExpanded}
+              onToggle={() => onToolToggle(message.id)}
+              input={message.toolInput}
+              result={message.toolResult}
+              currentStepId={currentStepId}
+              completedStepIds={completedStepIds}
+              onMarkdownFileGenerated={message.toolType === 'slide_planning' ? onMarkdownFileGenerated : undefined}
+            />
+          );
+        })}
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 

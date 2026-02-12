@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, X, Check, ChevronDown, Wand2, Calendar, Database, BarChart3, TrendingUp } from 'lucide-react';
+import { Pencil, X, Check, Wand2, Calendar, Database, BarChart3, TrendingUp } from 'lucide-react';
 import { HitlOption, ToolType, DataValidationSummary } from '../types';
 import { PPTConfig } from '../../../../types';
 import {
@@ -7,6 +7,17 @@ import {
   PPT_FONT_OPTIONS,
   PPT_TOPIC_OPTIONS,
 } from './ToolCall/constants';
+import { Card, CardContent } from '../../../ui/card';
+import { Button } from '../../../ui/button';
+import { Input } from '../../../ui/input';
+import { Badge } from '../../../ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../ui/select';
 
 // 분석 범위 확인 데이터 타입
 export interface AnalysisScopeData {
@@ -33,17 +44,12 @@ interface HITLFloatingPanelProps {
   onClose?: () => void;
   totalQuestions?: number;
   currentQuestion?: number;
-  // 도구 타입별 분기용
   toolType?: ToolType;
-  // data_validation용 (PPT 시나리오)
   validationData?: DataValidationSummary;
-  // ppt_setup용
   pptConfig?: PPTConfig;
   onPptConfigUpdate?: <K extends keyof PPTConfig>(key: K, value: PPTConfig[K]) => void;
   onPptSetupComplete?: () => void;
-  // theme_font_select용
   onThemeFontComplete?: () => void;
-  // 매출 분석 시나리오 HITL용
   analysisScopeData?: AnalysisScopeData;
   dataVerificationData?: DataVerificationData;
 }
@@ -118,11 +124,11 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
       <div className="space-y-2">
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">슬라이드 수</label>
         <div className="flex items-center gap-2">
-          <input
+          <Input
             type="number"
             value={pptConfig?.slideCount || ''}
             onChange={(e) => onPptConfigUpdate?.('slideCount', e.target.value === '' ? '' : parseInt(e.target.value))}
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:border-[#FF3C42] focus:ring-2 focus:ring-[#FF3C42]/20 transition-all"
+            className="flex-1 bg-gray-50 rounded-xl px-4 py-3 h-auto"
             min={5}
             max={50}
             placeholder="15"
@@ -141,19 +147,18 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
       <div className="space-y-4">
         {renderContentStep()}
 
-        {/* 설정 완료 버튼 */}
-        <button
+        <Button
           onClick={onPptSetupComplete}
-          className="w-full py-3.5 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3.5 h-auto bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800"
         >
-          <Wand2 size={18} />
+          <Wand2 size={18} className="mr-2" />
           설정 완료
-        </button>
+        </Button>
       </div>
     );
   };
 
-  // 테마/폰트 선택 UI 렌더링 (NEW)
+  // 테마/폰트 선택 UI 렌더링
   const renderThemeFontContent = () => {
     if (!pptConfig || !onPptConfigUpdate || !onThemeFontComplete) return null;
 
@@ -182,27 +187,27 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
         {/* 폰트 선택 */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">폰트 스타일</label>
-          <div className="relative">
-            <select
-              value={pptConfig?.titleFont || 'Pretendard'}
-              onChange={(e) => onPptConfigUpdate?.('titleFont', e.target.value)}
-              className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:border-[#FF3C42] focus:ring-2 focus:ring-[#FF3C42]/20 transition-all"
-            >
+          <Select
+            value={pptConfig?.titleFont || 'Pretendard'}
+            onValueChange={(v) => onPptConfigUpdate?.('titleFont', v)}
+          >
+            <SelectTrigger className="bg-gray-50 border-gray-200 rounded-xl h-12">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
               {PPT_FONT_OPTIONS.map((font) => (
-                <option key={font} value={font}>{font}</option>
+                <SelectItem key={font} value={font}>{font}</SelectItem>
               ))}
-            </select>
-            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          </div>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* 적용 버튼 */}
-        <button
+        <Button
           onClick={onThemeFontComplete}
-          className="w-full py-3.5 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors"
+          className="w-full py-3.5 h-auto bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800"
         >
           적용하기
-        </button>
+        </Button>
       </div>
     );
   };
@@ -213,7 +218,6 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
 
     return (
       <div className="space-y-4">
-        {/* 데이터 박스 */}
         <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -237,20 +241,20 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
           </div>
         </div>
 
-        {/* 확인/수정 버튼 */}
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={() => onSelect('confirm')}
-            className="flex-1 py-3 bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all shadow-md"
+            className="flex-1 py-3 h-auto bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 shadow-md"
           >
             확인
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => onSelect('modify')}
-            className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-400 transition-all"
+            className="flex-1 py-3 h-auto rounded-xl font-semibold text-sm"
           >
             수정 요청
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -262,9 +266,7 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
 
     return (
       <div className="space-y-4">
-        {/* 분석 범위 정보 박스 */}
         <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm space-y-3">
-          {/* 분석 기간 */}
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
               <Calendar size={16} className="text-blue-600" />
@@ -276,7 +278,6 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
             </div>
           </div>
 
-          {/* 분석 범위 */}
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
               <BarChart3 size={16} className="text-green-600" />
@@ -285,15 +286,14 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
               <span className="text-xs text-gray-500 font-medium">분석 범위</span>
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {analysisScopeData.analysisScope.map((scope, idx) => (
-                  <span key={idx} className="px-2 py-0.5 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                  <Badge key={idx} variant="outline" className="bg-green-50 text-green-700 border-green-200 rounded-full">
                     {scope}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* 데이터 소스 */}
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
               <Database size={16} className="text-purple-600" />
@@ -305,26 +305,27 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
           </div>
         </div>
 
-        {/* 확인/수정 버튼 */}
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={() => onSelect('confirm')}
-            className="flex-1 py-3 bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all shadow-md"
+            className="flex-1 py-3 h-auto bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 shadow-md"
           >
             확인
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => onSelect('modify_period')}
-            className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-400 transition-all"
+            className="flex-1 py-3 h-auto rounded-xl font-semibold text-sm"
           >
             기간 변경
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => onSelect('modify_scope')}
-            className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-400 transition-all"
+            className="flex-1 py-3 h-auto rounded-xl font-semibold text-sm"
           >
             범위 조정
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -336,7 +337,6 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
 
     return (
       <div className="space-y-4">
-        {/* 주요 지표 박스 */}
         <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm">
           <div className="grid grid-cols-2 gap-3">
             {dataVerificationData.keyMetrics.map((metric, idx) => (
@@ -360,20 +360,20 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
           </div>
         </div>
 
-        {/* 확인/수정 버튼 */}
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={() => onSelect('confirm')}
-            className="flex-1 py-3 bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all shadow-md"
+            className="flex-1 py-3 h-auto bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 shadow-md"
           >
             확인
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => onSelect('modify')}
-            className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-400 transition-all"
+            className="flex-1 py-3 h-auto rounded-xl font-semibold text-sm"
           >
             수정 요청
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -395,7 +395,6 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
               }
             `}
           >
-            {/* 숫자 아이콘 */}
             <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors ${
               selectedOption === option.id
                 ? 'bg-[#FF3C42] text-white'
@@ -404,7 +403,6 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
               {idx + 1}
             </span>
 
-            {/* 라벨 및 설명 */}
             <div className="flex-1 min-w-0">
               <span className="text-sm text-gray-800 font-medium block">{option.label}</span>
               {option.description && (
@@ -412,29 +410,24 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
               )}
             </div>
 
-            {/* 추천 표시 */}
             {option.recommended && (
-              <span className="text-xs text-[#FF3C42] font-semibold px-2 py-1 bg-red-50 rounded-full shrink-0">
+              <Badge className="text-[#FF3C42] bg-red-50 border-0 shrink-0">
                 추천
-              </span>
+              </Badge>
             )}
           </button>
         ))}
       </div>
 
-      {/* 기타 입력 + 건너뛰기 - 자연스러운 구분 */}
       <div className="flex items-center justify-between pt-4 mt-2">
-        <button className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
-          <Pencil size={14} />
-          <span>기타</span>
-        </button>
+        <Button variant="ghost" className="text-gray-400 hover:text-gray-600 h-auto py-1 px-2">
+          <Pencil size={14} className="mr-2" />
+          기타
+        </Button>
         {onSkip && (
-          <button
-            onClick={onSkip}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
+          <Button variant="ghost" onClick={onSkip} className="text-gray-500 hover:text-gray-700 h-auto py-1 px-2">
             건너뛰기
-          </button>
+          </Button>
         )}
       </div>
     </>
@@ -451,7 +444,6 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     if (toolType === 'data_validation' && validationData) {
       return renderValidationContent();
     }
-    // 매출 분석 시나리오 HITL
     if (toolType === 'analysis_scope_confirm' && analysisScopeData) {
       return renderAnalysisScopeContent();
     }
@@ -461,42 +453,45 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     return renderDefaultOptions();
   };
 
-  // 헤더 정보 (ppt_setup과 theme_font_select는 question 사용)
   const headerTitle = question;
   const headerDescription: string | null = null;
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 mb-4 animate-fade-in-up ring-1 ring-black/5">
-      {/* 헤더: 질문/제목 + 진행 상황 + 닫기 */}
-      <div className="flex items-start justify-between mb-5">
-        <div className="flex-1 pr-4">
-          <h4 className="text-sm font-semibold text-gray-900 leading-relaxed">
-            {headerTitle}
-          </h4>
-          {headerDescription && (
-            <p className="text-xs text-gray-500 mt-1">{headerDescription}</p>
-          )}
+    <Card className="rounded-2xl shadow-xl border-gray-100 mb-4 animate-fade-in-up ring-1 ring-black/5">
+      <CardContent className="p-5">
+        {/* 헤더: 질문/제목 + 진행 상황 + 닫기 */}
+        <div className="flex items-start justify-between mb-5">
+          <div className="flex-1 pr-4">
+            <h4 className="text-sm font-semibold text-gray-900 leading-relaxed">
+              {headerTitle}
+            </h4>
+            {headerDescription && (
+              <p className="text-xs text-gray-500 mt-1">{headerDescription}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {totalQuestions > 1 && (
+              <span className="text-xs text-gray-400 font-medium">
+                {totalQuestions}개 중 {currentQuestion}개
+              </span>
+            )}
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-gray-400 hover:text-gray-600"
+                onClick={onClose}
+              >
+                <X size={16} />
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          {totalQuestions > 1 && (
-            <span className="text-xs text-gray-400 font-medium">
-              {totalQuestions}개 중 {currentQuestion}개
-            </span>
-          )}
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
-      </div>
 
-      {/* 콘텐츠 영역 */}
-      {renderContent()}
-    </div>
+        {/* 콘텐츠 영역 */}
+        {renderContent()}
+      </CardContent>
+    </Card>
   );
 };
 

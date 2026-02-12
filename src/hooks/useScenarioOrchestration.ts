@@ -11,13 +11,15 @@ import {
   TOOL_METADATA,
 } from '../components/features/agent-chat/components/ToolCall/constants';
 import { HitlOption } from '../types';
+import type { RunStatus, InterruptPayload } from '../types/langgraph.types';
 
 // HITL floating panel state type (shared across scenarios)
+// Maps to LangGraph InterruptPayload pattern
 export interface ActiveHitl {
-  stepId: string;
-  toolType: ToolType;
-  question: string;
-  options: HitlOption[];
+  stepId: string;       // → InterruptPayload.node_id
+  toolType: ToolType;   // → InterruptPayload.tool_type
+  question: string;     // → InterruptPayload.question
+  options: HitlOption[]; // → InterruptPayload.options
 }
 
 // Progress task group definition (scenario step -> progress mapping)
@@ -49,6 +51,12 @@ export interface ScenarioOrchestrationReturn {
   completedStepIds: Set<string>;
   activeToolMessageId: string | null;
   groupExpandState: GroupExpandState;
+
+  // LangGraph-aligned aliases
+  /** Consolidated run status (replaces isRunning/isPaused/isComplete) */
+  runStatus: RunStatus;
+  /** LangGraph interrupt payload (alias for activeHitl) */
+  interruptPayload: InterruptPayload | null;
 
   // State setters (for scenario-specific logic in executeStep/startScenario/etc.)
   setMessages: React.Dispatch<React.SetStateAction<ScenarioMessage[]>>;
@@ -294,6 +302,34 @@ export function useScenarioOrchestration(config: ScenarioOrchestrationConfig): S
   }, []);
 
   // =============================================
+  // LangGraph-aligned Computed Values
+  // =============================================
+
+  // Consolidated run status (maps isRunning/isPaused/isComplete → RunStatus)
+  const runStatus = useMemo((): RunStatus => {
+    if (isComplete) return 'completed';
+    if (isPaused || activeHitl) return 'interrupted';
+    if (isRunning) return 'running';
+    return 'idle';
+  }, [isRunning, isPaused, isComplete, activeHitl]);
+
+  // Map ActiveHitl → InterruptPayload for LangGraph compatibility
+  const interruptPayload = useMemo((): InterruptPayload | null => {
+    if (!activeHitl) return null;
+    return {
+      node_id: activeHitl.stepId,
+      tool_type: activeHitl.toolType,
+      question: activeHitl.question,
+      options: activeHitl.options.map(opt => ({
+        id: opt.id,
+        label: opt.label,
+        description: opt.description,
+        icon: opt.icon,
+      })),
+    };
+  }, [activeHitl]);
+
+  // =============================================
   // Return
   // =============================================
   return {
@@ -308,6 +344,10 @@ export function useScenarioOrchestration(config: ScenarioOrchestrationConfig): S
     completedStepIds,
     activeToolMessageId,
     groupExpandState,
+
+    // LangGraph-aligned aliases
+    runStatus,
+    interruptPayload,
 
     // State setters
     setMessages,

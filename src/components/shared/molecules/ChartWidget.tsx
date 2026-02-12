@@ -1,6 +1,7 @@
 import React, { memo, useState } from 'react';
 import { Sparkles, ChevronRight, X, Lightbulb } from '../../icons';
 import { Breadcrumb } from '../atoms';
+import { Button } from '../../ui/button';
 
 export interface ChartWidgetProps {
   title: string;
@@ -89,29 +90,31 @@ export const ChartWidget = memo<ChartWidgetProps>(
                   <p className="text-xs text-gray-500">데이터 기반 상세 분석 및 액션 제안</p>
                 </div>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowInsight(false);
                 }}
-                className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+                className="rounded-full text-gray-400 hover:text-gray-600"
               >
                 <X size={20} />
-              </button>
+              </Button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
               <div className="prose prose-sm max-w-none text-gray-700">{insightDetail}</div>
             </div>
             <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
-              <button
+              <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowInsight(false);
                 }}
-                className="px-4 py-2 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 h-auto"
               >
                 확인 완료
-              </button>
+              </Button>
             </div>
           </div>
         )}

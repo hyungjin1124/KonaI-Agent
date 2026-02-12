@@ -1,6 +1,12 @@
 
 import React, { useRef, useState } from 'react';
-import { X, Upload, FileArchive } from './icons';
+import { Upload, FileArchive } from './icons';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 interface SkillUploadModalProps {
   isOpen: boolean;
@@ -11,8 +17,6 @@ interface SkillUploadModalProps {
 const SkillUploadModal: React.FC<SkillUploadModalProps> = ({ isOpen, onClose, onUpload }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  if (!isOpen) return null;
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -42,34 +46,31 @@ const SkillUploadModal: React.FC<SkillUploadModalProps> = ({ isOpen, onClose, on
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in-up">
-      <div data-testid="skill-upload-modal" className="bg-[#1A1A1A] w-[500px] rounded-xl border border-gray-700 shadow-2xl overflow-hidden text-gray-200">
-        <div className="flex justify-between items-center p-4 border-b border-gray-700">
-          <h3 className="text-lg font-bold text-white">스킬 업로드</h3>
-          <button 
-            onClick={onClose}
-            className="p-1 hover:bg-gray-700 rounded-full transition-colors text-gray-400 hover:text-white"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        
-        <div className="p-6">
-          <div 
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        data-testid="skill-upload-modal"
+        className="bg-[#1A1A1A] border-gray-700 text-gray-200 sm:max-w-[500px] [&>button]:text-gray-400 [&>button]:hover:text-white"
+      >
+        <DialogHeader>
+          <DialogTitle className="text-white">스킬 업로드</DialogTitle>
+        </DialogHeader>
+
+        <div>
+          <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={handleClick}
             className={`
               h-48 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all
-              ${isDragging 
-                ? 'border-[#FF3C42] bg-[#FF3C42]/10' 
+              ${isDragging
+                ? 'border-[#FF3C42] bg-[#FF3C42]/10'
                 : 'border-gray-600 hover:border-gray-500 bg-gray-800/50'
               }
             `}
           >
-            <input 
-              type="file" 
+            <input
+              type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
               className="hidden"
@@ -93,13 +94,13 @@ const SkillUploadModal: React.FC<SkillUploadModalProps> = ({ isOpen, onClose, on
               <li>.zip 또는 .skill 파일에는 SKILL.md 파일이 포함되어야 합니다</li>
             </ul>
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-gray-700">
              <a href="#" className="text-xs text-gray-400 hover:text-[#FF3C42] underline decoration-gray-600 underline-offset-2">스킬 생성에 대해 자세히 알아보기 또는 예시 보기</a>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

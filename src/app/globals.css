@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== shadcn/ui CSS Variables (Brand: #FF3C42) ===== */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 358 100% 62%;       /* #FF3C42 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 358 100% 62%;         /* #FF3C42 */
+    --radius: 0.75rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+}
+
+/* react-grid-layout & react-resizable styles */
+@import 'react-grid-layout/css/styles.css';
+@import 'react-resizable/css/styles.css';
+
+/* reactflow styles */
+@import 'reactflow/dist/style.css';
+
+/* ===== Global Base Styles ===== */
+body {
+  background-color: #FFFFFF;
+  color: #000000;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FF3C42;
+}
+
+/* ===== Shimmer Text Effects (gradient + background-clip) ===== */
+.shimmer-text {
+  --shimmer-base: #6b7280;
+  --shimmer-highlight: #d1d5db;
+  background: linear-gradient(
+    90deg,
+    var(--shimmer-base) 0%,
+    var(--shimmer-base) 40%,
+    var(--shimmer-highlight) 50%,
+    var(--shimmer-base) 60%,
+    var(--shimmer-base) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: shimmer-text 1.5s linear infinite;
+}
+
+.shimmer-text-fade {
+  --shimmer-base: #6b7280;
+  --shimmer-highlight: #d1d5db;
+  background: linear-gradient(
+    90deg,
+    var(--shimmer-base) 0%,
+    var(--shimmer-base) 40%,
+    var(--shimmer-highlight) 50%,
+    var(--shimmer-base) 60%,
+    var(--shimmer-base) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: shimmer-text 1.5s linear infinite, text-fade-in 0.3s ease-out;
+}
+
+.text-completed {
+  color: #6b7280;
+  animation: text-appear 0.3s ease-out;
+  transition: color 0.2s ease;
+}
+.text-completed:hover {
+  color: #374151;
+}
+
+/* ===== Skeleton Shimmer ===== */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f3f4f6 0%,
+    #e5e7eb 20%,
+    #f9fafb 40%,
+    #e5e7eb 60%,
+    #f3f4f6 80%,
+    #f3f4f6 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+/* ===== React Grid Layout Overrides ===== */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(255, 60, 66, 0.1) !important;
+  border: 2px dashed #FF3C42 !important;
+  border-radius: 12px !important;
+  opacity: 0.5 !important;
+}
+.react-resizable-handle {
+  background-image: none !important;
+}
+.react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #ccc;
+  border-bottom: 2px solid #ccc;
+}
+
+/* ===== ReactFlow Customization ===== */
+.react-flow__node {
+  border-radius: 8px;
+}
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: #b1b1b7;
+}
+.react-flow__handle-right {
+  right: -4px;
+}
+.react-flow__handle-left {
+  left: -4px;
+}
+.react-flow__attribution {
+  display: none;
+}
+
+/* ===== Accordion overflow fix ===== */
+.animate-accordion-up {
+  overflow: hidden;
+}

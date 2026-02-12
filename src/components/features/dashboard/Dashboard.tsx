@@ -667,11 +667,14 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario, onT
               barSize={24}
               radius={[0, 4, 4, 0]}
               className="cursor-pointer"
-              onClick={(data: { name: string; value: number; x: number; y: number; width: number; height: number }, _index: number, event: React.MouseEvent) => {
-                const svg = (event.target as SVGElement).ownerSVGElement ?? (event.target as Element).closest('svg');
+              onClick={(data: { name: string; value: number }, index: number, event: React.MouseEvent) => {
+                const svg = (event.target as Element).closest('svg');
                 if (!svg) return;
-                const svgRect = svg.getBoundingClientRect();
-                handleChartClick('revenue_bridge', data.name, data.value, svgRect.left + data.x + data.width + 4, svgRect.top + data.y + data.height / 2);
+                const bars = svg.querySelectorAll('.recharts-bar-rectangle');
+                const bar = bars[index];
+                if (!bar) return;
+                const rect = bar.getBoundingClientRect();
+                handleChartClick('revenue_bridge', data.name, data.value, rect.right + 4, rect.top + rect.height / 2);
               }}
             >
               {revenueFactorData.map((entry, index) => (
@@ -722,11 +725,14 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario, onT
               fill="#E5E7EB"
               radius={[4, 4, 0, 0]}
               className="cursor-pointer"
-              onClick={(data: { name: string; automation: number; x: number; y: number; width: number; height: number }, _index: number, event: React.MouseEvent) => {
-                const svg = (event.target as SVGElement).ownerSVGElement ?? (event.target as Element).closest('svg');
+              onClick={(data: { name: string; automation: number }, index: number, event: React.MouseEvent) => {
+                const svg = (event.target as Element).closest('svg');
                 if (!svg) return;
-                const svgRect = svg.getBoundingClientRect();
-                handleChartClick('cost_correlation', data.name, data.automation, svgRect.left + data.x + data.width / 2, svgRect.top + data.y);
+                const bars = svg.querySelectorAll('.recharts-bar-rectangle');
+                const bar = bars[index];
+                if (!bar) return;
+                const rect = bar.getBoundingClientRect();
+                handleChartClick('cost_correlation', data.name, data.automation, rect.left + rect.width / 2, rect.top);
               }}
             />
             <Line yAxisId="right" type="monotone" dataKey="costRatio" name="제조 원가율" stroke="#2563EB" strokeWidth={3} dot={{ r: 4, fill: '#2563EB' }} />

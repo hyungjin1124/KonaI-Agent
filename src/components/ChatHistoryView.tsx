@@ -4,6 +4,9 @@ import {
   Search, Calendar, MessageSquare, ChevronRight, ArrowLeft,
   Trash2, Download, User, Bot, Clock, Filter, MoreHorizontal
 } from './icons';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Badge } from './ui/badge';
 
 // --- Types ---
 
@@ -110,9 +113,9 @@ const HistoryItemCard: React.FC<{
           <Calendar size={12} /> {session.date} &middot; {session.time}
         </span>
       </div>
-      <button className="text-gray-300 hover:text-gray-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-300 hover:text-gray-600 opacity-0 group-hover:opacity-100">
         <MoreHorizontal size={16} />
-      </button>
+      </Button>
     </div>
     
     <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
@@ -122,9 +125,9 @@ const HistoryItemCard: React.FC<{
     <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
       <div className="flex gap-2">
         {session.tags?.map(tag => (
-          <span key={tag} className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-md font-medium">
+          <Badge key={tag} variant="outline" className="bg-gray-100 text-gray-500 text-[10px] border-0 font-medium">
             #{tag}
-          </span>
+          </Badge>
         ))}
       </div>
       <div className="flex items-center gap-1 text-xs text-gray-400 font-medium">
@@ -192,12 +195,14 @@ const ChatHistoryView: React.FC = () => {
         {/* Detail Header */}
         <div className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
-            <button 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setSelectedSessionId(null)}
-              className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors"
+              className="rounded-full text-gray-600"
             >
               <ArrowLeft size={20} />
-            </button>
+            </Button>
             <div>
               <h2 className="text-lg font-bold text-gray-900 line-clamp-1">{selectedSession.title}</h2>
               <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -208,16 +213,18 @@ const ChatHistoryView: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 text-gray-500 hover:text-black hover:bg-gray-100 rounded-lg transition-colors" title="내보내기">
+            <Button variant="ghost" size="icon" className="text-gray-500 hover:text-black" title="내보내기">
               <Download size={18} />
-            </button>
-            <button 
+            </Button>
+            <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleDelete}
-                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                className="text-gray-500 hover:text-red-600 hover:bg-red-50"
                 title="삭제"
             >
               <Trash2 size={18} />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -260,17 +267,17 @@ const ChatHistoryView: React.FC = () => {
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-lg">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input 
-                    type="text" 
-                    placeholder="대화 주제, 내용 검색..." 
+                <Input
+                    type="text"
+                    placeholder="대화 주제, 내용 검색..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#FF3C42] focus:ring-1 focus:ring-[#FF3C42] transition-all shadow-sm"
+                    className="pl-10 pr-4 py-2.5 bg-white rounded-xl h-auto focus-visible:border-[#FF3C42] focus-visible:ring-[#FF3C42] shadow-sm"
                 />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-bold transition-colors shadow-sm">
+            <Button variant="outline" className="rounded-xl text-sm font-bold shadow-sm">
                 <Filter size={16} /> 필터
-            </button>
+            </Button>
         </div>
       </div>
 

@@ -23,3 +23,6 @@ export * from './toast.types';
 
 // Analysis Report types
 export * from './AnalysisReport';
+
+// LangGraph-compatible types
+export * from './langgraph.types';

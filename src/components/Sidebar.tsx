@@ -1,5 +1,7 @@
+'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Settings,
   LayoutDashboard,
@@ -14,20 +16,63 @@ import { ViewType } from '../types';
 import { useNotification, Anomaly } from '../context/NotificationContext';
 import NotificationPopup from './NotificationPopup';
 import ProfileDropdown from './ProfileDropdown';
+import { Button } from './ui/button';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from './ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from './ui/dropdown-menu';
+
+// ViewType → pathname mapping
+const VIEW_TO_PATH: Record<string, string> = {
+  dashboard: '/',
+  chat: '/',
+  'general-chat': '/chat',
+  data: '/data',
+  admin: '/admin',
+  history: '/history',
+  skills: '/settings/skills',
+};
+
+// pathname → ViewType mapping for active state
+function pathnameToViewType(pathname: string): ViewType {
+  if (pathname === '/') return 'dashboard';
+  if (pathname === '/chat') return 'general-chat';
+  if (pathname === '/data') return 'data';
+  if (pathname === '/admin') return 'admin';
+  if (pathname === '/history') return 'history';
+  if (pathname.startsWith('/settings')) return 'skills';
+  if (pathname.startsWith('/agent')) return 'chat';
+  return 'dashboard';
+}
 
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
-  currentView: ViewType;
-  onNavigate: (view: ViewType) => void;
+  currentView?: ViewType;
+  onNavigate?: (view: ViewType) => void;
   onAnomalyClick?: (anomaly: Anomaly) => void;
   onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyClick, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const currentView = pathnameToViewType(pathname);
+
+  const navigate = (view: string) => {
+    const path = VIEW_TO_PATH[view] || '/';
+    router.push(path);
+  };
+
   const { unreadCount } = useNotification();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [isSettingsHovered, setIsSettingsHovered] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
 
   const navItems = [
@@ -39,11 +84,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyCli
     { id: 'settings', icon: <Settings size={20} />, label: 'Settings' },
   ];
 
-  // Click outside handler for popup
+  // Click outside handler for notification popup
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (bellRef.current && !bellRef.current.contains(event.target as Node) && 
-          !(event.target as Element).closest('.animate-fade-in-up')) { // Check if click is inside popup
+      if (bellRef.current && !bellRef.current.contains(event.target as Node) &&
+          !(event.target as Element).closest('.animate-fade-in-up')) {
         setIsPopupOpen(false);
       }
     };
@@ -54,7 +99,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyCli
   return (
     <nav className="w-full h-16 bg-[#FFFFFF] border-b border-[#E5E7EB] flex items-center justify-between px-6 shrink-0 z-50 relative">
         {/* Logo Section */}
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('chat')}>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('dashboard')}>
             <div className="w-7 h-7 bg-[#FF3C42] rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">K</span>
             </div>
@@ -64,7 +109,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyCli
         {/* Center Navigation - Icons Only */}
         <div className="flex items-center gap-6">
             {navItems.map((item) => {
-                // Modified Active Logic
                 let isActive = false;
                 if (item.id === 'dashboard') {
                    isActive = currentView === 'dashboard' || currentView === 'chat';
@@ -80,61 +124,51 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyCli
                    isActive = currentView === 'skills';
                 }
 
-                // Special handling for Settings dropdown
+                // Settings → DropdownMenu (click-based, replaces hover dropdown)
                 if (item.id === 'settings') {
                     return (
-                        <div 
-                            key={item.id}
-                            className="relative"
-                            onMouseEnter={() => setIsSettingsHovered(true)}
-                            onMouseLeave={() => setIsSettingsHovered(false)}
-                        >
-                            <button 
-                                className={`p-2 rounded-lg transition-all ${
-                                    isActive || isSettingsHovered
-                                    ? 'text-[#FF3C42] bg-red-50' 
-                                    : 'text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50'
-                                }`}
-                                title={item.label}
-                            >
-                                {item.icon}
-                            </button>
-                            
-                            {/* Hover Dropdown */}
-                            {isSettingsHovered && (
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-40 pt-2 z-50">
-                                    <div className="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden py-1 animate-fade-in-up">
-                                        <button
-                                            onClick={() => {
-                                                onNavigate('skills');
-                                                setIsSettingsHovered(false);
-                                            }}
-                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#FF3C42] flex items-center gap-2"
-                                        >
-                                            <Cpu size={16} />
-                                            Skill 관리
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        <DropdownMenu key={item.id}>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`rounded-lg ${
+                                        isActive
+                                        ? 'text-[#FF3C42] bg-red-50'
+                                        : 'text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {item.icon}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="center">
+                                <DropdownMenuItem onClick={() => navigate('skills')}>
+                                    <Cpu size={16} />
+                                    Skill 관리
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     );
                 }
 
                 return (
-                    <button 
-                        key={item.id}
-                        // Modified onClick to pass correct ID
-                        onClick={() => onNavigate(item.id === 'data' ? 'data' : item.id === 'dashboard' ? 'dashboard' : item.id === 'admin' ? 'admin' : item.id === 'history' ? 'history' : item.id === 'general-chat' ? 'general-chat' : 'chat')}
-                        className={`p-2 rounded-lg transition-all ${
-                            isActive 
-                            ? 'text-[#FF3C42] bg-red-50' 
-                            : 'text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50'
-                        }`}
-                        title={item.label}
-                    >
-                        {item.icon}
-                    </button>
+                    <Tooltip key={item.id}>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(item.id)}
+                                className={`rounded-lg ${
+                                    isActive
+                                    ? 'text-[#FF3C42] bg-red-50'
+                                    : 'text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50'
+                                }`}
+                            >
+                                {item.icon}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{item.label}</TooltipContent>
+                    </Tooltip>
                 );
             })}
         </div>
@@ -142,20 +176,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyCli
         {/* Right Section - Notifications & Profile */}
         <div className="flex items-center gap-4">
             <div className="relative">
-                <button 
+                <Button
                     ref={bellRef}
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setIsPopupOpen(!isPopupOpen)}
-                    className={`p-2 rounded-full transition-colors relative ${isPopupOpen ? 'bg-gray-100 text-[#FF3C42]' : 'text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50'}`}
+                    className={`rounded-full relative ${isPopupOpen ? 'bg-gray-100 text-[#FF3C42]' : 'text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50'}`}
                 >
                     <Bell size={20} />
                     {unreadCount > 0 && (
                         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF3C42] rounded-full border border-white"></span>
                     )}
-                </button>
-                
+                </Button>
+
                 {/* Notification Popup */}
-                <NotificationPopup 
-                    isOpen={isPopupOpen} 
+                <NotificationPopup
+                    isOpen={isPopupOpen}
                     onClose={() => setIsPopupOpen(false)}
                     onNavigate={(anomaly) => {
                         if (onAnomalyClick) onAnomalyClick(anomaly);
@@ -168,8 +204,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onAnomalyCli
                 userRole="Administrator"
                 userInitial="홍"
                 onLogout={onLogout}
-                onProfileClick={() => onNavigate('admin')}
-                onSettingsClick={() => onNavigate('skills')}
+                onProfileClick={() => navigate('admin')}
+                onSettingsClick={() => navigate('skills')}
             />
         </div>
     </nav>
