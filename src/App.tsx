@@ -133,6 +133,7 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
            ) : viewMode === 'scenario_ppt' ? (
              <AgentChatView
                 initialQuery={agentQuery}
+                onNavigateToChat={() => setViewMode('general_chat')}
              />
            ) : viewMode === 'landing' ? (
              <ChatInterface
@@ -143,6 +144,7 @@ const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
              <AgentChatView
                 initialQuery={agentQuery}
                 initialContext={viewMode === 'scenario_analysis' ? agentContext : undefined}
+                onNavigateToChat={() => setViewMode('general_chat')}
              />
            )}
           </Suspense>

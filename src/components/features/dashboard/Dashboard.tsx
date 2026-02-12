@@ -22,6 +22,16 @@ import {
 } from '../../../types';
 import { storageService } from '../../../services';
 import { CHART_COLORS } from '../../../constants';
+import { DrillDownContextMenu } from './components/DrillDownContextMenu';
+import { Breadcrumb } from '../../shared/atoms';
+import {
+  revenueFactorDrillData,
+  costCorrelationDrillData,
+  kpiDrillData,
+  type RevenueFactorDrillPoint,
+  type CostCorrelationDrillPoint,
+  type KPIDrillPoint,
+} from './data/drillDownData';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -224,6 +234,71 @@ const renderCostCorrelationChart = () => (
   </div>
 );
 
+// --- Drill-Down Chart Render Functions (Vercel rendering-hoist-jsx: module level) ---
+
+const renderDrillDownBarChart = (data: RevenueFactorDrillPoint[]) => (
+  <div className="flex-1 w-full min-h-0">
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart layout="vertical" data={data} margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+        <XAxis type="number" hide />
+        <YAxis
+          dataKey="name"
+          type="category"
+          width={100}
+          tick={{ fontSize: 11, fontWeight: 'bold', fill: '#374151' }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <Tooltip
+          cursor={{ fill: '#F9FAFB' }}
+          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+          formatter={(value: number, _name: string, props: TooltipFormatterProps) => [
+            `₩${value}억`,
+            props.payload.description || '',
+          ]}
+        />
+        <Bar dataKey="value" barSize={24} radius={[0, 4, 4, 0]}>
+          {data.map((_, index) => (
+            <Cell key={`drill-cell-${index}`} fill="#FF3C42" fillOpacity={0.9} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+);
+
+const renderDrillDownComposedChart = (data: CostCorrelationDrillPoint[]) => (
+  <div className="flex-1 w-full min-h-0">
+    <ResponsiveContainer width="100%" height="100%">
+      <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} dy={10} />
+        <YAxis yAxisId="left" orientation="left" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} domain={[50, 80]} />
+        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+        <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+        <Bar yAxisId="left" dataKey="automation" name="공정 자동화율" barSize={32} fill="#E5E7EB" radius={[4, 4, 0, 0]} />
+        <Line yAxisId="right" type="monotone" dataKey="costRatio" name="제조 원가율" stroke="#2563EB" strokeWidth={3} dot={{ r: 4, fill: '#2563EB' }} />
+      </ComposedChart>
+    </ResponsiveContainer>
+  </div>
+);
+
+const renderDrillDownLineChart = (data: KPIDrillPoint[]) => (
+  <div className="flex-1 w-full min-h-0">
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={data} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+        <Line type="monotone" dataKey="value" stroke="#FF3C42" strokeWidth={3} dot={{ r: 4, fill: '#FF3C42' }} activeDot={{ r: 6 }} />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+);
+
 const renderAnomalyCostChart = () => (
   <div className="flex flex-col h-full">
       <div className="flex justify-between items-start mb-4 shrink-0">
@@ -361,6 +436,78 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario, onT
     setTimeout(() => setToastMessage(null), 3000);
   }, []);
 
+  // --- Drill-Down State (Karpathy: no separate hook — only 2 states) ---
+  const [drillState, setDrillState] = useState<{
+    activeChart: string;
+    path: string[];
+    elementName: string;
+    dimensionId: string;
+  } | null>(null);
+
+  const [contextMenu, setContextMenu] = useState<{
+    x: number; y: number;
+    chartId: string; elementName: string; formattedValue: string;
+    dimensions: { id: string; label: string }[];
+  } | null>(null);
+
+  // --- Drill-Down Handlers ---
+  // Vercel js-early-exit: bail on non-drillable elements
+  const handleChartClick = useCallback((chartId: string, name: string, value: number, x: number, y: number) => {
+    const drillInfo = chartId === 'revenue_bridge'
+      ? revenueFactorDrillData[name]
+      : costCorrelationDrillData[name];
+    if (!drillInfo) return;
+    setContextMenu({
+      x, y,
+      chartId, elementName: name,
+      formattedValue: chartId === 'cost_correlation' ? `${value}%` : `₩${value}억`,
+      dimensions: drillInfo.dimensions.map(d => ({ id: d.id, label: d.label })),
+    });
+  }, []);
+
+  const handleDrillDown = useCallback((dimensionId: string) => {
+    if (!contextMenu) return;
+    const drillInfo = contextMenu.chartId === 'revenue_bridge'
+      ? revenueFactorDrillData[contextMenu.elementName]
+      : costCorrelationDrillData[contextMenu.elementName];
+    if (!drillInfo) return;
+    const dim = drillInfo.dimensions.find(d => d.id === dimensionId);
+    if (!dim) return;
+    const titles: Record<string, string> = {
+      revenue_bridge: '매출 증감 요인',
+      cost_correlation: '자동화율/원가율',
+    };
+    setDrillState({
+      activeChart: contextMenu.chartId,
+      path: [titles[contextMenu.chartId] || 'KPI', contextMenu.elementName, dim.label],
+      elementName: contextMenu.elementName,
+      dimensionId,
+    });
+    setContextMenu(null);
+  }, [contextMenu]);
+
+  const handleKPIClick = useCallback((kpiId: string, label: string) => {
+    const drillInfo = kpiDrillData[kpiId];
+    if (!drillInfo) return;
+    const firstDim = drillInfo.dimensions[0];
+    setDrillState({
+      activeChart: `kpi_${kpiId}`,
+      path: ['KPI', label, firstDim.label],
+      elementName: kpiId,
+      dimensionId: firstDim.id,
+    });
+  }, []);
+
+  const handleDrillBack = useCallback((index: number) => {
+    if (index === 0) setDrillState(null);
+  }, []);
+
+  const handleAddToContext = useCallback(() => {
+    if (!contextMenu) return;
+    showToast(`"${contextMenu.elementName}" 데이터가 에이전트 컨텍스트에 추가되었습니다.`);
+    setContextMenu(null);
+  }, [contextMenu, showToast]);
+
   // Load saved layout on mount
   useEffect(() => {
     const { layout: savedLayout, widgets: savedWidgets } = storageService.loadDashboard();
@@ -483,56 +630,222 @@ const Dashboard: React.FC<DashboardProps> = ({ type = 'financial', scenario, onT
 
   // --- Render Views ---
 
+  // --- Drill-Enabled Chart Renderers (inside component for onClick access) ---
+  const renderRevenueBridgeWithDrill = () => (
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-start mb-2 shrink-0">
+        <div>
+          <h3 className="text-sm font-bold text-black mb-1 flex items-center gap-2">
+            <TrendingUp size={16} className="text-[#FF3C42]" /> 매출 증감 요인 분석
+          </h3>
+          <p className="text-xs text-gray-500">11월(37억) → 12월(42억) 성장 요인 분해</p>
+        </div>
+      </div>
+      <div className="flex-1 w-full min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart layout="vertical" data={revenueFactorData} margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+            <XAxis type="number" hide />
+            <YAxis
+              dataKey="name"
+              type="category"
+              width={100}
+              tick={{ fontSize: 11, fontWeight: 'bold', fill: '#374151' }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              cursor={{ fill: '#F9FAFB' }}
+              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              formatter={(value: number, _name: string, props: TooltipFormatterProps) => [
+                `₩${value}억`,
+                props.payload.description || '',
+              ]}
+            />
+            <Bar
+              dataKey="value"
+              barSize={24}
+              radius={[0, 4, 4, 0]}
+              className="cursor-pointer"
+              onClick={(data: { name: string; value: number; x: number; y: number; width: number; height: number }, _index: number, event: React.MouseEvent) => {
+                const svg = (event.target as SVGElement).ownerSVGElement ?? (event.target as Element).closest('svg');
+                if (!svg) return;
+                const svgRect = svg.getBoundingClientRect();
+                handleChartClick('revenue_bridge', data.name, data.value, svgRect.left + data.x + data.width + 4, svgRect.top + data.y + data.height / 2);
+              }}
+            >
+              {revenueFactorData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.type === 'increase' ? '#FF3C42' : '#1F2937'}
+                  fillOpacity={entry.type === 'increase' ? 0.9 : 0.8}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-2 flex gap-4 justify-center text-xs text-gray-500 shrink-0">
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#1F2937]"></div>기본/확정 매출</div>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#FF3C42]"></div>성장 요인 (물량/단가)</div>
+      </div>
+    </div>
+  );
+
+  const renderCostCorrelationWithDrill = () => (
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-start mb-2 shrink-0">
+        <div>
+          <h3 className="text-sm font-bold text-black mb-1 flex items-center gap-2">
+            <Factory size={16} className="text-blue-600" /> 자동화율과 원가율 상관관계
+          </h3>
+          <p className="text-xs text-gray-500">공정 자동화 확대에 따른 원가 효율성 개선 추이</p>
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
+          <Target size={12} /> 목표 원가율: 65%
+        </div>
+      </div>
+      <div className="flex-1 w-full min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={costCorrelationData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} dy={10} />
+            <YAxis yAxisId="left" orientation="left" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} label={{ value: '자동화율(%)', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#666' } }} />
+            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} domain={[50, 80]} label={{ value: '원가율(%)', angle: 90, position: 'insideRight', style: { fontSize: 10, fill: '#666' } }} />
+            <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+            <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+            <Bar
+              yAxisId="left"
+              dataKey="automation"
+              name="공정 자동화율"
+              barSize={32}
+              fill="#E5E7EB"
+              radius={[4, 4, 0, 0]}
+              className="cursor-pointer"
+              onClick={(data: { name: string; automation: number; x: number; y: number; width: number; height: number }, _index: number, event: React.MouseEvent) => {
+                const svg = (event.target as SVGElement).ownerSVGElement ?? (event.target as Element).closest('svg');
+                if (!svg) return;
+                const svgRect = svg.getBoundingClientRect();
+                handleChartClick('cost_correlation', data.name, data.automation, svgRect.left + data.x + data.width / 2, svgRect.top + data.y);
+              }}
+            />
+            <Line yAxisId="right" type="monotone" dataKey="costRatio" name="제조 원가율" stroke="#2563EB" strokeWidth={3} dot={{ r: 4, fill: '#2563EB' }} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+
   const renderAnalysisView = () => (
     <div className="flex flex-col gap-4 h-full animate-fade-in-up pb-2">
-        {/* Row 1: Key Drivers Summary */}
+        {/* Row 1: Key Drivers Summary — KPI cards with drill-down click */}
         <div className="grid grid-cols-3 gap-3 shrink-0">
-             <WidgetWrapper 
-                id="revenue_growth_kpi" 
-                className="bg-white border border-gray-200 rounded-xl p-4 hover:border-[#FF3C42] transition-colors shadow-sm"
+             <WidgetWrapper
+                id="revenue_growth_kpi"
+                className="bg-white border border-gray-200 rounded-xl p-4 hover:border-[#FF3C42] transition-colors shadow-sm cursor-pointer"
                 isPinned={pinnedSet.has('revenue_growth_kpi')}
                 onToggle={togglePin}
              >
-                {renderRevenueGrowthKPI()}
+                <div onClick={() => handleKPIClick('revenue', '매출 성장률')}>
+                  {renderRevenueGrowthKPI()}
+                </div>
              </WidgetWrapper>
-             <WidgetWrapper 
-                id="cost_efficiency_kpi" 
-                className="bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-500 transition-colors shadow-sm"
+             <WidgetWrapper
+                id="cost_efficiency_kpi"
+                className="bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-500 transition-colors shadow-sm cursor-pointer"
                 isPinned={pinnedSet.has('cost_efficiency_kpi')}
                 onToggle={togglePin}
              >
-                {renderCostEfficiencyKPI()}
+                <div onClick={() => handleKPIClick('cost', '원가 효율성')}>
+                  {renderCostEfficiencyKPI()}
+                </div>
              </WidgetWrapper>
-             <WidgetWrapper 
-                id="asp_kpi" 
-                className="bg-white border border-gray-200 rounded-xl p-4 hover:border-amber-500 transition-colors shadow-sm"
+             <WidgetWrapper
+                id="asp_kpi"
+                className="bg-white border border-gray-200 rounded-xl p-4 hover:border-amber-500 transition-colors shadow-sm cursor-pointer"
                 isPinned={pinnedSet.has('asp_kpi')}
                 onToggle={togglePin}
              >
-                {renderASPKPI()}
+                <div onClick={() => handleKPIClick('asp', '평균 판매 단가')}>
+                  {renderASPKPI()}
+                </div>
              </WidgetWrapper>
         </div>
 
-        {/* Row 2: Charts Container */}
+        {/* Row 2: Charts — conditional drill-down rendering (Vercel: ternary) */}
         <div className="flex-1 min-h-0 flex flex-col gap-4">
-            <WidgetWrapper 
-                id="revenue_bridge_chart" 
+            <WidgetWrapper
+                id="revenue_bridge_chart"
                 className="flex-1 min-h-0 bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
                 isPinned={pinnedSet.has('revenue_bridge_chart')}
                 onToggle={togglePin}
             >
-                {renderRevenueBridgeChart()}
+                {drillState?.activeChart === 'revenue_bridge' ? (() => {
+                  const drillInfo = revenueFactorDrillData[drillState.elementName];
+                  const dimension = drillInfo?.dimensions.find(d => d.id === drillState.dimensionId);
+                  if (!drillInfo || !dimension) return renderRevenueBridgeWithDrill();
+                  return (
+                    <div className="flex flex-col h-full">
+                      <Breadcrumb path={drillState.path} onBack={handleDrillBack} />
+                      <h3 className="text-sm font-bold text-gray-900 mb-1">{drillInfo.title}</h3>
+                      <p className="text-xs text-gray-500 mb-2">{dimension.label} 기준</p>
+                      {renderDrillDownBarChart(dimension.data)}
+                    </div>
+                  );
+                })() : drillState?.activeChart?.startsWith('kpi_') ? (() => {
+                  const drillInfo = kpiDrillData[drillState.elementName];
+                  const dimension = drillInfo?.dimensions.find(d => d.id === drillState.dimensionId);
+                  if (!drillInfo || !dimension) return renderRevenueBridgeWithDrill();
+                  return (
+                    <div className="flex flex-col h-full">
+                      <Breadcrumb path={drillState.path} onBack={handleDrillBack} />
+                      <h3 className="text-sm font-bold text-gray-900 mb-1">{drillInfo.title}</h3>
+                      <p className="text-xs text-gray-500 mb-2">{dimension.label} 기준</p>
+                      {renderDrillDownLineChart(dimension.data)}
+                    </div>
+                  );
+                })() : (
+                  renderRevenueBridgeWithDrill()
+                )}
             </WidgetWrapper>
 
-            <WidgetWrapper 
-                id="cost_correlation_chart" 
+            <WidgetWrapper
+                id="cost_correlation_chart"
                 className="flex-1 min-h-0 bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
                 isPinned={pinnedSet.has('cost_correlation_chart')}
                 onToggle={togglePin}
             >
-                {renderCostCorrelationChart()}
+                {drillState?.activeChart === 'cost_correlation' ? (() => {
+                  const drillInfo = costCorrelationDrillData[drillState.elementName];
+                  const dimension = drillInfo?.dimensions.find(d => d.id === drillState.dimensionId);
+                  if (!drillInfo || !dimension) return renderCostCorrelationWithDrill();
+                  return (
+                    <div className="flex flex-col h-full">
+                      <Breadcrumb path={drillState.path} onBack={handleDrillBack} />
+                      <h3 className="text-sm font-bold text-gray-900 mb-1">{drillInfo.title}</h3>
+                      <p className="text-xs text-gray-500 mb-2">{dimension.label} 기준</p>
+                      {renderDrillDownComposedChart(dimension.data)}
+                    </div>
+                  );
+                })() : (
+                  renderCostCorrelationWithDrill()
+                )}
             </WidgetWrapper>
         </div>
+
+        {/* Context Menu (Vercel: ternary conditional) */}
+        {contextMenu !== null ? (
+          <DrillDownContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            elementName={contextMenu.elementName}
+            formattedValue={contextMenu.formattedValue}
+            dimensions={contextMenu.dimensions}
+            onDrillDown={handleDrillDown}
+            onAddToContext={handleAddToContext}
+            onClose={() => setContextMenu(null)}
+          />
+        ) : null}
     </div>
   );
 

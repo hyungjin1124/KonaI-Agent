@@ -12,16 +12,17 @@ import { CoworkLayout } from './layouts';
 import { RightSidebar } from './components/RightSidebar';
 import { ArtifactPreviewPanel } from './components/ArtifactPreviewPanel';
 import { ChatInputArea } from './components/ChatInputArea';
-import { HomeView } from './views';
 import { generateMockModifiedMarkdown } from './utils/markdownUtils';
 import ChatHistoryPanel, { ChatMessage } from './components/ChatHistoryPanel';
+import { ConversationSidebar, MOCK_AGENT_SESSIONS } from './components/ConversationSidebar';
 
 // Re-export ChatMessage for external use
 export type { ChatMessage };
 
-const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleInterfaceContext }> = ({
+const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleInterfaceContext; onNavigateToChat?: () => void }> = ({
   initialQuery,
-  initialContext
+  initialContext,
+  onNavigateToChat,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [showDashboard, setShowDashboard] = useState(!!initialQuery);
@@ -57,6 +58,9 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hasProcessedInitialQuery = useRef(false);
+
+  // --- 좌측 대화 히스토리 사이드바 상태 ---
+  const [isConversationSidebarOpen, setIsConversationSidebarOpen] = useState(false);
 
   // --- 우측 패널 상태 ---
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
@@ -121,6 +125,41 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     isOpen: false,
     content: null,
   });
+
+  // --- 아티팩트 열기/닫기 시 사이드 패널 자동 숨김/복원 ---
+  const savedSidePanelStateRef = useRef<{
+    isConversationSidebarOpen: boolean;
+    isRightPanelCollapsed: boolean;
+  } | null>(null);
+  const prevCenterPanelOpenRef = useRef(false);
+  const conversationSidebarOpenRef = useRef(isConversationSidebarOpen);
+  conversationSidebarOpenRef.current = isConversationSidebarOpen;
+  const rightPanelCollapsedRef = useRef(isRightPanelCollapsed);
+  rightPanelCollapsedRef.current = isRightPanelCollapsed;
+
+  useEffect(() => {
+    const isCenterOpen = centerPanelState.isOpen || artifactPreview.isOpen;
+    const wasOpen = prevCenterPanelOpenRef.current;
+
+    if (isCenterOpen && !wasOpen) {
+      // 센터 패널 열림: 현재 상태 저장 후 사이드 패널 닫기
+      savedSidePanelStateRef.current = {
+        isConversationSidebarOpen: conversationSidebarOpenRef.current,
+        isRightPanelCollapsed: rightPanelCollapsedRef.current,
+      };
+      setIsConversationSidebarOpen(false);
+      setIsRightPanelCollapsed(true);
+    } else if (!isCenterOpen && wasOpen) {
+      // 센터 패널 닫힘: 저장된 상태로 복원
+      if (savedSidePanelStateRef.current) {
+        setIsConversationSidebarOpen(savedSidePanelStateRef.current.isConversationSidebarOpen);
+        setIsRightPanelCollapsed(savedSidePanelStateRef.current.isRightPanelCollapsed);
+        savedSidePanelStateRef.current = null;
+      }
+    }
+
+    prevCenterPanelOpenRef.current = isCenterOpen;
+  }, [centerPanelState.isOpen, artifactPreview.isOpen]);
 
   // 캡처 자동화용 상태 주입 핸들러
   const stateInjectionHandlers = useMemo<StateInjectionHandlers>(() => ({
@@ -542,6 +581,83 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       return;
     }
 
+    // 수정 모드에서 텍스트만 입력 (파일 첨부 없음) → 현재 활성 개요 마크다운 수정
+    if (isOutlineRevisionMode && !attachedFile) {
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        type: 'user',
+        content: text,
+        timestamp: new Date(),
+      };
+      const revisionAgentMsgId = `agent-revision-response-${Date.now()}`;
+      setChatHistory(prev => [...prev, userMessage]);
+
+      // 현재 활성 consolidated 아티팩트의 콘텐츠 가져오기
+      const consolidatedArtifactId = `artifact-md-${CONSOLIDATED_SLIDE_FILE.filename}`;
+      const currentContent = markdownContents[consolidatedArtifactId] || '';
+
+      if (currentContent) {
+        // 3단계 프로그레시브 편집 애니메이션
+        revisionTimersRef.current.forEach(t => clearTimeout(t));
+        revisionTimersRef.current = [];
+
+        const existingArtifact = artifactsRef.current.find(
+          a => a.id === consolidatedArtifactId
+        );
+
+        // Phase 1: 패널 오픈 + 편집 상태
+        setMarkdownEditingState('editing');
+        if (existingArtifact) {
+          setArtifactPreview({
+            isOpen: true,
+            selectedArtifact: existingArtifact,
+            previewType: 'markdown',
+            markdownMode: 'read',
+          });
+          setCenterPanelState({ isOpen: true, content: 'markdown-preview' });
+        }
+
+        // Phase 2 (800ms): shimmer
+        const t1 = setTimeout(() => setMarkdownEditingState('shimmer'), 800);
+        revisionTimersRef.current.push(t1);
+
+        // Phase 3 (1800ms): 수정 적용
+        const t2 = setTimeout(() => {
+          const modifiedContent = generateMockModifiedMarkdown(currentContent, text);
+
+          setMarkdownContents(prev => ({
+            ...prev,
+            [consolidatedArtifactId]: modifiedContent,
+          }));
+
+          if (existingArtifact) {
+            setArtifactPreview({
+              isOpen: true,
+              selectedArtifact: existingArtifact,
+              previewType: 'markdown',
+              markdownMode: 'read',
+            });
+          }
+
+          const confirmMsg: ChatMessage = {
+            id: revisionAgentMsgId,
+            type: 'agent',
+            content: `슬라이드 개요가 요청에 맞게 수정되었습니다. 추가 수정이 필요하면 요청해 주세요. 수정이 완료되면 "슬라이드 생성"이라고 입력해 주세요.`,
+            timestamp: new Date(),
+          };
+          setChatHistory(prev => [...prev, confirmMsg]);
+          setCenterPanelState({ isOpen: true, content: 'markdown-preview' });
+
+          const t3 = setTimeout(() => setMarkdownEditingState('idle'), 300);
+          revisionTimersRef.current.push(t3);
+        }, 1800);
+        revisionTimersRef.current.push(t2);
+      }
+
+      setInputValue('');
+      return;
+    }
+
     // 수정 모드에서 파일 첨부 수정 요청 → 시나리오에 영향 없이 처리
     if (isOutlineRevisionMode && attachedFile && attachedFile.type === 'markdown') {
       const userMessageContent = `${text}\n\n📎 첨부: ${attachedFile.name}`;
@@ -873,7 +989,19 @@ setArtifacts([]); // Clear artifacts
     setMarkdownEditingState('idle'); // 마크다운 편집 상태 리셋
     revisionTimersRef.current.forEach(t => clearTimeout(t));
     revisionTimersRef.current = [];
+    savedSidePanelStateRef.current = null;
+    prevCenterPanelOpenRef.current = false;
   }, []);
+
+  // 대화 히스토리 사이드바 토글
+  const handleToggleConversationSidebar = useCallback(() => {
+    setIsConversationSidebarOpen(prev => !prev);
+  }, []);
+
+  // 사이드바에서 새 대화 시작 → GeneralChatView로 전환
+  const handleNewChatFromSidebar = useCallback(() => {
+    onNavigateToChat?.();
+  }, [onNavigateToChat]);
 
   // PPT 완료 후 → 매출 분석 시나리오로 전환
   const handleRequestSalesAnalysis = useCallback(() => {
@@ -1339,44 +1467,56 @@ setArtifacts([]); // Clear artifacts
     // 시나리오 시작 시 자동으로 열리지 않고, tool_visualization 단계에서만 열림
     const isCenterPanelOpen = centerPanelState.isOpen || artifactPreview.isOpen;
 
-    // 좌측 패널 (채팅 영역)
+    // 좌측 패널 (대화 히스토리 사이드바 + 채팅 영역 + 입력 영역)
     const leftPanelContent = (
-      <ChatHistoryPanel
-        leftPanelRef={leftPanelRef}
-        chatHistory={chatHistory}
-        userQuery={userQuery}
-        pptStatus={pptStatus}
-        isOutlineRevisionMode={isOutlineRevisionMode}
-        pptConfig={pptConfig}
-        centerPanelState={centerPanelState}
-        artifactPreview={artifactPreview}
-showScrollButton={showScrollButton}
-        unreadCount={unreadCount}
-        scrollToBottom={scrollToBottom}
-        renderAgentResponseForMessage={renderAgentResponseForMessage}
-        renderAgentResponse={renderAgentResponse}
-        onRequestSalesAnalysis={handleRequestSalesAnalysis}
-        onOpenCenterPanel={(content) => setCenterPanelState({ isOpen: true, content })}
-      />
-    );
-
-    // 입력 영역 - ChatInputArea 컴포넌트 사용
-    const inputAreaContent = (
-      <ChatInputArea
-        inputValue={inputValue}
-        setInputValue={setInputValue}
-        textareaRef={textareaRef}
-        onSend={handleSend}
-        activeHitl={activeHitl}
-        hitlResumeCallback={hitlResumeCallback}
-        onHitlClose={() => setActiveHitl(null)}
-        pptConfig={pptConfig}
-        updatePptConfig={updatePptConfig}
-        onGenerateStart={handleGenerateStart}
-        onThemeFontComplete={themeFontCompleteCallback ?? undefined}
-        pptStatus={pptStatus}
-        salesAnalysisComplete={salesAnalysisComplete}
-      />
+      <div className="flex h-full">
+        <ConversationSidebar
+          isCollapsed={!isConversationSidebarOpen}
+          onToggleCollapse={handleToggleConversationSidebar}
+          sessions={MOCK_AGENT_SESSIONS}
+          activeSessionId="current"
+          onSessionSelect={() => {}}
+          onNewChat={handleNewChatFromSidebar}
+        />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <ChatHistoryPanel
+              leftPanelRef={leftPanelRef}
+              chatHistory={chatHistory}
+              userQuery={userQuery}
+              pptStatus={pptStatus}
+              isOutlineRevisionMode={isOutlineRevisionMode}
+              pptConfig={pptConfig}
+              centerPanelState={centerPanelState}
+              artifactPreview={artifactPreview}
+              showScrollButton={showScrollButton}
+              unreadCount={unreadCount}
+              scrollToBottom={scrollToBottom}
+              renderAgentResponseForMessage={renderAgentResponseForMessage}
+              renderAgentResponse={renderAgentResponse}
+              onRequestSalesAnalysis={handleRequestSalesAnalysis}
+              onOpenCenterPanel={(content) => setCenterPanelState({ isOpen: true, content })}
+            />
+          </div>
+          <div className="shrink-0">
+            <ChatInputArea
+              inputValue={inputValue}
+              setInputValue={setInputValue}
+              textareaRef={textareaRef}
+              onSend={handleSend}
+              activeHitl={activeHitl}
+              hitlResumeCallback={hitlResumeCallback}
+              onHitlClose={() => setActiveHitl(null)}
+              pptConfig={pptConfig}
+              updatePptConfig={updatePptConfig}
+              onGenerateStart={handleGenerateStart}
+              onThemeFontComplete={themeFontCompleteCallback ?? undefined}
+              pptStatus={pptStatus}
+              salesAnalysisComplete={salesAnalysisComplete}
+            />
+          </div>
+        </div>
+      </div>
     );
 
     // 중앙 패널 (Artifact Preview - PPT/Dashboard/Slide Outline/Markdown)
@@ -1481,28 +1621,12 @@ showScrollButton={showScrollButton}
           isCenterPanelOpen={isCenterPanelOpen}
           rightPanel={rightSidebarContent}
           isRightPanelCollapsed={isRightPanelCollapsed}
-          inputArea={inputAreaContent}
         />
       </div>
     );
   }
 
-  // Prevent Home View from rendering during transition
-  if (!showDashboard && userQuery) {
-    return null;
-  }
-
-  // 2. Initial Home View - HomeView 컴포넌트 사용
-  return (
-    <HomeView
-      inputValue={inputValue}
-      setInputValue={setInputValue}
-      contextData={contextData}
-      setContextData={setContextData}
-      textareaRef={textareaRef}
-      onSend={handleSend}
-    />
-  );
+  return null;
 };
 
 export default AgentChatView;
