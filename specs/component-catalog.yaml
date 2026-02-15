@@ -1,0 +1,770 @@
+# ============================================================================
+# KonaI-Agent UI Component Catalog
+# ============================================================================
+# 이 카탈로그는 에이전트가 코드베이스를 스캔하여 gap analysis를 수행하기 위한
+# 마스터 참조 문서입니다. 리서치를 통해 발견된 새로운 패턴을 지속적으로 추가합니다.
+#
+# 역할 분리:
+#   - 이 카탈로그: 상태 추적 + 코드 매핑 (status, priority, source_files, obsidian_sources)
+#   - Obsidian Vault: 리서치 + 기준 정의 (경쟁사 분석, acceptance criteria, references)
+#   → obsidian_sources 필드를 통해 상세 리서치 문서에 접근 가능
+#
+# status: implemented | partial | not_implemented | research_needed
+# priority: critical | high | medium | low
+# complexity: simple(1-2일) | moderate(3-5일) | complex(1주+) | epic(분리필요)
+
+metadata:
+  version: "1.1.0"
+  last_updated: "2026-02-15"
+  project: "KonaI-Agent"
+  tech_stack:
+    framework: "Next.js 15"
+    ui: "React 18, Tailwind CSS, Radix UI"
+    visualization: "Recharts, react-grid-layout, ReactFlow"
+    state: "React Context"
+  scan_paths:
+    components: "src/components"
+    pages: "src/app"
+    hooks: "src/hooks"
+    types: "src/types"
+
+contexts:
+  - id: chat_view
+    name: "Chat View"
+    description: "메인 대화 인터페이스 (일반 채팅 + 에이전트 채팅)"
+    routes: ["/", "/chat"]
+  - id: artifact_panel
+    name: "Artifact Panel"
+    description: "에이전트가 생성한 결과물을 표시하는 패널"
+    routes: ["/chat"]
+  - id: liveboard
+    name: "Liveboard / Dashboard"
+    description: "위젯 기반 대시보드 및 시각화"
+    routes: ["/", "/liveboard"]
+  - id: admin
+    name: "Admin Dashboard"
+    description: "사용자 관리, 권한, 시스템 설정"
+    routes: ["/admin", "/settings"]
+  - id: monitoring
+    name: "Monitoring & Ops"
+    description: "에이전트 모니터링, 감사 로그, 사용량"
+    routes: []
+  - id: data_pipeline
+    name: "Data Pipeline"
+    description: "데이터 파이프라인 시각화 및 관리"
+    routes: ["/data"]
+  - id: agent_scenario
+    name: "Agent Scenario"
+    description: "PPT 생성, 분석 등 멀티스텝 에이전트 시나리오"
+    routes: ["/agent/ppt", "/agent/analysis"]
+  - id: global
+    name: "Global"
+    description: "모든 화면에서 공통으로 사용되는 패턴"
+    routes: ["*"]
+
+categories:
+  # ============================================================================
+  # 카테고리 1: Conversational Primitives
+  # ============================================================================
+  - id: conversational_primitives
+    name: "Conversational Primitives"
+    description: "채팅 인터페이스의 기본 빌딩 블록"
+    components:
+
+      - id: message_bubble
+        name: "Message Bubble"
+        description: "사용자/AI 메시지를 구분하여 표시하는 채팅 버블"
+        status: implemented
+        priority: critical
+        complexity: simple
+        contexts: [chat_view]
+        source_files:
+          - "src/components/features/general-chat/components/ChatPanel/ChatPanel.tsx"
+          - "src/components/ChatHistoryView.tsx"
+        notes: "현재 기본적인 버블은 구현됨. 복사 버튼, 메시지 액션 메뉴 등 추가 필요."
+
+      - id: markdown_renderer
+        name: "Markdown Renderer"
+        description: "에이전트 응답의 마크다운을 렌더링 (코드블록, 테이블, 수식, 다이어그램)"
+        status: not_implemented
+        priority: critical
+        complexity: moderate
+        contexts: [chat_view, artifact_panel]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/streaming-response-rendering.md"
+        dependencies: []
+
+      - id: streaming_typing
+        name: "Streaming Typing Animation"
+        description: "에이전트 응답이 실시간으로 타이핑되듯 표시되는 스트리밍 효과"
+        status: not_implemented
+        priority: critical
+        complexity: moderate
+        contexts: [chat_view]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/streaming-response-rendering.md"
+        dependencies: [markdown_renderer]
+
+      - id: chat_input
+        name: "Chat Input (Multi-modal)"
+        description: "텍스트, 파일, 이미지 등 멀티모달 입력을 지원하는 채팅 입력창"
+        status: partial
+        priority: high
+        complexity: moderate
+        contexts: [chat_view]
+        source_files:
+          - "src/components/ChatInterface.tsx"
+          - "src/components/features/general-chat/GeneralChatView.tsx"
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/multimodal-input-patterns.md"
+        notes: "기본 textarea는 구현됨. 파일 첨부, 이미지, 음성 등 멀티모달 확장 필요."
+
+      - id: code_block
+        name: "Code Block"
+        description: "구문 강조, 복사, 실행 기능이 있는 코드 블록"
+        status: not_implemented
+        priority: high
+        complexity: moderate
+        contexts: [chat_view, artifact_panel]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/message-interaction-patterns.md"
+        dependencies: [markdown_renderer]
+
+      - id: message_actions
+        name: "Message Actions"
+        description: "메시지별 액션 메뉴 (복사, 재생성, 피드백, 공유)"
+        status: not_implemented
+        priority: high
+        complexity: simple
+        contexts: [chat_view]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/message-interaction-patterns.md"
+
+      - id: message_edit_regenerate
+        name: "Message Edit & Regenerate"
+        description: "사용자 메시지 수정 및 응답 재생성, 대화 분기"
+        status: not_implemented
+        priority: medium
+        complexity: moderate
+        contexts: [chat_view]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/message-interaction-patterns.md"
+
+      - id: citation_source_link
+        name: "Citation & Source Link"
+        description: "에이전트 응답에 출처 인용 및 링크 표시"
+        status: implemented
+        priority: medium
+        complexity: simple
+        contexts: [chat_view]
+        source_files:
+          - "src/components/features/agent-chat/components/CitationSourceLink/CitationSourceLink.tsx"
+          - "src/components/features/agent-chat/components/CitationSourceLink/CitationBadge.tsx"
+          - "src/components/features/agent-chat/components/CitationSourceLink/SourceLinkList.tsx"
+          - "src/components/features/agent-chat/components/CitationSourceLink/index.ts"
+        metadata:
+          last_updated: "2026-02-15"
+
+      - id: suggested_prompts
+        name: "Suggested Prompts / Starter Questions"
+        description: "대화 시작 시 추천 질문 또는 컨텍스트 기반 후속 질문"
+        status: not_implemented
+        priority: medium
+        complexity: simple
+        contexts: [chat_view]
+        source_files: []
+
+  # ============================================================================
+  # 카테고리 2: Agent Action Patterns
+  # ============================================================================
+  - id: agent_action_patterns
+    name: "Agent Action Patterns"
+    description: "에이전트의 동작, 사고 과정, 도구 사용을 시각화하는 패턴"
+    components:
+
+      - id: tool_call_display
+        name: "Tool Call Display"
+        description: "에이전트의 도구 호출을 시각화 (호출 → 실행 중 → 완료/실패)"
+        status: not_implemented
+        priority: critical
+        complexity: moderate
+        contexts: [chat_view, agent_scenario]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/tool-call-visualization.md"
+
+      - id: agent_thinking
+        name: "Agent Thinking / Reasoning Display"
+        description: "에이전트의 사고 과정을 투명하게 보여주는 UI"
+        status: not_implemented
+        priority: high
+        complexity: moderate
+        contexts: [chat_view]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/thinking-block-design.md"
+
+      - id: multi_step_progress
+        name: "Multi-Step Progress Indicator"
+        description: "에이전트가 여러 단계를 거치는 작업의 진행 상태 표시"
+        status: partial
+        priority: high
+        complexity: moderate
+        contexts: [chat_view, agent_scenario]
+        source_files:
+          - "src/hooks/useScenarioOrchestration.ts"
+          - "src/hooks/usePPTScenario.ts"
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/multi-step-progress-patterns.md"
+        notes: "시나리오 훅에서 상태 관리는 있으나, 범용 UI 컴포넌트로 분리 필요."
+
+      - id: parallel_execution_view
+        name: "Parallel Execution View"
+        description: "여러 에이전트/태스크가 동시에 실행되는 상태를 보여주는 UI"
+        status: not_implemented
+        priority: high
+        complexity: complex
+        contexts: [chat_view, monitoring]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/parallel-execution-ui.md"
+
+      - id: error_retry_ui
+        name: "Error & Retry UI"
+        description: "에이전트 작업 실패 시 에러 표시 및 재시도 인터페이스"
+        status: not_implemented
+        priority: high
+        complexity: simple
+        contexts: [chat_view, agent_scenario]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/error-recovery-patterns.md"
+
+      - id: agent_status_indicator
+        name: "Agent Status Indicator"
+        description: "에이전트의 현재 상태를 글로벌하게 표시 (유휴/작업중/오류)"
+        status: not_implemented
+        priority: medium
+        complexity: simple
+        contexts: [global]
+        source_files: []
+
+  # ============================================================================
+  # 카테고리 3: HITL (Human-in-the-Loop) Patterns
+  # ============================================================================
+  - id: hitl_patterns
+    name: "HITL (Human-in-the-Loop) Patterns"
+    description: "에이전트 워크플로우에서 사람의 판단/승인이 필요한 인터랙션 패턴"
+    components:
+
+      - id: approval_rejection
+        name: "Approval / Rejection"
+        description: "에이전트 제안에 대한 승인/거절/수정 요청 인터페이스"
+        status: partial
+        priority: critical
+        complexity: moderate
+        contexts: [chat_view, agent_scenario]
+        source_files:
+          - "src/hooks/useSlideOutlineHITL.ts"
+          - "src/hooks/usePPTScenario.ts"
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/approval-gate-component.md"
+          - "Insights/agent-ui/patterns/risk-based-rendering.md"
+        notes: "현재 PPT 시나리오 훅에 결합됨. 범용 ApprovalGate 컴포넌트로 분리 필요."
+
+      - id: inline_selection
+        name: "Inline Selection (Radio/Checkbox/Choice)"
+        description: "대화 내에서 에이전트가 제시한 선택지 중 선택하는 인터페이스"
+        status: partial
+        priority: high
+        complexity: simple
+        contexts: [chat_view, agent_scenario]
+        source_files:
+          - "src/hooks/usePPTScenario.ts"
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/inline-selection-patterns.md"
+
+      - id: inline_edit
+        name: "Inline Edit / Suggested Edit"
+        description: "에이전트가 제안한 내용을 사용자가 직접 수정하는 인터페이스"
+        status: not_implemented
+        priority: high
+        complexity: complex
+        contexts: [chat_view, artifact_panel]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/diff-review-patterns.md"
+
+      - id: feedback_collection
+        name: "Feedback Collection"
+        description: "에이전트 응답에 대한 사용자 피드백 수집 (좋아요/싫어요, 코멘트)"
+        status: not_implemented
+        priority: medium
+        complexity: simple
+        contexts: [chat_view]
+        source_files: []
+
+      - id: confirmation_dialog
+        name: "Confirmation Dialog"
+        description: "위험한 작업 전 사용자 확인을 받는 다이얼로그"
+        status: partial
+        priority: medium
+        complexity: simple
+        contexts: [chat_view, admin]
+        source_files:
+          - "src/components/ui/dialog.tsx"
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/risk-based-rendering.md"
+
+      - id: variable_autonomy_control
+        name: "Variable Autonomy Control"
+        description: "에이전트의 자율성 수준을 사용자가 조절하는 컨트롤"
+        status: not_implemented
+        priority: medium
+        complexity: moderate
+        contexts: [chat_view, admin]
+        source_files: []
+
+  # ============================================================================
+  # 카테고리 4: Artifact & Visualization
+  # ============================================================================
+  - id: artifact_visualization
+    name: "Artifact & Visualization"
+    description: "에이전트가 생성하거나 참조하는 결과물의 렌더링 및 인터랙션"
+    components:
+
+      - id: dashboard_widget_grid
+        name: "Dashboard Widget Grid"
+        description: "드래그/리사이즈 가능한 위젯 그리드 레이아웃"
+        status: implemented
+        priority: critical
+        complexity: complex
+        contexts: [liveboard]
+        source_files:
+          - "src/components/features/liveboard/LiveboardView.tsx"
+          - "src/constants/widgets.ts"
+        notes: "구현 완료. LiveboardView가 84KB로 거대하므로 분리 리팩토링 고려."
+
+      - id: drill_down
+        name: "Drill-Down Interaction"
+        description: "차트/데이터 클릭 시 상세 데이터로 진입하는 드릴다운"
+        status: implemented
+        priority: critical
+        complexity: complex
+        contexts: [liveboard]
+        source_files:
+          - "src/components/features/liveboard/LiveboardView.tsx"
+          - "src/components/features/dashboard/components/DrillDownContextMenu.tsx"
+          - "src/components/features/dashboard/data/drillDownData.ts"
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/drilldown-interaction-design.md"
+        notes: "구현 완료. 3단계 드릴다운, 브레드크럼, 깊이 제한 알림 포함."
+
+      - id: kpi_card
+        name: "KPI Card"
+        description: "핵심 지표를 간결하게 표시하는 카드 (값, 트렌드, 변화율)"
+        status: implemented
+        priority: high
+        complexity: simple
+        contexts: [liveboard]
+        source_files:
+          - "src/components/features/liveboard/components/widgets/KPIWidgets.tsx"
+
+      - id: chart_widget
+        name: "Chart Widget"
+        description: "다양한 차트 유형을 렌더링하는 위젯 (라인, 바, 파이, 에어리어 등)"
+        status: implemented
+        priority: high
+        complexity: moderate
+        contexts: [liveboard, artifact_panel]
+        source_files:
+          - "src/components/features/liveboard/components/widgets/ChartWidgets.tsx"
+        notes: "Recharts 기반 구현 완료."
+
+      - id: artifact_panel
+        name: "Artifact Panel (Split View)"
+        description: "대화 옆에 에이전트 생성 결과물을 별도 패널에 표시"
+        status: not_implemented
+        priority: critical
+        complexity: complex
+        contexts: [chat_view, artifact_panel]
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/artifact-panel-layout.md"
+        dependencies: [markdown_renderer, code_block, document_viewer]
+
+      - id: document_viewer
+        name: "Document Viewer (docx/pdf/pptx)"
+        description: "에이전트가 생성하거나 참조하는 문서를 인라인 프리뷰"
+        status: not_implemented
+        priority: high
+        complexity: complex
+        contexts: [artifact_panel, chat_view]
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/document-viewer-patterns.md"
+
+      - id: ppt_slide_preview
+        name: "PPT Slide Preview & Editor"
+        description: "PPT 슬라이드 생성 과정의 프리뷰 및 편집"
+        status: implemented
+        priority: high
+        complexity: complex
+        contexts: [agent_scenario, artifact_panel]
+        source_files:
+          - "src/components/features/ppt/SlideContentRenderer.tsx"
+          - "src/components/features/ppt/SlideStreamingRenderer.tsx"
+          - "src/components/features/ppt/SlideThumbnailList.tsx"
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/document-viewer-patterns.md"
+
+      - id: data_pipeline_editor
+        name: "Data Pipeline Visual Editor"
+        description: "노드 기반 데이터 파이프라인 구성 에디터"
+        status: implemented
+        priority: medium
+        complexity: complex
+        contexts: [data_pipeline]
+        source_files:
+          - "src/components/features/data/DataManagementView.tsx"
+        notes: "ReactFlow 기반 구현 완료."
+
+      - id: interactive_table
+        name: "Interactive Data Table"
+        description: "정렬, 필터, 페이지네이션이 가능한 데이터 테이블"
+        status: partial
+        priority: high
+        complexity: moderate
+        contexts: [artifact_panel, admin, liveboard]
+        source_files:
+          - "src/components/ui/table.tsx"
+          - "src/components/AdminView.tsx"
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/interactive-table-design.md"
+        notes: "기본 테이블과 정적 테이블은 있으나, 범용 인터랙티브 테이블은 없음."
+
+      - id: dashboard_builder
+        name: "Dashboard Builder / Customizer"
+        description: "사용자가 위젯을 추가/제거/재배치하여 대시보드를 커스터마이징"
+        status: not_implemented
+        priority: medium
+        complexity: complex
+        contexts: [liveboard]
+        source_files: []
+
+      - id: nl_to_chart
+        name: "Natural Language to Chart"
+        description: "자연어 질문으로 차트/시각화를 자동 생성"
+        status: not_implemented
+        priority: high
+        complexity: complex
+        contexts: [chat_view, liveboard]
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/nl-to-chart-pipeline.md"
+
+      - id: mermaid_diagram
+        name: "Mermaid Diagram Renderer"
+        description: "Mermaid 구문으로 작성된 다이어그램 렌더링"
+        status: not_implemented
+        priority: medium
+        complexity: simple
+        contexts: [chat_view, artifact_panel]
+        source_files: []
+        dependencies: [markdown_renderer]
+
+  # ============================================================================
+  # 카테고리 5: Navigation & Session Management
+  # ============================================================================
+  - id: navigation_session
+    name: "Navigation & Session Management"
+    description: "대화 세션 관리, 이력 탐색, 앱 네비게이션 패턴"
+    components:
+
+      - id: sidebar_navigation
+        name: "Sidebar / Top Navigation"
+        description: "메인 앱 네비게이션 바"
+        status: implemented
+        priority: critical
+        complexity: moderate
+        contexts: [global]
+        source_files:
+          - "src/components/Sidebar.tsx"
+          - "src/constants/navigation.ts"
+        notes: "수평 탑바로 구현됨."
+
+      - id: conversation_sidebar
+        name: "Conversation History Sidebar"
+        description: "좌측 사이드바에 과거 대화 세션 목록 표시"
+        status: implemented
+        priority: high
+        complexity: moderate
+        contexts: [chat_view]
+        source_files:
+          - "src/components/features/general-chat/components/LeftSidebar/LeftSidebar.tsx"
+          - "src/components/features/general-chat/components/LeftSidebar/ChatSessionItem.tsx"
+
+      - id: chat_history_view
+        name: "Chat History Full View"
+        description: "과거 대화 이력을 전체 화면에서 탐색하는 뷰"
+        status: implemented
+        priority: medium
+        complexity: moderate
+        contexts: [chat_view]
+        source_files:
+          - "src/components/ChatHistoryView.tsx"
+        notes: "구현 완료."
+
+      - id: session_branching
+        name: "Session Branching / Forking"
+        description: "대화를 특정 지점에서 분기하여 다른 방향으로 탐색"
+        status: not_implemented
+        priority: medium
+        complexity: complex
+        contexts: [chat_view]
+        source_files: []
+
+      - id: context_window_indicator
+        name: "Context Window Indicator"
+        description: "현재 대화의 컨텍스트 윈도우 사용량 표시"
+        status: not_implemented
+        priority: low
+        complexity: simple
+        contexts: [chat_view]
+        source_files: []
+
+      - id: model_agent_switcher
+        name: "Model / Agent Switcher"
+        description: "대화 중 모델 또는 에이전트를 전환하는 드롭다운"
+        status: not_implemented
+        priority: medium
+        complexity: simple
+        contexts: [chat_view]
+        source_files: []
+
+      - id: notification_center
+        name: "Notification Center"
+        description: "시스템 알림, 이상 탐지, 에이전트 완료 알림 센터"
+        status: partial
+        priority: medium
+        complexity: moderate
+        contexts: [global]
+        source_files:
+          - "src/components/NotificationPopup.tsx"
+          - "src/context/NotificationContext.tsx"
+        notes: "기본 구현은 있으나, 전체 알림 센터 페이지와 유형 세분화 필요."
+
+  # ============================================================================
+  # 카테고리 6: Admin & Operations
+  # ============================================================================
+  - id: admin_operations
+    name: "Admin & Operations"
+    description: "에이전트 시스템의 운영, 관리, 모니터링을 위한 관리자 인터페이스"
+    components:
+
+      - id: user_management
+        name: "User Management"
+        description: "사용자 CRUD, 역할 할당, 상태 관리"
+        status: implemented
+        priority: high
+        complexity: moderate
+        contexts: [admin]
+        source_files:
+          - "src/components/AdminView.tsx"
+        notes: "구현 완료. 목데이터 기반."
+
+      - id: permission_matrix
+        name: "Permission Matrix"
+        description: "역할별 기능 접근 권한을 매트릭스로 관리"
+        status: implemented
+        priority: medium
+        complexity: moderate
+        contexts: [admin]
+        source_files:
+          - "src/components/AdminView.tsx"
+
+      - id: skill_management
+        name: "Skill / Plugin Management"
+        description: "에이전트 스킬/플러그인 설치, 설정, 활성화 관리"
+        status: implemented
+        priority: medium
+        complexity: moderate
+        contexts: [admin]
+        source_files:
+          - "src/components/SkillManagementView.tsx"
+          - "src/components/SkillUploadModal.tsx"
+
+      - id: audit_log
+        name: "Audit Log"
+        description: "에이전트 액션, 사용자 활동, 승인 이력의 감사 로그"
+        status: not_implemented
+        priority: medium
+        complexity: moderate
+        contexts: [admin, monitoring]
+        source_files: []
+
+      - id: usage_monitoring
+        name: "Usage Monitoring Dashboard"
+        description: "API 사용량, 토큰 소비, 비용, 에이전트 성능 모니터링"
+        status: not_implemented
+        priority: medium
+        complexity: complex
+        contexts: [monitoring]
+        source_files: []
+
+      - id: agent_config
+        name: "Agent Configuration"
+        description: "에이전트 설정 관리 (모델, 도구 권한, 프롬프트, 파라미터)"
+        status: not_implemented
+        priority: medium
+        complexity: moderate
+        contexts: [admin]
+        source_files: []
+
+      - id: prompt_management
+        name: "Prompt Management"
+        description: "시스템 프롬프트, 템플릿 관리 및 버전 관리"
+        status: not_implemented
+        priority: low
+        complexity: moderate
+        contexts: [admin]
+        source_files: []
+
+      - id: login_auth
+        name: "Login & Authentication"
+        description: "로그인, 인증, 세션 관리"
+        status: implemented
+        priority: high
+        complexity: moderate
+        contexts: [global]
+        source_files:
+          - "src/components/LoginView.tsx"
+        notes: "구현 완료. 클라이언트 사이드 시뮬레이션."
+
+  # ============================================================================
+  # 카테고리 7: Generative & Emerging Patterns
+  # ============================================================================
+  - id: generative_emerging
+    name: "Generative & Emerging Patterns"
+    description: "최신 에이전트 서비스에서 등장하는 새로운 UI 패턴. 지속적 리서치를 통해 업데이트."
+    components:
+
+      - id: generative_ui
+        name: "Generative UI (Dynamic Component Rendering)"
+        description: "에이전트가 런타임에 UI 컴포넌트를 동적으로 생성/구성"
+        status: research_needed
+        priority: high
+        complexity: epic
+        contexts: [chat_view, artifact_panel]
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/generative-ui-implementation.md"
+        notes: >
+          2026 핵심 트렌드. 구현 방식 3가지:
+          (1) Static: 미리 정의된 컴포넌트 선택
+          (2) Declarative: 구조화된 UI 스펙 반환
+          (3) Open-ended: 전체 UI 서피스 생성
+
+      - id: ambient_agent
+        name: "Ambient Agent UI"
+        description: "사용자 행동을 관찰하며 능동적으로 도움을 제안하는 비침습적 에이전트 UI"
+        status: research_needed
+        priority: medium
+        complexity: complex
+        contexts: [global]
+        source_files: []
+
+      - id: agent_marketplace
+        name: "Agent Marketplace / Store"
+        description: "에이전트, 스킬, 플러그인을 탐색하고 설치하는 마켓플레이스"
+        status: not_implemented
+        priority: low
+        complexity: complex
+        contexts: [admin]
+        source_files: []
+
+      - id: workflow_builder
+        name: "Visual Workflow Builder"
+        description: "멀티스텝 에이전트 워크플로우를 시각적으로 구성하는 빌더"
+        status: not_implemented
+        priority: medium
+        complexity: epic
+        contexts: [admin, agent_scenario]
+        source_files: []
+        notes: "DataManagementView의 ReactFlow 기반을 확장하여 구현 가능."
+
+      - id: memory_management
+        name: "Agent Memory Management UI"
+        description: "에이전트의 장기 기억, 학습 내용, 지식을 관리하는 인터페이스"
+        status: not_implemented
+        priority: low
+        complexity: complex
+        contexts: [admin]
+        source_files: []
+
+      - id: realtime_collaboration
+        name: "Real-Time Collaboration"
+        description: "여러 사용자가 같은 대화/문서에서 동시 작업"
+        status: not_implemented
+        priority: low
+        complexity: epic
+        contexts: [chat_view, artifact_panel]
+        source_files: []
+
+      - id: sandbox_mode
+        name: "Sandbox / Preview Mode"
+        description: "에이전트 실행 결과를 실제 반영 전에 시뮬레이션하는 샌드박스"
+        status: not_implemented
+        priority: medium
+        complexity: complex
+        contexts: [agent_scenario]
+        source_files: []
+
+      - id: onboarding_wizard
+        name: "Onboarding / Tutorial Wizard"
+        description: "새 사용자를 위한 가이드 투어 및 온보딩 마법사"
+        status: not_implemented
+        priority: low
+        complexity: moderate
+        contexts: [global]
+        source_files: []
+
+      - id: voice_io
+        name: "Voice Input / Output"
+        description: "음성으로 에이전트와 대화하는 인터페이스"
+        status: not_implemented
+        priority: low
+        complexity: complex
+        contexts: [chat_view]
+        source_files: []
+
+      - id: dark_mode
+        name: "Dark Mode"
+        description: "다크 모드 테마 지원"
+        status: not_implemented
+        priority: low
+        complexity: moderate
+        contexts: [global]
+        source_files: []
+        notes: "next-themes 패키지는 이미 설치됨. CSS 변수 기반 테마 적용 필요."
+
+# ============================================================================
+# 카탈로그 업데이트 가이드
+# ============================================================================
+# 새로운 패턴 추가 시:
+#   1. 적절한 카테고리 선택 (없으면 새 카테고리 추가)
+#   2. 고유 id 부여 (snake_case)
+#   3. status를 research_needed로 설정
+#   4. obsidian_sources에 관련 리서치 문서 경로 추가
+#   5. metadata.last_updated 갱신
+#
+# 구현 상태 갱신 시:
+#   1. status 변경 (not_implemented → partial → implemented)
+#   2. source_files에 관련 파일 경로 추가
+#   3. obsidian_sources의 리서치 문서에서 acceptance criteria 확인
+#
+# 에이전트 자동 스캔 시:
+#   1. source_files 경로의 파일 존재 여부 확인
+#   2. obsidian_sources 문서의 Acceptance Criteria로 구현 검증
+#   3. status 자동 업데이트 제안

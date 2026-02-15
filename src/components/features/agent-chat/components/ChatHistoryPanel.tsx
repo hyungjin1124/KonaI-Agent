@@ -1,8 +1,9 @@
 import React from 'react';
 import { PPTConfig } from '../../../../types';
-import { CenterPanelState, ArtifactPreviewState } from '../types';
+import { CenterPanelState, ArtifactPreviewState, Citation } from '../types';
 import ScrollToBottomButton from './ScrollToBottomButton';
 import { PPTDoneResponse } from './AgentResponse';
+import { CitationSourceLink } from './CitationSourceLink';
 
 // ChatMessage interface - extracted from AgentChatView.tsx
 export interface ChatMessage {
@@ -13,6 +14,7 @@ export interface ChatMessage {
   dashboardType?: 'financial' | 'did' | 'ppt';
   dashboardScenario?: string;
   pptStatus?: 'idle' | 'setup' | 'generating' | 'done';
+  citations?: Citation[];
 }
 
 interface ChatHistoryPanelProps {
@@ -86,6 +88,9 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = React.memo(({
                       <p className="text-gray-900 font-medium text-sm leading-relaxed">
                         {message.content}
                       </p>
+                      {message.citations && message.citations.length > 0 && (
+                        <CitationSourceLink citations={message.citations} />
+                      )}
                     </div>
                   </div>
                 ) : (

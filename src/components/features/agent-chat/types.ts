@@ -422,3 +422,17 @@ export interface FileContextItem extends ContextItem {
   content?: string;
   originalContent?: string;
 }
+
+// =============================================
+// Citation & Source Link Types (출처 인용)
+// =============================================
+
+// 개별 인용 정보
+export interface Citation {
+  id: string;
+  index: number;        // 인용 번호 (1, 2, 3...)
+  title: string;        // 출처 제목
+  url?: string;         // 출처 URL
+  domain?: string;      // 도메인명 (e.g., "wikipedia.org")
+  snippet?: string;     // 인용 텍스트 미리보기
+}

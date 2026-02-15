@@ -1,9 +1,20 @@
+// Citation reference for agent responses
+export interface Citation {
+  id: string;
+  index: number;
+  title: string;
+  url?: string;
+  domain?: string;
+  snippet?: string;
+}
+
 // Chat message type
 export interface ChatMessage {
   id: string;
   type: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  citations?: Citation[];
 }
 
 // Chat session type (for history sidebar)
