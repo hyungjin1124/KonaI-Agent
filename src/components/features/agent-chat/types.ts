@@ -77,7 +77,7 @@ export interface StreamingState {
 }
 
 // Artifact Types for generated files
-export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image' | 'slide-outline';
+export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image' | 'slide-outline' | 'pdf' | 'docx';
 
 export interface Artifact {
   id: string;
@@ -364,8 +364,9 @@ export interface RightSidebarState {
 export interface ArtifactPreviewState {
   isOpen: boolean;
   selectedArtifact: Artifact | null;
-  previewType: 'ppt' | 'dashboard' | 'chart' | 'slide-outline' | 'markdown' | null;
+  previewType: 'ppt' | 'dashboard' | 'chart' | 'slide-outline' | 'markdown' | 'pdf' | 'docx' | null;
   markdownMode?: 'read' | 'edit'; // 마크다운 미리보기 모드
+  documentData?: ArrayBuffer; // PDF/DOCX binary data
 }
 
 // 가운데 패널 상태 (Artifact Preview 독립 제어)
@@ -408,12 +409,13 @@ export const ARTIFACT_DRAG_MIME_TYPE = 'application/x-konai-artifact';
 export interface AttachedFile {
   id: string;
   name: string;
-  type: 'markdown' | 'text' | 'other';
+  type: 'markdown' | 'text' | 'pdf' | 'docx' | 'other';
   content: string;
   size: number;
   lastModified: Date;
   sourceArtifactId?: string;
   artifactType?: ArtifactType;
+  arrayBuffer?: ArrayBuffer;
 }
 
 // 확장된 컨텍스트 아이템 (파일 내용 포함)

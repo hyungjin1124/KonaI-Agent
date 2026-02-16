@@ -19,11 +19,18 @@ interface SuggestionChip {
 }
 
 // 순수 유틸리티 함수를 컴포넌트 외부로 이동 (rendering-hoist-jsx, rerender-memo)
+const BINARY_EXTENSIONS = ['.pdf', '.docx'];
+
 const getFileType = (filename: string): AttachedFile['type'] => {
   if (filename.endsWith('.md')) return 'markdown';
   if (filename.endsWith('.txt')) return 'text';
+  if (filename.endsWith('.pdf')) return 'pdf';
+  if (filename.endsWith('.docx')) return 'docx';
   return 'other';
 };
+
+const isBinaryFile = (filename: string): boolean =>
+  BINARY_EXTENSIONS.some((ext) => filename.toLowerCase().endsWith(ext));
 
 // 정적 추천 칩 데이터를 컴포넌트 외부로 호이스팅 (rendering-hoist-jsx)
 const PPT_DONE_CHIPS: SuggestionChip[] = [
@@ -91,22 +98,40 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
 
-  // 파일 처리 (읽기)
+  // 파일 처리 (읽기 — 텍스트 또는 바이너리)
   const processFile = useCallback((file: File) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-      const newFile: AttachedFile = {
-        id: `file-${Date.now()}`,
-        name: file.name,
-        type: getFileType(file.name),
-        content,
-        size: file.size,
-        lastModified: new Date(file.lastModified),
+
+    if (isBinaryFile(file.name)) {
+      reader.onload = (e) => {
+        const buffer = e.target?.result as ArrayBuffer;
+        const newFile: AttachedFile = {
+          id: `file-${Date.now()}`,
+          name: file.name,
+          type: getFileType(file.name),
+          content: '',
+          size: file.size,
+          lastModified: new Date(file.lastModified),
+          arrayBuffer: buffer,
+        };
+        setAttachedFile(newFile);
       };
-      setAttachedFile(newFile);
-    };
-    reader.readAsText(file);
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        const newFile: AttachedFile = {
+          id: `file-${Date.now()}`,
+          name: file.name,
+          type: getFileType(file.name),
+          content,
+          size: file.size,
+          lastModified: new Date(file.lastModified),
+        };
+        setAttachedFile(newFile);
+      };
+      reader.readAsText(file);
+    }
   }, []);
 
   // Drag 이벤트 핸들러 (카운터 기반으로 플리커 방지)
@@ -243,7 +268,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           type="file"
           className="hidden"
           onChange={handleFileSelect}
-          accept=".md,.txt,.json,.yaml,.yml"
+          accept=".md,.txt,.json,.yaml,.yml,.pdf,.docx"
         />
 
         {/* 추천 프롬프트 칩 - 시나리오 완료 상태에 따라 표시 */}

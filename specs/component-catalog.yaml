@@ -17,7 +17,7 @@
 # last_researched: YYYY-MM-DD (마지막 리서치 수행일, /research 커맨드가 갱신, 30일 경과 시 stale 후보)
 
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   last_updated: "2026-02-16"
   project: "KonaI-Agent"
   tech_stack:
@@ -397,13 +397,20 @@ categories:
       - id: document_viewer
         name: "Document Viewer (docx/pdf/pptx)"
         description: "에이전트가 생성하거나 참조하는 문서를 인라인 프리뷰"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: complex
         contexts: [artifact_panel, chat_view]
+        source_files:
+          - "src/components/features/agent-chat/components/DocumentViewer/DocumentViewer.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/PDFViewer.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/DOCXViewer.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/DocumentViewerToolbar.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/document-viewer-patterns.md"
         last_researched: "2026-02-16"
+        notes: "Phase 1+2 구현 완료. react-pdf(PDF), docx-preview(DOCX). XLSX는 Phase 3로 미룸."
 
       - id: ppt_slide_preview
         name: "PPT Slide Preview & Editor"

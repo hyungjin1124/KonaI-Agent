@@ -5,11 +5,12 @@ import { Artifact, SlideItem, DashboardType, SlideOutlineDeck, SlideOutline, Sli
 import { SlideOutlineFileList } from '../SlideOutlineHITL/sidebar/SlideOutlineFileList';
 import { SlideOutlineEditor } from '../SlideOutlineHITL/editor/SlideOutlineEditor';
 import { MarkdownPreviewPanel } from '../MarkdownPreviewPanel';
+import { DocumentViewer } from '../DocumentViewer';
 
 interface ArtifactPreviewPanelProps {
   isOpen: boolean;
   artifact: Artifact | null;
-  previewType: 'ppt' | 'dashboard' | 'chart' | 'slide-outline' | 'markdown' | null;
+  previewType: 'ppt' | 'dashboard' | 'chart' | 'slide-outline' | 'markdown' | 'pdf' | 'docx' | null;
   onClose: () => void;
   onDownload?: () => void;
   // PPT Preview Props
@@ -45,6 +46,8 @@ interface ArtifactPreviewPanelProps {
   isAllOutlinesApproved?: boolean;
   approvedOutlineCount?: number;
   totalOutlineCount?: number;
+  // Document Viewer Props (PDF/DOCX)
+  documentData?: ArrayBuffer;
   // Markdown Preview Props
   markdownContent?: string;
   markdownMode?: 'read' | 'edit';
@@ -90,6 +93,8 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
   isAllOutlinesApproved = false,
   approvedOutlineCount = 0,
   totalOutlineCount = 0,
+  // Document Viewer Props
+  documentData,
   // Markdown Props
   markdownContent = '',
   markdownMode = 'read',
@@ -103,8 +108,8 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
   if (!isOpen) return null;
 
   const renderPreview = () => {
-    // dashboard/chart/slide-outline/markdown 타입은 artifact 없이도 렌더링 가능
-    if (!artifact && previewType !== 'ppt' && previewType !== 'dashboard' && previewType !== 'chart' && previewType !== 'slide-outline' && previewType !== 'markdown') {
+    // dashboard/chart/slide-outline/markdown/pdf/docx 타입은 artifact 없이도 렌더링 가능
+    if (!artifact && previewType !== 'ppt' && previewType !== 'dashboard' && previewType !== 'chart' && previewType !== 'slide-outline' && previewType !== 'markdown' && previewType !== 'pdf' && previewType !== 'docx') {
       return (
         <div className="flex-1 flex items-center justify-center text-gray-400">
           <p>미리보기할 항목을 선택해주세요</p>
@@ -217,6 +222,24 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
           </div>
         );
 
+      case 'pdf':
+      case 'docx':
+        if (!documentData) {
+          return (
+            <div className="flex-1 flex items-center justify-center text-gray-400">
+              <p>문서를 불러오는 중...</p>
+            </div>
+          );
+        }
+        return (
+          <DocumentViewer
+            fileData={documentData}
+            fileName={artifact?.title || `document.${previewType}`}
+            fileType={previewType}
+            onClose={onClose}
+          />
+        );
+
       default:
         // Generic preview for documents, images, etc.
         return (
@@ -243,8 +266,8 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
     }
   };
 
-  // PPT, Dashboard, Chart, Slide Outline, Markdown 미리보기의 경우 별도 헤더 표시 안함 (내부에 자체 헤더 있음)
-  const showHeader = previewType !== 'ppt' && previewType !== 'dashboard' && previewType !== 'chart' && previewType !== 'slide-outline' && previewType !== 'markdown';
+  // PPT, Dashboard, Chart, Slide Outline, Markdown, PDF, DOCX 미리보기의 경우 별도 헤더 표시 안함 (내부에 자체 헤더 있음)
+  const showHeader = previewType !== 'ppt' && previewType !== 'dashboard' && previewType !== 'chart' && previewType !== 'slide-outline' && previewType !== 'markdown' && previewType !== 'pdf' && previewType !== 'docx';
 
   return (
     <div className={`h-full flex flex-col bg-white border-l border-r border-gray-200 transition-all duration-300 ${isMaximized ? 'fixed inset-0 z-50' : ''}`}>
