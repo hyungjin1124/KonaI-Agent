@@ -9,13 +9,16 @@
 #   - Obsidian Vault: 리서치 + 기준 정의 (경쟁사 분석, acceptance criteria, references)
 #   → obsidian_sources 필드를 통해 상세 리서치 문서에 접근 가능
 #
-# status: implemented | partial | not_implemented | research_needed
+# status: implemented | partial | not_implemented | research_needed | needs_update | deprecated
+#   - needs_update: 구현 완료이나 리서치에서 개선 필요성 발견
+#   - deprecated: 더 이상 필요 없음 (다른 패턴으로 대체됨)
 # priority: critical | high | medium | low
 # complexity: simple(1-2일) | moderate(3-5일) | complex(1주+) | epic(분리필요)
+# last_researched: YYYY-MM-DD (마지막 리서치 수행일, /research 커맨드가 갱신, 30일 경과 시 stale 후보)
 
 metadata:
   version: "1.1.0"
-  last_updated: "2026-02-15"
+  last_updated: "2026-02-16"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -158,17 +161,11 @@ categories:
       - id: citation_source_link
         name: "Citation & Source Link"
         description: "에이전트 응답에 출처 인용 및 링크 표시"
-        status: implemented
+        status: not_implemented
         priority: medium
         complexity: simple
         contexts: [chat_view]
-        source_files:
-          - "src/components/features/agent-chat/components/CitationSourceLink/CitationSourceLink.tsx"
-          - "src/components/features/agent-chat/components/CitationSourceLink/CitationBadge.tsx"
-          - "src/components/features/agent-chat/components/CitationSourceLink/SourceLinkList.tsx"
-          - "src/components/features/agent-chat/components/CitationSourceLink/index.ts"
-        metadata:
-          last_updated: "2026-02-15"
+        source_files: []
 
       - id: suggested_prompts
         name: "Suggested Prompts / Starter Questions"
@@ -406,6 +403,7 @@ categories:
         contexts: [artifact_panel, chat_view]
         obsidian_sources:
           - "Insights/agent-ui/patterns/document-viewer-patterns.md"
+        last_researched: "2026-02-16"
 
       - id: ppt_slide_preview
         name: "PPT Slide Preview & Editor"
@@ -420,6 +418,7 @@ categories:
           - "src/components/features/ppt/SlideThumbnailList.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/document-viewer-patterns.md"
+        last_researched: "2026-02-16"
 
       - id: data_pipeline_editor
         name: "Data Pipeline Visual Editor"
@@ -752,19 +751,32 @@ categories:
 # ============================================================================
 # 카탈로그 업데이트 가이드
 # ============================================================================
+#
+# 이 카탈로그는 3개 커맨드 파이프라인에 의해 업데이트됩니다:
+#   /discover → /research → /implement
+#
+# --- /discover (외부 동향 스캔) ---
+#   - NEW: 새 컴포넌트 항목 추가 (status: research_needed)
+#   - PRIORITY_CHANGE: priority 조정
+#   - DEPRECATED: status → deprecated 제안
+#   - 직접 카탈로그를 수정하지 않고 리포트로 제안
+#
+# --- /research (리서치 브리프 생성) ---
+#   - obsidian_sources 추가/갱신
+#   - last_researched 갱신 (오늘 날짜)
+#   - 새 주제면 새 컴포넌트 항목 추가
+#   - 기존 implemented인데 개선 필요하면 status → needs_update
+#
+# --- /implement (코드 구현) ---
+#   - status → implemented | partial
+#   - source_files 추가
+#   - metadata.last_updated 갱신
+#
+# --- 수동 업데이트 가이드 ---
 # 새로운 패턴 추가 시:
 #   1. 적절한 카테고리 선택 (없으면 새 카테고리 추가)
 #   2. 고유 id 부여 (snake_case)
 #   3. status를 research_needed로 설정
 #   4. obsidian_sources에 관련 리서치 문서 경로 추가
-#   5. metadata.last_updated 갱신
-#
-# 구현 상태 갱신 시:
-#   1. status 변경 (not_implemented → partial → implemented)
-#   2. source_files에 관련 파일 경로 추가
-#   3. obsidian_sources의 리서치 문서에서 acceptance criteria 확인
-#
-# 에이전트 자동 스캔 시:
-#   1. source_files 경로의 파일 존재 여부 확인
-#   2. obsidian_sources 문서의 Acceptance Criteria로 구현 검증
-#   3. status 자동 업데이트 제안
+#   5. last_researched에 리서치 수행일 기록
+#   6. metadata.last_updated 갱신
