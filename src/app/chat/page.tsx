@@ -2,12 +2,12 @@
 
 import React, { lazy, Suspense } from 'react';
 
-const GeneralChatView = lazy(() => import('../../components/features/general-chat/GeneralChatView'));
+const AgentChatView = lazy(() => import('../../components/features/agent-chat/AgentChatView'));
 
 export default function ChatPage() {
   return (
     <Suspense fallback={<div className="flex-1 flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
-      <GeneralChatView />
+      <AgentChatView />
     </Suspense>
   );
 }

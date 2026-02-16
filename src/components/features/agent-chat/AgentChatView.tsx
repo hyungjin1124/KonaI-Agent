@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 // NOTE: 아이콘들은 HomeView, ChatInputArea 등 하위 컴포넌트에서 직접 import함
 import Dashboard from '../dashboard/Dashboard';
 import { SampleInterfaceContext, PPTConfig } from '../../../types';
-import { SlideItem, Artifact, RightPanelType, ProgressTask, ContextItem, SidebarSection, ArtifactPreviewState, CenterPanelState, AttachedFile } from './types';
+import { SlideItem, Artifact, RightPanelType, ProgressTask, ContextItem, SidebarSection, ArtifactPreviewState, CenterPanelState, AttachedFile, Citation } from './types';
 import { useCaptureStateInjection, StateInjectionHandlers, useScrollToBottomButton, useSlideOutlineHITL } from '../../../hooks';
 import { AnomalyResponse, DefaultResponse, PPTDoneResponse, SalesAnalysisDoneResponse } from './components/AgentResponse';
 import PPTScenarioRenderer, { ActiveHitl } from './components/PPTScenarioRenderer';
@@ -112,6 +112,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   const generatedFileIdsRef = useRef<Set<string>>(new Set());
   const slidePlanningTimersRef = useRef<NodeJS.Timeout[]>([]);
   const [isOutlineRevisionMode, setIsOutlineRevisionMode] = useState(false);
+  const [revisionApprovalPending, setRevisionApprovalPending] = useState(false);
   const [markdownEditingState, setMarkdownEditingState] = useState<'idle' | 'editing' | 'shimmer'>('idle');
   const revisionTimersRef = useRef<NodeJS.Timeout[]>([]);
   const [artifactPreview, setArtifactPreview] = useState<ArtifactPreviewState>({
@@ -556,6 +557,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       text.includes('슬라이드 생성') || text.includes('PPT 생성')
     )) {
       setIsOutlineRevisionMode(false);
+      setRevisionApprovalPending(true);
 
       // 사용자 메시지 추가
       const userMessage: ChatMessage = {
@@ -852,7 +854,23 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       timestamp: new Date(),
     };
 
-    // 2. 에이전트 응답 메시지를 히스토리에 추가
+    // 2. 에이전트 확인 텍스트 메시지 (citations 포함)
+    const scenarioCitations: Citation[] = targetScenario === 'sales_analysis' ? [
+      { id: 'cite-erp', index: 1, title: '영림원 ERP 재무 데이터', url: 'https://erp.konai.com/financial/2025-q4', domain: 'erp.konai.com', snippet: '2025년 4분기 연결 재무제표 및 사업부별 매출 데이터' },
+      { id: 'cite-e2max', index: 2, title: 'E2MAX 원가 분석 시스템', url: 'https://e2max.konai.com/cost-analysis', domain: 'e2max.konai.com', snippet: '사업부별 원가율 추이 및 원가 구성 상세 데이터' },
+      { id: 'cite-portal', index: 3, title: '플랫폼 포탈 운영 지표', url: 'https://portal.konai.com/metrics/2025-q4', domain: 'portal.konai.com', snippet: '트랜잭션 처리량, 고객사별 매출, 서비스 가동률' },
+    ] : targetType === 'ppt' ? [
+      { id: 'cite-erp-ppt', index: 1, title: '경영 실적 보고서 원본', url: 'https://erp.konai.com/reports/2025-q4', domain: 'erp.konai.com', snippet: '2025년 4분기 경영 실적 종합 보고서' },
+      { id: 'cite-strategy', index: 2, title: '사업 전략 기획안', url: 'https://docs.konai.com/strategy/2026', domain: 'docs.konai.com', snippet: '2026년 사업부별 전략 방향 및 핵심 추진 과제' },
+    ] : [];
+
+    const confirmText = targetScenario === 'sales_analysis'
+      ? '요청하신 매출 실적 분석을 시작합니다. ERP, E2MAX, 플랫폼 포탈의 데이터를 연동하여 종합 분석을 수행합니다.'
+      : targetType === 'ppt'
+        ? '요청하신 PPT 생성을 시작합니다. 경영 실적 데이터를 기반으로 프레젠테이션을 구성합니다.'
+        : '';
+
+    // 3. 에이전트 시나리오 응답 메시지를 히스토리에 추가
     const agentMessage: ChatMessage = {
       id: `agent-${Date.now()}`,
       type: 'agent',
@@ -863,7 +881,18 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       pptStatus: targetPptStatus,
     };
 
-    setChatHistory(prev => [...prev, userMessage, agentMessage]);
+    if (confirmText && scenarioCitations.length > 0) {
+      const confirmMessage: ChatMessage = {
+        id: `agent-confirm-${Date.now()}`,
+        type: 'agent',
+        content: confirmText,
+        timestamp: new Date(),
+        citations: scenarioCitations,
+      };
+      setChatHistory(prev => [...prev, userMessage, confirmMessage, agentMessage]);
+    } else {
+      setChatHistory(prev => [...prev, userMessage, agentMessage]);
+    }
 
     // 3. 첨부 파일이 있는 경우 Mock 수정 응답 생성
     if (attachedFile && attachedFile.type === 'markdown') {
@@ -986,6 +1015,7 @@ setArtifacts([]); // Clear artifacts
     slidePlanningTimersRef.current.forEach(t => clearTimeout(t)); // 타이머 정리
     slidePlanningTimersRef.current = [];
     setIsOutlineRevisionMode(false); // 수정 모드 리셋
+    setRevisionApprovalPending(false); // revision 승인 상태 리셋
     setMarkdownEditingState('idle'); // 마크다운 편집 상태 리셋
     revisionTimersRef.current.forEach(t => clearTimeout(t));
     revisionTimersRef.current = [];
@@ -1341,6 +1371,7 @@ setArtifacts([]); // Clear artifacts
                 onSlideOutlineReviewStart={handleSlideOutlineReviewStart}
                 isSlideOutlineReviewComplete={slideOutlineHITL.isAllApproved}
                 isOutlineRevisionMode={isOutlineRevisionMode}
+                isRevisionApproval={revisionApprovalPending}
                 // Theme/Font Select Props
                 onThemeFontComplete={handleThemeFontComplete}
                 // 마크다운 파일 생성 콜백
@@ -1626,7 +1657,79 @@ setArtifacts([]); // Clear artifacts
     );
   }
 
-  return null;
+  // 2. Empty State (showDashboard=false) — 빈 상태 랜딩 UI
+  const emptyLeftPanel = (
+    <div className="flex h-full">
+      <ConversationSidebar
+        isCollapsed={!isConversationSidebarOpen}
+        onToggleCollapse={handleToggleConversationSidebar}
+        sessions={MOCK_AGENT_SESSIONS}
+        activeSessionId={null}
+        onSessionSelect={() => {}}
+        onNewChat={() => {}}
+      />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* 빈 상태 랜딩 */}
+        <div className="flex-1 flex flex-col items-center justify-center px-8">
+          <div className="w-full max-w-2xl flex flex-col items-center">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-[#FF3C42] rounded-lg flex items-center justify-center shadow-sm">
+                <span className="text-white font-bold text-lg">K</span>
+              </div>
+              <span className="text-xl font-semibold text-gray-800">KonaAgent</span>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-8">
+              무엇을 도와드릴까요?
+            </h2>
+          </div>
+        </div>
+        {/* 입력 영역 */}
+        <div className="shrink-0">
+          <ChatInputArea
+            inputValue={inputValue}
+            setInputValue={setInputValue}
+            textareaRef={textareaRef}
+            onSend={handleSend}
+            activeHitl={null}
+            hitlResumeCallback={null}
+            onHitlClose={() => {}}
+            pptConfig={pptConfig}
+            updatePptConfig={updatePptConfig}
+            onGenerateStart={handleGenerateStart}
+            pptStatus={pptStatus}
+            salesAnalysisComplete={false}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const emptyRightSidebar = (
+    <RightSidebar
+      isCollapsed={isRightPanelCollapsed}
+      expandedSections={sidebarExpandedSections}
+      onToggleSection={handleToggleSidebarSection}
+      onToggleCollapse={toggleRightPanel}
+      tasks={[]}
+      artifacts={[]}
+      selectedArtifactId={undefined}
+      onArtifactSelect={() => {}}
+      onArtifactDownload={() => {}}
+      contextItems={[]}
+    />
+  );
+
+  return (
+    <div ref={containerRef} className="w-full h-full overflow-hidden">
+      <CoworkLayout
+        leftPanel={emptyLeftPanel}
+        centerPanel={null}
+        isCenterPanelOpen={false}
+        rightPanel={emptyRightSidebar}
+        isRightPanelCollapsed={isRightPanelCollapsed}
+      />
+    </div>
+  );
 };
 
 export default AgentChatView;
