@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.2.0"
-  last_updated: "2026-02-18"
+  last_updated: "2026-02-19"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -386,14 +386,26 @@ categories:
       - id: artifact_panel
         name: "Artifact Panel (Split View)"
         description: "대화 옆에 에이전트 생성 결과물을 별도 패널에 표시"
-        status: not_implemented
+        status: implemented
         priority: critical
         complexity: complex
         contexts: [chat_view, artifact_panel]
+        source_files:
+          - "src/components/features/agent-chat/context/ArtifactPanelContext.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPanelHeader.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactTabBar.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/DocumentRenderer.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/PPTRenderer.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/DashboardRenderer.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/MarkdownRenderer.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/SlideOutlineRenderer.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/artifact-panel-layout.md"
         dependencies: [markdown_renderer, code_block, document_viewer]
         last_researched: "2026-02-18"
+        notes: "Phase 1 완료: ArtifactPanelContext(탭 관리), 5개 렌더러 분리, 탭 바, 키보드 내비게이션(Ctrl+Tab/W). 50+ props → Context + grouped renderer props로 리팩터링."
 
       - id: document_viewer
         name: "Document Viewer (docx/pdf/pptx)"
