@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.2.0"
-  last_updated: "2026-02-16"
+  last_updated: "2026-02-18"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -393,6 +393,7 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/artifact-panel-layout.md"
         dependencies: [markdown_renderer, code_block, document_viewer]
+        last_researched: "2026-02-18"
 
       - id: document_viewer
         name: "Document Viewer (docx/pdf/pptx)"
