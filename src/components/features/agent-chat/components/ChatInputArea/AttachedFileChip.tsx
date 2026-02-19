@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, X, Presentation, BarChart2, Image } from 'lucide-react';
+import { FileText, X, Presentation, BarChart2, Image, Table2 } from 'lucide-react';
 import { AttachedFile } from '../../types';
 
 interface AttachedFileChipProps {
@@ -23,8 +23,17 @@ export const AttachedFileChip: React.FC<AttachedFileChipProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Artifact 타입별 아이콘
+  // 파일 타입별 아이콘
   const getIcon = () => {
+    // 파일 확장자 기반 아이콘
+    switch (file.type) {
+      case 'xlsx':
+      case 'csv':
+        return <Table2 size={14} className="text-green-600 flex-shrink-0" />;
+      case 'pptx':
+        return <Presentation size={14} className="text-orange-500 flex-shrink-0" />;
+    }
+    // Artifact 타입 기반 아이콘
     if (file.artifactType) {
       switch (file.artifactType) {
         case 'ppt': return <Presentation size={14} className="text-orange-500 flex-shrink-0" />;

@@ -12,7 +12,7 @@ import {
 
 interface DocumentViewerToolbarProps {
   fileName: string;
-  fileType: 'pdf' | 'docx';
+  fileType: 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx';
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;

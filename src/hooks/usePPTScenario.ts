@@ -436,9 +436,34 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
   }, [completeAsyncStep]);
 
   // Slide outline review complete (called when all slides are approved)
-  const completeSlideOutlineReview = useCallback(() => {
-    completeAsyncStep('tool_slide_outline_review');
-  }, [completeAsyncStep]);
+  // skipFollowingText: revision 모드에서 승인 시 agent_outline_approved 텍스트 스킵
+  const completeSlideOutlineReview = useCallback((skipFollowingText?: boolean) => {
+    if (skipFollowingText) {
+      // agent_outline_approved 텍스트 단계를 건너뛰고 tool_theme_font_select로 직접 진행
+      const stepId = 'tool_slide_outline_review';
+      setActiveHitl(null);
+
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id.includes(stepId)
+            ? { ...msg, toolStatus: 'completed' as ToolStatus }
+            : msg
+        )
+      );
+
+      // 현재 스텝 + 스킵할 텍스트 스텝 모두 완료 처리
+      setCompletedStepIds(prev => new Set([...prev, stepId, 'agent_outline_approved']));
+      setIsPaused(false);
+      onStepComplete?.(stepId);
+
+      // +2: tool_slide_outline_review → (skip agent_outline_approved) → tool_theme_font_select
+      const skipIndex = stepIndexRef.current + 2;
+      stepIndexRef.current = skipIndex;
+      executeStep(skipIndex);
+    } else {
+      completeAsyncStep('tool_slide_outline_review');
+    }
+  }, [completeAsyncStep, executeStep, onStepComplete, setActiveHitl, setMessages, setCompletedStepIds, setIsPaused, stepIndexRef]);
 
   // Theme/font selection complete
   const completeThemeFontSelect = useCallback(() => {

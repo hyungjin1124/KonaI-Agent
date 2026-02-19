@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pencil, X, Check, Wand2, Calendar, Database, BarChart3, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Pencil, X, Check, Wand2, Calendar, Database, BarChart3, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { HitlOption, ToolType, DataValidationSummary } from '../types';
 import { PPTConfig } from '../../../../types';
 import {
@@ -7,6 +7,7 @@ import {
   PPT_FONT_OPTIONS,
   PPT_TOPIC_OPTIONS,
 } from './ToolCall/constants';
+import { getWizardConfig } from '../constants/hitlWizardConfig';
 import { Card, CardContent } from '../../../ui/card';
 import { Button } from '../../../ui/button';
 import { Input } from '../../../ui/input';
@@ -59,7 +60,7 @@ interface HITLFloatingPanelProps {
  * - 채팅 입력창 위에 표시되는 사용자 선택 패널
  * - Claude Cowork 스타일
  * - toolType별 커스텀 렌더링 지원
- * - PPT Setup: 3단계 Wizard UI
+ * - Multi-Step Wizard: sub-step 네비게이션 지원
  */
 export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
   isVisible,
@@ -69,8 +70,6 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
   onSelect,
   onSkip,
   onClose,
-  totalQuestions = 1,
-  currentQuestion = 1,
   toolType,
   validationData,
   pptConfig,
@@ -80,73 +79,347 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
   analysisScopeData,
   dataVerificationData,
 }) => {
+  // --- Wizard 상태 ---
+  const wizardConfig = toolType ? getWizardConfig(toolType) : undefined;
+  const isWizard = !!wizardConfig && wizardConfig.subSteps.length > 1;
+  const totalSubSteps = wizardConfig?.subSteps.length ?? 1;
+
+  const [currentSubStepIndex, setCurrentSubStepIndex] = useState(0);
+
+  // toolType 변경 시 sub-step 리셋
+  useEffect(() => {
+    setCurrentSubStepIndex(0);
+  }, [toolType]);
+
+  const currentSubStep = wizardConfig?.subSteps[currentSubStepIndex];
+  const isFirstSubStep = currentSubStepIndex === 0;
+  const isLastSubStep = currentSubStepIndex === totalSubSteps - 1;
+
   if (!isVisible) return null;
 
-  // 콘텐츠 설정 (토픽 + 슬라이드 수)
-  const renderContentStep = () => (
-    <div className="space-y-5">
-      {/* 포함할 주요 내용 */}
-      <div className="space-y-2">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">포함할 주요 내용</label>
-        <div className="space-y-1.5">
-          {PPT_TOPIC_OPTIONS.map((topic) => {
-            const isSelected = pptConfig?.topics.includes(topic);
-            return (
-              <button
-                key={topic}
-                onClick={() => {
-                  const newTopics = isSelected
-                    ? pptConfig?.topics.filter(t => t !== topic) || []
-                    : [...(pptConfig?.topics || []), topic];
-                  onPptConfigUpdate?.('topics', newTopics);
-                }}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                  isSelected
-                    ? 'bg-blue-50 border-blue-300'
-                    : 'border-gray-100 hover:bg-gray-50 hover:border-gray-200'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                  isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white'
-                }`}>
-                  {isSelected && <Check size={12} strokeWidth={3} />}
-                </div>
-                <span className={`text-sm ${isSelected ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
-                  {topic}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+  // --- Sub-step 유효성 검사 ---
+  const isCurrentSubStepValid = (): boolean => {
+    if (!currentSubStep) return true;
+    switch (currentSubStep.renderKey) {
+      case 'ppt_setup_topics':
+        return (pptConfig?.topics.length ?? 0) > 0;
+      case 'ppt_setup_slide_count':
+        return typeof pptConfig?.slideCount === 'number' && pptConfig.slideCount >= 5 && pptConfig.slideCount <= 50;
+      case 'theme_font_theme':
+        return !!pptConfig?.theme;
+      default:
+        return true;
+    }
+  };
 
-      {/* 슬라이드 수 */}
-      <div className="space-y-2">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">슬라이드 수</label>
-        <div className="flex items-center gap-2">
-          <Input
-            type="number"
-            value={pptConfig?.slideCount || ''}
-            onChange={(e) => onPptConfigUpdate?.('slideCount', e.target.value === '' ? '' : parseInt(e.target.value))}
-            className="flex-1 bg-gray-50 rounded-xl px-4 py-3 h-auto"
-            min={5}
-            max={50}
-            placeholder="15"
-          />
-          <span className="text-sm text-gray-500">장</span>
-        </div>
+  // --- Wizard 완료 핸들러 ---
+  const handleWizardComplete = () => {
+    if (toolType === 'ppt_setup') {
+      onPptSetupComplete?.();
+    } else if (toolType === 'theme_font_select') {
+      onThemeFontComplete?.();
+    } else if (toolType === 'analysis_scope_confirm') {
+      onSelect('confirm');
+    }
+  };
+
+  // =============================================
+  // Sub-step 렌더 함수들 (기존 모놀리식에서 분해)
+  // =============================================
+
+  // PPT Setup: 토픽 선택
+  const renderTopicSelection = () => (
+    <div className="space-y-2">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">포함할 주요 내용</label>
+      <div className="space-y-1.5">
+        {PPT_TOPIC_OPTIONS.map((topic) => {
+          const isSelected = pptConfig?.topics.includes(topic);
+          return (
+            <button
+              key={topic}
+              onClick={() => {
+                const newTopics = isSelected
+                  ? pptConfig?.topics.filter(t => t !== topic) || []
+                  : [...(pptConfig?.topics || []), topic];
+                onPptConfigUpdate?.('topics', newTopics);
+              }}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                isSelected
+                  ? 'bg-blue-50 border-blue-300'
+                  : 'border-gray-100 hover:bg-gray-50 hover:border-gray-200'
+              }`}
+            >
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white'
+              }`}>
+                {isSelected && <Check size={12} strokeWidth={3} />}
+              </div>
+              <span className={`text-sm ${isSelected ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                {topic}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 
-  // PPT 콘텐츠 설정 UI 렌더링 (단일 단계로 단순화)
-  const renderPptSetupContent = () => {
-    if (!pptConfig || !onPptConfigUpdate || !onPptSetupComplete) return null;
+  // PPT Setup: 슬라이드 수
+  const renderSlideCountInput = () => (
+    <div className="space-y-2">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">슬라이드 수</label>
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          value={pptConfig?.slideCount || ''}
+          onChange={(e) => onPptConfigUpdate?.('slideCount', e.target.value === '' ? '' : parseInt(e.target.value))}
+          className="flex-1 bg-gray-50 rounded-xl px-4 py-3 h-auto"
+          min={5}
+          max={50}
+          placeholder="15"
+        />
+        <span className="text-sm text-gray-500">장</span>
+      </div>
+      {pptConfig?.topics && pptConfig.topics.length > 0 && (
+        <p className="text-xs text-gray-400 mt-1">
+          선택된 내용: {pptConfig.topics.join(', ')}
+        </p>
+      )}
+    </div>
+  );
 
+  // Theme/Font: 테마 선택
+  const renderThemeSelection = () => (
+    <div className="space-y-2">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">테마</label>
+      <div className="grid grid-cols-3 gap-2">
+        {PPT_THEME_OPTIONS.map((theme) => (
+          <button
+            key={theme}
+            onClick={() => onPptConfigUpdate?.('theme', theme)}
+            className={`px-3 py-3 rounded-xl text-sm font-medium border-2 transition-all ${
+              pptConfig?.theme === theme
+                ? 'border-[#FF3C42] bg-red-50 text-[#FF3C42] shadow-sm'
+                : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white hover:bg-gray-50'
+            }`}
+          >
+            {theme}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Theme/Font: 폰트 선택
+  const renderFontSelection = () => (
+    <div className="space-y-2">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">폰트 스타일</label>
+      <Select
+        value={pptConfig?.titleFont || 'Pretendard'}
+        onValueChange={(v) => onPptConfigUpdate?.('titleFont', v)}
+      >
+        <SelectTrigger className="bg-gray-50 border-gray-200 rounded-xl h-12">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PPT_FONT_OPTIONS.map((font) => (
+            <SelectItem key={font} value={font}>{font}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {pptConfig?.theme && (
+        <p className="text-xs text-gray-400 mt-1">
+          선택된 테마: {pptConfig.theme}
+        </p>
+      )}
+    </div>
+  );
+
+  // Analysis Scope: 기간 확인
+  const renderPeriodConfirmation = () => {
+    if (!analysisScopeData) return null;
     return (
       <div className="space-y-4">
-        {renderContentStep()}
+        <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+              <Calendar size={16} className="text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <span className="text-xs text-gray-500 font-medium">분석 기간</span>
+              <p className="text-sm font-semibold text-gray-900 mt-0.5">{analysisScopeData.period}</p>
+              <p className="text-xs text-gray-500 mt-0.5">비교: {analysisScopeData.comparisonPeriod}</p>
+            </div>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => onSelect('modify_period')}
+          className="w-full py-3 h-auto rounded-xl font-semibold text-sm"
+        >
+          기간 변경
+        </Button>
+      </div>
+    );
+  };
 
+  // Analysis Scope: 범위 선택
+  const renderScopeSelection = () => {
+    if (!analysisScopeData) return null;
+    return (
+      <div className="space-y-4">
+        <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+              <BarChart3 size={16} className="text-green-600" />
+            </div>
+            <div className="flex-1">
+              <span className="text-xs text-gray-500 font-medium">분석 범위</span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {analysisScopeData.analysisScope.map((scope, idx) => (
+                  <Badge key={idx} variant="outline" className="bg-green-50 text-green-700 border-green-200 rounded-full">
+                    {scope}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => onSelect('modify_scope')}
+          className="w-full py-3 h-auto rounded-xl font-semibold text-sm"
+        >
+          범위 조정
+        </Button>
+      </div>
+    );
+  };
+
+  // Analysis Scope: 데이터 소스 확인 + 확인 버튼
+  const renderDataSourceConfirmation = () => {
+    if (!analysisScopeData) return null;
+    return (
+      <div className="space-y-4">
+        <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+              <Database size={16} className="text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <span className="text-xs text-gray-500 font-medium">데이터 소스</span>
+              <p className="text-sm text-gray-700 mt-0.5">{analysisScopeData.dataSources.join(', ')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // =============================================
+  // Sub-step 콘텐츠 디스패처
+  // =============================================
+  const renderSubStepContent = (renderKey: string) => {
+    switch (renderKey) {
+      // PPT Setup
+      case 'ppt_setup_topics':
+        return renderTopicSelection();
+      case 'ppt_setup_slide_count':
+        return renderSlideCountInput();
+      // Theme/Font
+      case 'theme_font_theme':
+        return renderThemeSelection();
+      case 'theme_font_font':
+        return renderFontSelection();
+      // Analysis Scope
+      case 'scope_period':
+        return renderPeriodConfirmation();
+      case 'scope_range':
+        return renderScopeSelection();
+      case 'scope_data_sources':
+        return renderDataSourceConfirmation();
+      default:
+        return null;
+    }
+  };
+
+  // =============================================
+  // Wizard 네비게이션 UI
+  // =============================================
+  const renderWizardNavigation = () => {
+    if (!isWizard) return null;
+
+    const showCompleteButton = isLastSubStep;
+
+    return (
+      <div className="flex items-center justify-between pt-4 mt-2 border-t border-gray-100">
+        {/* 이전 버튼 */}
+        <Button
+          variant="ghost"
+          onClick={() => setCurrentSubStepIndex(prev => prev - 1)}
+          disabled={isFirstSubStep}
+          className={`h-auto py-1.5 px-3 text-sm ${isFirstSubStep ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          <ChevronLeft size={16} className="mr-1" />
+          이전
+        </Button>
+
+        {/* 단계 인디케이터 dots */}
+        <div className="flex gap-1.5">
+          {wizardConfig!.subSteps.map((_, idx) => (
+            <div
+              key={idx}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                idx === currentSubStepIndex ? 'bg-[#FF3C42]'
+                : idx < currentSubStepIndex ? 'bg-gray-400'
+                : 'bg-gray-200'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* 다음 / 완료 버튼 */}
+        {showCompleteButton ? (
+          <Button
+            onClick={handleWizardComplete}
+            disabled={!isCurrentSubStepValid()}
+            className="h-auto py-1.5 px-4 text-sm bg-black text-white rounded-xl font-semibold hover:bg-gray-800"
+          >
+            <Wand2 size={14} className="mr-1.5" />
+            {toolType === 'ppt_setup' ? '설정 완료' : toolType === 'analysis_scope_confirm' ? '확인' : '적용하기'}
+          </Button>
+        ) : (
+          <Button
+            onClick={() => setCurrentSubStepIndex(prev => prev + 1)}
+            disabled={!isCurrentSubStepValid()}
+            className={`h-auto py-1.5 px-3 text-sm ${
+              isCurrentSubStepValid()
+                ? 'text-gray-700 hover:text-gray-900'
+                : 'text-gray-300'
+            }`}
+            variant="ghost"
+          >
+            다음
+            <ChevronRight size={16} className="ml-1" />
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  // =============================================
+  // 기존 단일 단계 렌더 함수들 (wizard 미적용 toolType용)
+  // =============================================
+
+  // PPT 콘텐츠 설정 (단일 단계 폴백 - wizard 비활성 시)
+  const renderPptSetupContent = () => {
+    if (!pptConfig || !onPptConfigUpdate || !onPptSetupComplete) return null;
+    return (
+      <div className="space-y-4">
+        <div className="space-y-5">
+          {renderTopicSelection()}
+          {renderSlideCountInput()}
+        </div>
         <Button
           onClick={onPptSetupComplete}
           className="w-full py-3.5 h-auto bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800"
@@ -158,50 +431,13 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     );
   };
 
-  // 테마/폰트 선택 UI 렌더링
+  // 테마/폰트 선택 (단일 단계 폴백 - wizard 비활성 시)
   const renderThemeFontContent = () => {
     if (!pptConfig || !onPptConfigUpdate || !onThemeFontComplete) return null;
-
     return (
       <div className="space-y-5">
-        {/* 테마 선택 */}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">테마</label>
-          <div className="grid grid-cols-3 gap-2">
-            {PPT_THEME_OPTIONS.map((theme) => (
-              <button
-                key={theme}
-                onClick={() => onPptConfigUpdate?.('theme', theme)}
-                className={`px-3 py-3 rounded-xl text-sm font-medium border-2 transition-all ${
-                  pptConfig?.theme === theme
-                    ? 'border-[#FF3C42] bg-red-50 text-[#FF3C42] shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white hover:bg-gray-50'
-                }`}
-              >
-                {theme}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 폰트 선택 */}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">폰트 스타일</label>
-          <Select
-            value={pptConfig?.titleFont || 'Pretendard'}
-            onValueChange={(v) => onPptConfigUpdate?.('titleFont', v)}
-          >
-            <SelectTrigger className="bg-gray-50 border-gray-200 rounded-xl h-12">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PPT_FONT_OPTIONS.map((font) => (
-                <SelectItem key={font} value={font}>{font}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
+        {renderThemeSelection()}
+        {renderFontSelection()}
         <Button
           onClick={onThemeFontComplete}
           className="w-full py-3.5 h-auto bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800"
@@ -212,10 +448,9 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     );
   };
 
-  // 데이터 검증 UI 렌더링 (PPT 시나리오용)
+  // 데이터 검증 UI (PPT 시나리오용 - 단일 단계)
   const renderValidationContent = () => {
     if (!validationData) return null;
-
     return (
       <div className="space-y-4">
         <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm">
@@ -240,18 +475,17 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
             <p>출처: {validationData.dataSources.join(', ')}</p>
           </div>
         </div>
-
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-2">
           <Button
             onClick={() => onSelect('confirm')}
-            className="flex-1 py-3 h-auto bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 shadow-md"
+            className="w-full py-3 h-auto bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 shadow-md"
           >
             확인
           </Button>
           <Button
             variant="outline"
             onClick={() => onSelect('modify')}
-            className="flex-1 py-3 h-auto rounded-xl font-semibold text-sm"
+            className="w-full py-3 h-auto rounded-xl font-semibold text-sm"
           >
             수정 요청
           </Button>
@@ -260,10 +494,9 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     );
   };
 
-  // 분석 범위 확인 UI 렌더링 (매출 분석 시나리오용)
+  // 분석 범위 확인 UI (단일 단계 폴백 - wizard 비활성 시)
   const renderAnalysisScopeContent = () => {
     if (!analysisScopeData) return null;
-
     return (
       <div className="space-y-4">
         <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm space-y-3">
@@ -277,7 +510,6 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
               <p className="text-xs text-gray-500 mt-0.5">비교: {analysisScopeData.comparisonPeriod}</p>
             </div>
           </div>
-
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
               <BarChart3 size={16} className="text-green-600" />
@@ -293,7 +525,6 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
               </div>
             </div>
           </div>
-
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
               <Database size={16} className="text-purple-600" />
@@ -304,25 +535,24 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
             </div>
           </div>
         </div>
-
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-2">
           <Button
             onClick={() => onSelect('confirm')}
-            className="flex-1 py-3 h-auto bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 shadow-md"
+            className="w-full py-3 h-auto bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 shadow-md"
           >
             확인
           </Button>
           <Button
             variant="outline"
             onClick={() => onSelect('modify_period')}
-            className="flex-1 py-3 h-auto rounded-xl font-semibold text-sm"
+            className="w-full py-3 h-auto rounded-xl font-semibold text-sm"
           >
             기간 변경
           </Button>
           <Button
             variant="outline"
             onClick={() => onSelect('modify_scope')}
-            className="flex-1 py-3 h-auto rounded-xl font-semibold text-sm"
+            className="w-full py-3 h-auto rounded-xl font-semibold text-sm"
           >
             범위 조정
           </Button>
@@ -331,10 +561,9 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     );
   };
 
-  // 데이터 검증 UI 렌더링 (매출 분석 시나리오용)
+  // 데이터 검증 UI (매출 분석 시나리오용 - 단일 단계)
   const renderDataVerificationContent = () => {
     if (!dataVerificationData) return null;
-
     return (
       <div className="space-y-4">
         <div className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm">
@@ -359,18 +588,17 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
             <p>출처: {dataVerificationData.sources.join(', ')}</p>
           </div>
         </div>
-
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-2">
           <Button
             onClick={() => onSelect('confirm')}
-            className="flex-1 py-3 h-auto bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 shadow-md"
+            className="w-full py-3 h-auto bg-black text-white rounded-xl font-semibold text-sm hover:bg-gray-800 shadow-md"
           >
             확인
           </Button>
           <Button
             variant="outline"
             onClick={() => onSelect('modify')}
-            className="flex-1 py-3 h-auto rounded-xl font-semibold text-sm"
+            className="w-full py-3 h-auto rounded-xl font-semibold text-sm"
           >
             수정 요청
           </Button>
@@ -433,8 +661,21 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     </>
   );
 
-  // toolType에 따라 적절한 콘텐츠 렌더링
+  // =============================================
+  // 메인 콘텐츠 렌더링
+  // =============================================
   const renderContent = () => {
+    // Wizard 모드: sub-step 콘텐츠 + 네비게이션
+    if (isWizard && currentSubStep) {
+      return (
+        <div className="space-y-4">
+          {renderSubStepContent(currentSubStep.renderKey)}
+          {renderWizardNavigation()}
+        </div>
+      );
+    }
+
+    // 단일 단계 모드 (기존 로직)
     if (toolType === 'ppt_setup' && pptConfig && onPptConfigUpdate) {
       return renderPptSetupContent();
     }
@@ -453,8 +694,8 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
     return renderDefaultOptions();
   };
 
-  const headerTitle = question;
-  const headerDescription: string | null = null;
+  // 헤더 제목: wizard 모드에서는 sub-step 제목 사용
+  const headerTitle = isWizard && currentSubStep ? currentSubStep.title : question;
 
   return (
     <Card className="rounded-2xl shadow-xl border-gray-100 mb-4 animate-fade-in-up ring-1 ring-black/5">
@@ -465,14 +706,11 @@ export const HITLFloatingPanel: React.FC<HITLFloatingPanelProps> = ({
             <h4 className="text-sm font-semibold text-gray-900 leading-relaxed">
               {headerTitle}
             </h4>
-            {headerDescription && (
-              <p className="text-xs text-gray-500 mt-1">{headerDescription}</p>
-            )}
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            {totalQuestions > 1 && (
+            {isWizard && totalSubSteps > 1 && (
               <span className="text-xs text-gray-400 font-medium">
-                {totalQuestions}개 중 {currentQuestion}개
+                {totalSubSteps}개 중 {currentSubStepIndex + 1}개
               </span>
             )}
             {onClose && (

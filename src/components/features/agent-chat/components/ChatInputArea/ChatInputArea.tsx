@@ -19,13 +19,17 @@ interface SuggestionChip {
 }
 
 // 순수 유틸리티 함수를 컴포넌트 외부로 이동 (rendering-hoist-jsx, rerender-memo)
-const BINARY_EXTENSIONS = ['.pdf', '.docx'];
+const BINARY_EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.xls', '.pptx', '.ppt'];
 
 const getFileType = (filename: string): AttachedFile['type'] => {
-  if (filename.endsWith('.md')) return 'markdown';
-  if (filename.endsWith('.txt')) return 'text';
-  if (filename.endsWith('.pdf')) return 'pdf';
-  if (filename.endsWith('.docx')) return 'docx';
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.md')) return 'markdown';
+  if (lower.endsWith('.txt')) return 'text';
+  if (lower.endsWith('.pdf')) return 'pdf';
+  if (lower.endsWith('.docx')) return 'docx';
+  if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) return 'xlsx';
+  if (lower.endsWith('.csv')) return 'csv';
+  if (lower.endsWith('.pptx') || lower.endsWith('.ppt')) return 'pptx';
   return 'other';
 };
 
@@ -268,7 +272,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           type="file"
           className="hidden"
           onChange={handleFileSelect}
-          accept=".md,.txt,.json,.yaml,.yml,.pdf,.docx"
+          accept=".md,.txt,.json,.yaml,.yml,.pdf,.docx,.xlsx,.xls,.csv,.pptx,.ppt"
         />
 
         {/* 추천 프롬프트 칩 - 시나리오 완료 상태에 따라 표시 */}

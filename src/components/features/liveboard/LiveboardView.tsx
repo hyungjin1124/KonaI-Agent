@@ -1119,14 +1119,14 @@ const LiveboardView: React.FC<LiveboardViewProps> = ({ onAskAgent }) => {
                 stroke="#000" 
                 strokeWidth={3} 
                 dot={(props: LineDotRenderProps) => {
-                    const { cx, cy, payload } = props;
+                    const { cx, cy, payload, index } = props;
                     if (payload.name === '12월') {
                         // Visual cue added for clickability
                         return (
-                            <circle cx={cx} cy={cy} r={6} fill="#FF3C42" stroke="white" strokeWidth={2} className="cursor-pointer hover:scale-125 transition-transform" />
+                            <circle key={index} cx={cx} cy={cy} r={6} fill="#FF3C42" stroke="white" strokeWidth={2} className="cursor-pointer hover:scale-125 transition-transform" />
                         );
                     }
-                    return <circle cx={cx} cy={cy} r={4} fill="#000" />;
+                    return <circle key={index} cx={cx} cy={cy} r={4} fill="#000" />;
                 }}
                 activeDot={{r: 8, stroke: "#FF3C42", strokeWidth: 2}} 
                 cursor="pointer" 

@@ -36,6 +36,7 @@ interface PPTScenarioRendererProps {
   onSlideOutlineReviewStart?: () => void; // 슬라이드 개요 검토 단계 시작 시 콜백
   isSlideOutlineReviewComplete?: boolean; // 모든 슬라이드 개요 승인 시 true
   isOutlineRevisionMode?: boolean; // 수정 모드 중에는 자동 완료 방지
+  isRevisionApproval?: boolean; // revision 모드에서 승인 시 agent_outline_approved 텍스트 스킵
   // Theme/Font Select Props
   onThemeFontComplete?: (completeCallback: () => void) => void; // 테마/폰트 선택 완료 콜백 전달
   // 마크다운 파일 생성 콜백
@@ -68,6 +69,7 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
   onSlideOutlineReviewStart,
   isSlideOutlineReviewComplete,
   isOutlineRevisionMode,
+  isRevisionApproval,
   // Theme/Font Select
   onThemeFontComplete,
   // 마크다운 파일 생성
@@ -220,9 +222,10 @@ const PPTScenarioRenderer: React.FC<PPTScenarioRendererProps> = ({
   useEffect(() => {
     if (isSlideOutlineReviewComplete && !slideOutlineReviewCompletionHandledRef.current && !isOutlineRevisionMode) {
       slideOutlineReviewCompletionHandledRef.current = true;
-      completeSlideOutlineReviewRef.current?.();
+      // revision 승인이면 agent_outline_approved 텍스트 스킵 (chatHistory에 이미 동일 메시지 존재)
+      completeSlideOutlineReviewRef.current?.(isRevisionApproval);
     }
-  }, [isSlideOutlineReviewComplete, isOutlineRevisionMode]);
+  }, [isSlideOutlineReviewComplete, isOutlineRevisionMode, isRevisionApproval]);
 
   // PPTGenPanel에서 슬라이드 생성 완료 시 시나리오 진행
   // isSlideGenerationComplete만 확인 - PPTGenPanel의 완료 신호를 신뢰

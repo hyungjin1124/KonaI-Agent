@@ -120,14 +120,18 @@ export const StreamingTextSpan: React.FC<StreamingTextProps> = ({
   const [isComplete, setIsComplete] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onCompleteRef = useRef(onComplete);
 
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  // 타이핑 인터벌 — state updater 내부에서는 displayLength만 변경
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       setDisplayLength((prev) => {
         if (prev >= text.length) {
           if (intervalRef.current) clearInterval(intervalRef.current);
-          setIsComplete(true);
-          onComplete?.();
           return prev;
         }
         return prev + 1;
@@ -137,7 +141,15 @@ export const StreamingTextSpan: React.FC<StreamingTextProps> = ({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [text, typingSpeed, onComplete]);
+  }, [text, typingSpeed]);
+
+  // 완료 감지 — state updater 밖에서 부모 콜백 호출 (setState-in-render 방지)
+  useEffect(() => {
+    if (text.length > 0 && displayLength >= text.length && !isComplete) {
+      setIsComplete(true);
+      onCompleteRef.current?.();
+    }
+  }, [displayLength, text.length, isComplete]);
 
   useEffect(() => {
     if (isComplete) {

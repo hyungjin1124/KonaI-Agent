@@ -77,7 +77,7 @@ export interface StreamingState {
 }
 
 // Artifact Types for generated files
-export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image' | 'slide-outline' | 'pdf' | 'docx';
+export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image' | 'slide-outline' | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx';
 
 export interface Artifact {
   id: string;
@@ -360,11 +360,25 @@ export interface RightSidebarState {
   expandedSections: SidebarSection[];
 }
 
+// Artifact Preview 타입
+export type ArtifactPreviewType =
+  | 'ppt' | 'dashboard' | 'chart'
+  | 'slide-outline' | 'markdown'
+  | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx';
+
+// Artifact Tab (탭 관리용)
+export interface ArtifactTab {
+  id: string;                             // artifact.id 또는 고유 ID (ppt-gen, slide-outline 등)
+  artifact: Artifact | null;              // 연결된 아티팩트 (null이면 시나리오 탭)
+  previewType: ArtifactPreviewType;
+  title: string;
+}
+
 // Artifact Preview 상태
 export interface ArtifactPreviewState {
   isOpen: boolean;
   selectedArtifact: Artifact | null;
-  previewType: 'ppt' | 'dashboard' | 'chart' | 'slide-outline' | 'markdown' | 'pdf' | 'docx' | null;
+  previewType: ArtifactPreviewType | null;
   markdownMode?: 'read' | 'edit'; // 마크다운 미리보기 모드
   documentData?: ArrayBuffer; // PDF/DOCX binary data
 }
@@ -372,7 +386,7 @@ export interface ArtifactPreviewState {
 // 가운데 패널 상태 (Artifact Preview 독립 제어)
 export interface CenterPanelState {
   isOpen: boolean;
-  content: 'ppt-preview' | 'ppt-result' | 'dashboard' | 'slide-outline' | 'markdown-preview' | null;
+  content: 'ppt-preview' | 'ppt-result' | 'dashboard' | 'slide-outline' | 'markdown-preview' | 'document-preview' | null;
 }
 
 // 레이아웃 모드
@@ -409,7 +423,7 @@ export const ARTIFACT_DRAG_MIME_TYPE = 'application/x-konai-artifact';
 export interface AttachedFile {
   id: string;
   name: string;
-  type: 'markdown' | 'text' | 'pdf' | 'docx' | 'other';
+  type: 'markdown' | 'text' | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx' | 'other';
   content: string;
   size: number;
   lastModified: Date;
