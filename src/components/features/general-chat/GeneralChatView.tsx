@@ -8,50 +8,13 @@ import {
   ContextItem,
   SidebarSection,
 } from '../agent-chat/types';
-import { LeftSidebar } from './components/LeftSidebar';
+import { ConversationSidebar, MOCK_AGENT_SESSIONS } from '../agent-chat/components/ConversationSidebar';
 import { ChatPanel } from './components/ChatPanel';
-import { ChatMessage, ChatSession } from './types';
-
-// Mock data for demo
-const MOCK_SESSIONS: ChatSession[] = [
-  {
-    id: '1',
-    title: 'Q4 매출 분석 요청',
-    preview: '2024년 4분기 매출 데이터를 분석해주세요...',
-    createdAt: new Date(Date.now() - 1000 * 60 * 30),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 30),
-    messageCount: 5,
-  },
-  {
-    id: '2',
-    title: '신규 고객 세그먼트 분석',
-    preview: '최근 3개월간 신규 가입 고객의 특성을...',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3),
-    messageCount: 12,
-  },
-  {
-    id: '3',
-    title: '재고 현황 리포트',
-    preview: '현재 창고별 재고 현황을 정리해주세요',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    messageCount: 8,
-  },
-  {
-    id: '4',
-    title: '마케팅 캠페인 성과',
-    preview: '지난 달 진행한 마케팅 캠페인의 ROI를...',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
-    messageCount: 15,
-  },
-];
+import { ChatMessage } from './types';
 
 export const GeneralChatView: React.FC = () => {
   // Left sidebar state
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
-  const [sessions, setSessions] = useState<ChatSession[]>(MOCK_SESSIONS);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // Chat state
@@ -84,7 +47,6 @@ export const GeneralChatView: React.FC = () => {
 
   const handleSessionSelect = useCallback((sessionId: string) => {
     setActiveSessionId(sessionId);
-    // In a real app, load messages for this session
     setMessages([]);
   }, []);
 
@@ -130,22 +92,8 @@ export const GeneralChatView: React.FC = () => {
       };
       setMessages((prev) => [...prev, assistantMessage]);
       setIsLoading(false);
-
-      // Create new session if none selected
-      if (!activeSessionId) {
-        const newSession: ChatSession = {
-          id: `session-${Date.now()}`,
-          title: currentInput.slice(0, 30) + (currentInput.length > 30 ? '...' : ''),
-          preview: currentInput,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          messageCount: 2,
-        };
-        setSessions((prev) => [newSession, ...prev]);
-        setActiveSessionId(newSession.id);
-      }
     }, 1500);
-  }, [inputValue, isLoading, activeSessionId]);
+  }, [inputValue, isLoading]);
 
   const handleInputChange = useCallback((value: string) => {
     setInputValue(value);
@@ -176,10 +124,10 @@ export const GeneralChatView: React.FC = () => {
   const leftPanelContent = (
     <div className="flex h-full">
       {/* Left Sidebar */}
-      <LeftSidebar
+      <ConversationSidebar
         isCollapsed={isLeftSidebarCollapsed}
         onToggleCollapse={handleToggleLeftSidebar}
-        sessions={sessions}
+        sessions={MOCK_AGENT_SESSIONS}
         activeSessionId={activeSessionId}
         onSessionSelect={handleSessionSelect}
         onNewChat={handleNewChat}

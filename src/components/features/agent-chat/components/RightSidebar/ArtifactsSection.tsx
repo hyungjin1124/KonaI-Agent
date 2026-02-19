@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronRight, FileText, BarChart2, Image, File, Download, Presentation } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, BarChart2, Image, File, Download, Presentation, FileDown, Table2 } from 'lucide-react';
 import { Artifact, ARTIFACT_DRAG_MIME_TYPE } from '../../types';
 
 interface ArtifactsSectionProps {
@@ -17,12 +17,21 @@ const getArtifactIcon = (type: Artifact['type']) => {
       return <Presentation className="w-4 h-4 text-orange-500" />;
     case 'chart':
       return <BarChart2 className="w-4 h-4 text-blue-500" />;
+    case 'pdf':
+      return <FileDown className="w-4 h-4 text-red-500" />;
+    case 'docx':
+      return <FileText className="w-4 h-4 text-blue-600" />;
     case 'document':
       return <FileText className="w-4 h-4 text-gray-600" />;
     case 'markdown':
       return <FileText className="w-4 h-4 text-purple-500" />;
     case 'image':
       return <Image className="w-4 h-4 text-green-500" />;
+    case 'xlsx':
+    case 'csv':
+      return <Table2 className="w-4 h-4 text-green-600" />;
+    case 'pptx':
+      return <Presentation className="w-4 h-4 text-orange-500" />;
     default:
       return <File className="w-4 h-4 text-gray-400" />;
   }

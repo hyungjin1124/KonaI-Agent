@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Bot, User, Plus, ArrowUp } from '../../../../icons';
 import { ChatMessage } from '../../types';
+import { CitationSourceLink } from '../../../agent-chat/components/CitationSourceLink';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -50,9 +51,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   // Empty state with KonaAgent branding - positioned at bottom center
   if (messages.length === 0 && !isLoading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-end px-8 pb-8">
-        {/* Content wrapper - centered horizontally, left-aligned internally */}
-        <div className="w-full max-w-2xl flex flex-col items-start">
+      <div className="flex-1 flex flex-col items-center justify-center px-8">
+        {/* Content wrapper - centered */}
+        <div className="w-full max-w-2xl flex flex-col items-center">
           {/* KonaAgent Logo and Title */}
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-[#FF3C42] rounded-lg flex items-center justify-center shadow-sm">
@@ -144,6 +145,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
                   {message.content}
                 </p>
+                {message.type === 'assistant' && message.citations && message.citations.length > 0 && (
+                  <CitationSourceLink citations={message.citations} />
+                )}
               </div>
               <span className="text-[10px] text-gray-400 mt-1 px-1">
                 {formatTime(message.timestamp)}

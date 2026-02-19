@@ -77,7 +77,7 @@ export interface StreamingState {
 }
 
 // Artifact Types for generated files
-export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image' | 'slide-outline';
+export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image' | 'slide-outline' | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx';
 
 export interface Artifact {
   id: string;
@@ -360,18 +360,33 @@ export interface RightSidebarState {
   expandedSections: SidebarSection[];
 }
 
+// Artifact Preview 타입
+export type ArtifactPreviewType =
+  | 'ppt' | 'dashboard' | 'chart'
+  | 'slide-outline' | 'markdown'
+  | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx';
+
+// Artifact Tab (탭 관리용)
+export interface ArtifactTab {
+  id: string;                             // artifact.id 또는 고유 ID (ppt-gen, slide-outline 등)
+  artifact: Artifact | null;              // 연결된 아티팩트 (null이면 시나리오 탭)
+  previewType: ArtifactPreviewType;
+  title: string;
+}
+
 // Artifact Preview 상태
 export interface ArtifactPreviewState {
   isOpen: boolean;
   selectedArtifact: Artifact | null;
-  previewType: 'ppt' | 'dashboard' | 'chart' | 'slide-outline' | 'markdown' | null;
+  previewType: ArtifactPreviewType | null;
   markdownMode?: 'read' | 'edit'; // 마크다운 미리보기 모드
+  documentData?: ArrayBuffer; // PDF/DOCX binary data
 }
 
 // 가운데 패널 상태 (Artifact Preview 독립 제어)
 export interface CenterPanelState {
   isOpen: boolean;
-  content: 'ppt-preview' | 'ppt-result' | 'dashboard' | 'slide-outline' | 'markdown-preview' | null;
+  content: 'ppt-preview' | 'ppt-result' | 'dashboard' | 'slide-outline' | 'markdown-preview' | 'document-preview' | null;
 }
 
 // 레이아웃 모드
@@ -408,12 +423,13 @@ export const ARTIFACT_DRAG_MIME_TYPE = 'application/x-konai-artifact';
 export interface AttachedFile {
   id: string;
   name: string;
-  type: 'markdown' | 'text' | 'other';
+  type: 'markdown' | 'text' | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx' | 'other';
   content: string;
   size: number;
   lastModified: Date;
   sourceArtifactId?: string;
   artifactType?: ArtifactType;
+  arrayBuffer?: ArrayBuffer;
 }
 
 // 확장된 컨텍스트 아이템 (파일 내용 포함)
@@ -421,4 +437,18 @@ export interface FileContextItem extends ContextItem {
   type: 'file';
   content?: string;
   originalContent?: string;
+}
+
+// =============================================
+// Citation & Source Link Types (출처 인용)
+// =============================================
+
+// 개별 인용 정보
+export interface Citation {
+  id: string;
+  index: number;        // 인용 번호 (1, 2, 3...)
+  title: string;        // 출처 제목
+  url?: string;         // 출처 URL
+  domain?: string;      // 도메인명 (e.g., "wikipedia.org")
+  snippet?: string;     // 인용 텍스트 미리보기
 }

@@ -26,7 +26,6 @@ const StreamingTextSpan: React.FC<{
         if (prev >= text.length) {
           if (intervalRef.current) clearInterval(intervalRef.current);
           setIsComplete(true);
-          onComplete?.();
           return prev;
         }
         return prev + 1;
@@ -36,7 +35,14 @@ const StreamingTextSpan: React.FC<{
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [text, typingSpeed, onComplete]);
+  }, [text, typingSpeed]);
+
+  // onComplete를 별도 effect로 분리: setState updater 내에서 부모 setState 호출 방지
+  useEffect(() => {
+    if (isComplete) {
+      onComplete?.();
+    }
+  }, [isComplete, onComplete]);
 
   useEffect(() => {
     if (isComplete) {
