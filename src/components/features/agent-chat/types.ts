@@ -419,6 +419,9 @@ export type GroupExpandState = Record<string, boolean>;
 // Artifact 드래그 앤 드롭 MIME 타입
 export const ARTIFACT_DRAG_MIME_TYPE = 'application/x-konai-artifact';
 
+// 파일 트리 드래그 앤 드롭 MIME 타입
+export const FILE_TREE_DRAG_MIME_TYPE = 'application/x-konai-filetree';
+
 // 첨부된 파일 타입
 export interface AttachedFile {
   id: string;
