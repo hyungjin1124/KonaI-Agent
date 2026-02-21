@@ -161,11 +161,16 @@ categories:
       - id: citation_source_link
         name: "Citation & Source Link"
         description: "에이전트 응답에 출처 인용 및 링크 표시"
-        status: not_implemented
+        status: implemented
         priority: medium
         complexity: simple
         contexts: [chat_view]
-        source_files: []
+        source_files:
+          - "src/components/features/agent-chat/components/CitationSourceLink/CitationSourceLink.tsx"
+          - "src/components/features/agent-chat/components/CitationSourceLink/CitationBadge.tsx"
+          - "src/components/features/agent-chat/components/CitationSourceLink/SourceLinkList.tsx"
+          - "src/components/features/agent-chat/components/CitationSourceLink/index.ts"
+          - "src/components/features/agent-chat/components/CitationSourceLink/CitationSourceLink.test.tsx"
 
       - id: suggested_prompts
         name: "Suggested Prompts / Starter Questions"

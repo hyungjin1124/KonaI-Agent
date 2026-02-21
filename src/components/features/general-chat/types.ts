@@ -1,12 +1,7 @@
-// Citation reference for agent responses
-export interface Citation {
-  id: string;
-  index: number;
-  title: string;
-  url?: string;
-  domain?: string;
-  snippet?: string;
-}
+// Re-export canonical Citation from agent-chat
+export type { Citation } from '../agent-chat/types';
+
+import type { Citation } from '../agent-chat/types';
 
 // Chat message type
 export interface ChatMessage {

@@ -1,10 +1,14 @@
 import { defineConfig } from 'vitest/config';
+import path from 'path';
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/*.test.ts'],
+    environmentMatchGlobs: [
+      ['src/**/*.test.tsx', 'jsdom'],
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -19,7 +23,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': '/scripts',
+      '@': path.resolve(__dirname, './src'),
     },
   },
 });
