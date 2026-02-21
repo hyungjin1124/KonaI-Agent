@@ -269,10 +269,12 @@ categories:
         source_files:
           - "src/hooks/useSlideOutlineHITL.ts"
           - "src/hooks/usePPTScenario.ts"
+          - "src/hooks/useScenarioOrchestration.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/approval-gate-component.md"
           - "Insights/agent-ui/patterns/risk-based-rendering.md"
-        notes: "현재 PPT 시나리오 훅에 결합됨. 범용 ApprovalGate 컴포넌트로 분리 필요."
+        last_researched: "2026-02-21"
+        notes: "현재 PPT 시나리오 훅에 결합됨. 범용 ApprovalGate 컴포넌트로 분리 필요. MCP Elicitation 호환 + async HITL 설계 반영 (2026-02-21 리서치 갱신)."
 
       - id: inline_selection
         name: "Inline Selection (Radio/Checkbox/Choice)"
