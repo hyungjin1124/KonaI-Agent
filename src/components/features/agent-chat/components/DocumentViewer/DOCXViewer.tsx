@@ -9,12 +9,14 @@ interface DOCXViewerProps {
   fileData: ArrayBuffer;
   fileName: string;
   onClose: () => void;
+  toolbarExtras?: Record<string, unknown>;
 }
 
 export const DOCXViewer: React.FC<DOCXViewerProps> = ({
   fileData,
   fileName,
   onClose,
+  toolbarExtras,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,6 +79,7 @@ export const DOCXViewer: React.FC<DOCXViewerProps> = ({
         onClose={onClose}
         isMaximized={isMaximized}
         onToggleMaximize={() => setIsMaximized(!isMaximized)}
+        {...toolbarExtras}
       />
 
       <div className="flex-1 overflow-auto bg-gray-50">

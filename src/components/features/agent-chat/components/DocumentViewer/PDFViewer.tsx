@@ -16,12 +16,14 @@ interface PDFViewerProps {
   fileData: ArrayBuffer;
   fileName: string;
   onClose: () => void;
+  toolbarExtras?: Record<string, unknown>;
 }
 
 export const PDFViewer: React.FC<PDFViewerProps> = ({
   fileData,
   fileName,
   onClose,
+  toolbarExtras,
 }) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -91,6 +93,7 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({
         onClose={onClose}
         isMaximized={isMaximized}
         onToggleMaximize={() => setIsMaximized(!isMaximized)}
+        {...toolbarExtras}
       />
 
       {/* Screen reader live region for page changes */}

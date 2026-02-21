@@ -410,7 +410,7 @@ categories:
       - id: document_viewer
         name: "Document Viewer (docx/pdf/pptx)"
         description: "에이전트가 생성하거나 참조하는 문서를 인라인 프리뷰"
-        status: needs_update
+        status: implemented
         priority: high
         complexity: complex
         contexts: [artifact_panel, chat_view]
@@ -422,11 +422,16 @@ categories:
           - "src/components/features/agent-chat/components/DocumentViewer/CSVViewer.tsx"
           - "src/components/features/agent-chat/components/DocumentViewer/PPTXInfoCard.tsx"
           - "src/components/features/agent-chat/components/DocumentViewer/DocumentViewerToolbar.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/DocumentTOCSidebar.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/CitationSidePanel.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/FullscreenPortal.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/useDocumentTOC.ts"
+          - "src/components/features/agent-chat/components/DocumentViewer/types.ts"
           - "src/components/features/agent-chat/components/DocumentViewer/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/document-viewer-patterns.md"
         last_researched: "2026-02-21"
-        notes: "Phase 1+2 구현 완료 (PDF/DOCX/XLSX/CSV). ChatGPT Deep Research 리디자인(2026-02)으로 TOC 사이드바, 인용 패널, 풀스크린 토글 추가 필요."
+        notes: "Phase 1+2+3 구현 완료. Phase 3: TOC 사이드바(heading 파싱+스크롤 스파이), 인용 사이드패널, 풀스크린 토글(CSS Portal), 반응형(ResizeObserver), 키보드 내비게이션."
 
       - id: ppt_slide_preview
         name: "PPT Slide Preview & Editor"

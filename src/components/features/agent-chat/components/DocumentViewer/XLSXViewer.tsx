@@ -10,9 +10,10 @@ interface XLSXViewerProps {
   fileData: ArrayBuffer;
   fileName: string;
   onClose: () => void;
+  toolbarExtras?: Record<string, unknown>;
 }
 
-export const XLSXViewer: React.FC<XLSXViewerProps> = ({ fileData, fileName, onClose }) => {
+export const XLSXViewer: React.FC<XLSXViewerProps> = ({ fileData, fileName, onClose, toolbarExtras }) => {
   const workbook = useMemo(() => XLSX.read(fileData, { type: 'array' }), [fileData]);
   const [activeSheet, setActiveSheet] = useState(workbook.SheetNames[0]);
   const [zoom, setZoom] = useState(1.0);
@@ -51,6 +52,7 @@ export const XLSXViewer: React.FC<XLSXViewerProps> = ({ fileData, fileName, onCl
         onClose={onClose}
         isMaximized={isMaximized}
         onToggleMaximize={() => setIsMaximized(!isMaximized)}
+        {...toolbarExtras}
       />
 
       {/* Sheet tabs */}
