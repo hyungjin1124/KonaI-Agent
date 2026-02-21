@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.2.0"
-  last_updated: "2026-02-19"
+  last_updated: "2026-02-21"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -410,7 +410,7 @@ categories:
       - id: document_viewer
         name: "Document Viewer (docx/pdf/pptx)"
         description: "에이전트가 생성하거나 참조하는 문서를 인라인 프리뷰"
-        status: implemented
+        status: needs_update
         priority: high
         complexity: complex
         contexts: [artifact_panel, chat_view]
@@ -418,12 +418,15 @@ categories:
           - "src/components/features/agent-chat/components/DocumentViewer/DocumentViewer.tsx"
           - "src/components/features/agent-chat/components/DocumentViewer/PDFViewer.tsx"
           - "src/components/features/agent-chat/components/DocumentViewer/DOCXViewer.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/XLSXViewer.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/CSVViewer.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/PPTXInfoCard.tsx"
           - "src/components/features/agent-chat/components/DocumentViewer/DocumentViewerToolbar.tsx"
           - "src/components/features/agent-chat/components/DocumentViewer/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/document-viewer-patterns.md"
-        last_researched: "2026-02-16"
-        notes: "Phase 1+2 구현 완료. react-pdf(PDF), docx-preview(DOCX). XLSX는 Phase 3로 미룸."
+        last_researched: "2026-02-21"
+        notes: "Phase 1+2 구현 완료 (PDF/DOCX/XLSX/CSV). ChatGPT Deep Research 리디자인(2026-02)으로 TOC 사이드바, 인용 패널, 풀스크린 토글 추가 필요."
 
       - id: ppt_slide_preview
         name: "PPT Slide Preview & Editor"
@@ -628,7 +631,7 @@ categories:
         name: "Usage Monitoring Dashboard"
         description: "API 사용량, 토큰 소비, 비용, 에이전트 성능 모니터링"
         status: not_implemented
-        priority: medium
+        priority: high
         complexity: complex
         contexts: [monitoring]
         source_files: []
