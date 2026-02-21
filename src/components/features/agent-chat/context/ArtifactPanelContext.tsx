@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { ArtifactTab, Artifact, ArtifactPreviewType } from '../types';
+import { ArtifactTab, Artifact, ArtifactPreviewType, Citation } from '../types';
 
 const MAX_TABS = 8;
 
@@ -24,6 +24,7 @@ interface ArtifactPanelContextValue {
   // 탭별 데이터 (AgentChatView에서 주입)
   documentData?: ArrayBuffer;
   csvContent?: string;
+  citations?: Citation[];
   markdownContents: Record<string, string>;
   markdownEditingState: 'idle' | 'editing' | 'shimmer';
 }
@@ -49,6 +50,7 @@ interface ArtifactPanelProviderProps {
   // 외부 데이터 주입 (AgentChatView에서 전달)
   documentData?: ArrayBuffer;
   csvContent?: string;
+  citations?: Citation[];
   markdownContents: Record<string, string>;
   markdownEditingState: 'idle' | 'editing' | 'shimmer';
 }
@@ -59,6 +61,7 @@ export const ArtifactPanelProvider: React.FC<ArtifactPanelProviderProps> = ({
   onActiveTabChange,
   documentData,
   csvContent,
+  citations,
   markdownContents,
   markdownEditingState,
 }) => {
@@ -205,6 +208,7 @@ export const ArtifactPanelProvider: React.FC<ArtifactPanelProviderProps> = ({
     closePanel,
     documentData,
     csvContent,
+    citations,
     markdownContents,
     markdownEditingState,
   };

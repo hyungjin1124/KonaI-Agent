@@ -42,17 +42,60 @@ export const ArtifactTabBar: React.FC<ArtifactTabBarProps> = ({
 }) => {
   if (tabs.length === 0) return null;
 
+  const handleKeyDown = (e: React.KeyboardEvent, tabId: string) => {
+    const currentIdx = tabs.findIndex((t) => t.id === tabId);
+    let targetIdx = -1;
+
+    switch (e.key) {
+      case 'ArrowRight':
+        targetIdx = (currentIdx + 1) % tabs.length;
+        break;
+      case 'ArrowLeft':
+        targetIdx = (currentIdx - 1 + tabs.length) % tabs.length;
+        break;
+      case 'Home':
+        targetIdx = 0;
+        break;
+      case 'End':
+        targetIdx = tabs.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    const targetTab = tabs[targetIdx];
+    onSwitchTab(targetTab.id);
+    // Focus the target tab button
+    const targetEl = (e.currentTarget.parentElement as HTMLElement)?.querySelector(
+      `[data-tab-id="${targetTab.id}"]`
+    ) as HTMLElement | null;
+    targetEl?.focus();
+  };
+
   return (
-    <div className="flex items-center gap-0.5 px-2 py-1 overflow-x-auto scrollbar-hide min-h-[36px]">
+    <div
+      role="tablist"
+      aria-label="아티팩트 탭"
+      className="flex items-center gap-0.5 px-2 py-1 overflow-x-auto scrollbar-hide min-h-[36px]"
+    >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
         return (
           <button
             key={tab.id}
+            role="tab"
+            id={`tab-${tab.id}`}
+            aria-selected={isActive}
+            aria-controls={`tabpanel-${tab.id}`}
+            tabIndex={isActive ? 0 : -1}
+            data-tab-id={tab.id}
             onClick={() => onSwitchTab(tab.id)}
+            onKeyDown={(e) => handleKeyDown(e, tab.id)}
             className={`
               flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium
               max-w-[180px] min-w-0 group transition-colors
+              focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none
               ${isActive
                 ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
@@ -77,6 +120,7 @@ export const ArtifactTabBar: React.FC<ArtifactTabBarProps> = ({
               }}
               className={`
                 ml-0.5 p-0.5 rounded transition-opacity flex-shrink-0
+                focus-visible:ring-2 focus-visible:ring-blue-500 outline-none
                 ${isActive
                   ? 'opacity-60 hover:opacity-100 hover:bg-gray-200'
                   : 'opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-gray-200'

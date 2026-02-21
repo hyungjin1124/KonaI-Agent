@@ -5,12 +5,7 @@ export interface TOCItem {
   element?: HTMLElement;
 }
 
-export interface Citation {
-  id: string;
-  number: number;
-  title: string;
-  url?: string;
-  excerpt?: string;
-}
+// Citation 타입은 agent-chat/types.ts의 canonical 정의를 re-export
+export type { Citation } from '../../types';
 
 export type ViewMode = 'embedded' | 'maximized' | 'fullscreen';

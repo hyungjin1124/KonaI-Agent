@@ -36,20 +36,20 @@ export const ArtifactPanelHeader: React.FC<ArtifactPanelHeaderProps> = ({
         />
       </div>
       {/* 액션 버튼 */}
-      <div className="flex items-center gap-0.5 px-2 flex-shrink-0">
+      <div role="toolbar" aria-label="패널 액션" className="flex items-center gap-0.5 px-2 flex-shrink-0">
         {onDownload && (
           <button
             onClick={onDownload}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-            title="다운로드"
+            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
+            aria-label="다운로드"
           >
             <Download size={15} className="text-gray-500" />
           </button>
         )}
         <button
           onClick={onToggleMaximize}
-          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-          title={isMaximized ? '축소' : '최대화'}
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
+          aria-label={isMaximized ? '축소' : '최대화'}
         >
           {isMaximized ? (
             <Minimize2 size={15} className="text-gray-500" />
@@ -59,8 +59,8 @@ export const ArtifactPanelHeader: React.FC<ArtifactPanelHeaderProps> = ({
         </button>
         <button
           onClick={onClosePanel}
-          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-          title="패널 접기"
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
+          aria-label="패널 접기"
         >
           <PanelRightClose size={15} className="text-gray-500" />
         </button>

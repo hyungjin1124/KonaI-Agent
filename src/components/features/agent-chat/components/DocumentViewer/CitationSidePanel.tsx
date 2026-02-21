@@ -67,15 +67,20 @@ export const CitationSidePanel = memo(function CitationSidePanel({
           >
             <div className="flex items-start gap-2">
               <span className="shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center">
-                {citation.number}
+                {citation.index}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-gray-800 line-clamp-2">
                   {citation.title}
                 </p>
-                {citation.excerpt && (
+                {citation.snippet && (
                   <p className="mt-1 text-[11px] text-gray-500 line-clamp-3">
-                    {citation.excerpt}
+                    {citation.snippet}
+                  </p>
+                )}
+                {citation.domain && (
+                  <p className="mt-0.5 text-[10px] text-gray-400">
+                    {citation.domain}
                   </p>
                 )}
                 {citation.url && (

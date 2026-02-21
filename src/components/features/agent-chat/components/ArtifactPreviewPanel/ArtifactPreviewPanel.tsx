@@ -42,6 +42,7 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
     closePanel,
     documentData,
     csvContent,
+    citations,
     markdownContents,
     markdownEditingState,
   } = useArtifactPanel();
@@ -122,6 +123,7 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
             artifact={artifact}
             previewType={previewType}
             documentData={documentData}
+            citations={citations}
             onClose={handleClosePanel}
           />
         );
@@ -139,6 +141,7 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
             artifact={artifact}
             previewType="csv"
             textContent={csvContent}
+            citations={citations}
             onClose={handleClosePanel}
           />
         );
@@ -183,7 +186,12 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
       />
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden">
+      <div
+        role="tabpanel"
+        id={`tabpanel-${activeTab.id}`}
+        aria-labelledby={`tab-${activeTab.id}`}
+        className="flex-1 overflow-hidden"
+      >
         {renderContent()}
       </div>
     </div>

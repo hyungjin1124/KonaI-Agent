@@ -1770,6 +1770,7 @@ setArtifacts([]); // Clear artifacts
         csvContent={csvContent}
         markdownContents={markdownContents}
         markdownEditingState={markdownEditingState}
+        onPanelOpenChange={(isOpen) => { if (!isOpen) handleCloseCenterPanel(); }}
       >
         <ArtifactPanelBridge bridgeRef={artifactPanelRef} />
         <div ref={containerRef} data-testid="analysis-view" className="w-full h-full animate-fade-in-up overflow-hidden">
@@ -1853,6 +1854,7 @@ setArtifacts([]); // Clear artifacts
       csvContent={csvContent}
       markdownContents={markdownContents}
       markdownEditingState={markdownEditingState}
+      onPanelOpenChange={(isOpen) => { if (!isOpen) handleCloseCenterPanel(); }}
     >
       <ArtifactPanelBridge bridgeRef={artifactPanelRef} />
       <div ref={containerRef} className="w-full h-full overflow-hidden">

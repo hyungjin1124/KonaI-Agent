@@ -1,12 +1,13 @@
 import React from 'react';
 import { DocumentViewer } from '../../DocumentViewer';
-import { Artifact, ArtifactPreviewType } from '../../../types';
+import { Artifact, ArtifactPreviewType, Citation } from '../../../types';
 
 export interface DocumentRendererProps {
   artifact: Artifact | null;
   previewType: Extract<ArtifactPreviewType, 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx'>;
   documentData?: ArrayBuffer;
   textContent?: string;
+  citations?: Citation[];
   onClose: () => void;
 }
 
@@ -15,6 +16,7 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
   previewType,
   documentData,
   textContent,
+  citations,
   onClose,
 }) => {
   if (previewType === 'csv') {
@@ -30,6 +32,7 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
         textContent={textContent}
         fileName={artifact?.title || 'data.csv'}
         fileType="csv"
+        citations={citations}
         onClose={onClose}
       />
     );
@@ -48,6 +51,7 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
       fileData={documentData}
       fileName={artifact?.title || `document.${previewType}`}
       fileType={previewType}
+      citations={citations}
       onClose={onClose}
     />
   );
