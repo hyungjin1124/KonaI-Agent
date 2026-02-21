@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.2.0"
-  last_updated: "2026-02-19"
+  last_updated: "2026-02-21"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -418,12 +418,20 @@ categories:
           - "src/components/features/agent-chat/components/DocumentViewer/DocumentViewer.tsx"
           - "src/components/features/agent-chat/components/DocumentViewer/PDFViewer.tsx"
           - "src/components/features/agent-chat/components/DocumentViewer/DOCXViewer.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/XLSXViewer.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/CSVViewer.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/PPTXInfoCard.tsx"
           - "src/components/features/agent-chat/components/DocumentViewer/DocumentViewerToolbar.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/DocumentTOCSidebar.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/CitationSidePanel.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/FullscreenPortal.tsx"
+          - "src/components/features/agent-chat/components/DocumentViewer/useDocumentTOC.ts"
+          - "src/components/features/agent-chat/components/DocumentViewer/types.ts"
           - "src/components/features/agent-chat/components/DocumentViewer/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/document-viewer-patterns.md"
-        last_researched: "2026-02-16"
-        notes: "Phase 1+2 구현 완료. react-pdf(PDF), docx-preview(DOCX). XLSX는 Phase 3로 미룸."
+        last_researched: "2026-02-21"
+        notes: "Phase 1+2+3 구현 완료. Phase 3: TOC 사이드바(heading 파싱+스크롤 스파이), 인용 사이드패널, 풀스크린 토글(CSS Portal), 반응형(ResizeObserver), 키보드 내비게이션."
 
       - id: ppt_slide_preview
         name: "PPT Slide Preview & Editor"
@@ -628,7 +636,7 @@ categories:
         name: "Usage Monitoring Dashboard"
         description: "API 사용량, 토큰 소비, 비용, 에이전트 성능 모니터링"
         status: not_implemented
-        priority: medium
+        priority: high
         complexity: complex
         contexts: [monitoring]
         source_files: []

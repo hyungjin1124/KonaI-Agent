@@ -8,7 +8,11 @@ import {
   Maximize2,
   Minimize2,
   X,
+  ListTree,
+  Quote,
+  Fullscreen,
 } from 'lucide-react';
+import type { ViewMode } from './types';
 
 interface DocumentViewerToolbarProps {
   fileName: string;
@@ -24,6 +28,15 @@ interface DocumentViewerToolbarProps {
   onClose: () => void;
   isMaximized?: boolean;
   onToggleMaximize?: () => void;
+  // Phase 3: TOC, Citation, Fullscreen
+  showTOC?: boolean;
+  onToggleTOC?: () => void;
+  hasTOCItems?: boolean;
+  showCitations?: boolean;
+  onToggleCitations?: () => void;
+  hasCitations?: boolean;
+  viewMode?: ViewMode;
+  onToggleFullscreen?: () => void;
 }
 
 const ZOOM_STEPS = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
@@ -42,6 +55,14 @@ export const DocumentViewerToolbar: React.FC<DocumentViewerToolbarProps> = ({
   onClose,
   isMaximized = false,
   onToggleMaximize,
+  showTOC = false,
+  onToggleTOC,
+  hasTOCItems = false,
+  showCitations = false,
+  onToggleCitations,
+  hasCitations = false,
+  viewMode = 'embedded',
+  onToggleFullscreen,
 }) => {
   const [pageInputValue, setPageInputValue] = useState('');
   const [isEditingPage, setIsEditingPage] = useState(false);
@@ -184,6 +205,57 @@ export const DocumentViewerToolbar: React.FC<DocumentViewerToolbarProps> = ({
           </>
         )}
 
+        {/* TOC / Citation / Fullscreen toggles */}
+        {(onToggleTOC || onToggleCitations || onToggleFullscreen) && (
+          <>
+            <div className="w-px h-4 bg-gray-300 mx-1" />
+
+            {onToggleTOC && (
+              <button
+                onClick={onToggleTOC}
+                className={`p-1.5 rounded transition-colors ${
+                  showTOC ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-200 text-gray-600'
+                } ${!hasTOCItems ? 'opacity-40 cursor-not-allowed' : ''}`}
+                disabled={!hasTOCItems}
+                aria-label={showTOC ? '목차 숨기기' : '목차 보기'}
+                aria-expanded={showTOC}
+                title="목차 (TOC)"
+              >
+                <ListTree size={14} />
+              </button>
+            )}
+
+            {onToggleCitations && (
+              <button
+                onClick={onToggleCitations}
+                className={`p-1.5 rounded transition-colors ${
+                  showCitations ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-200 text-gray-600'
+                } ${!hasCitations ? 'opacity-40 cursor-not-allowed' : ''}`}
+                disabled={!hasCitations}
+                aria-label={showCitations ? '인용 패널 숨기기' : '인용 패널 보기'}
+                aria-expanded={showCitations}
+                title="인용 소스"
+              >
+                <Quote size={14} />
+              </button>
+            )}
+
+            {onToggleFullscreen && (
+              <button
+                onClick={onToggleFullscreen}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === 'fullscreen' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-200 text-gray-600'
+                }`}
+                aria-label={viewMode === 'fullscreen' ? '풀스크린 종료' : '풀스크린'}
+                aria-expanded={viewMode === 'fullscreen'}
+                title="풀스크린"
+              >
+                <Fullscreen size={14} />
+              </button>
+            )}
+          </>
+        )}
+
         <div className="w-px h-4 bg-gray-300 mx-1" />
 
         {/* Download */}
@@ -196,7 +268,7 @@ export const DocumentViewerToolbar: React.FC<DocumentViewerToolbarProps> = ({
         </button>
 
         {/* Maximize */}
-        {onToggleMaximize && (
+        {onToggleMaximize && viewMode !== 'fullscreen' && (
           <button
             onClick={onToggleMaximize}
             className="p-1.5 rounded hover:bg-gray-200 transition-colors"

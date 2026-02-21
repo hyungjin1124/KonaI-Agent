@@ -10,9 +10,10 @@ interface CSVViewerProps {
   content: string;
   fileName: string;
   onClose: () => void;
+  toolbarExtras?: Record<string, unknown>;
 }
 
-export const CSVViewer: React.FC<CSVViewerProps> = ({ content, fileName, onClose }) => {
+export const CSVViewer: React.FC<CSVViewerProps> = ({ content, fileName, onClose, toolbarExtras }) => {
   const [zoom, setZoom] = useState(1.0);
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -48,6 +49,7 @@ export const CSVViewer: React.FC<CSVViewerProps> = ({ content, fileName, onClose
         onClose={onClose}
         isMaximized={isMaximized}
         onToggleMaximize={() => setIsMaximized(!isMaximized)}
+        {...toolbarExtras}
       />
 
       {/* Table */}

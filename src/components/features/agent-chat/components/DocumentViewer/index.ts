@@ -5,3 +5,8 @@ export { DocumentViewer } from './DocumentViewer';
 export { DOCXViewer } from './DOCXViewer';
 export { PPTXInfoCard } from './PPTXInfoCard';
 export { DocumentViewerToolbar } from './DocumentViewerToolbar';
+export { DocumentTOCSidebar } from './DocumentTOCSidebar';
+export { CitationSidePanel } from './CitationSidePanel';
+export { FullscreenPortal } from './FullscreenPortal';
+export { useDocumentTOC } from './useDocumentTOC';
+export type { TOCItem, Citation, ViewMode } from './types';
