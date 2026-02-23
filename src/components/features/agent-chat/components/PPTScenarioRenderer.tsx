@@ -15,6 +15,8 @@ export interface ActiveHitl {
   // 매출 분석 시나리오 HITL 데이터 (옵셔널)
   analysisScopeData?: AnalysisScopeData;
   dataVerificationData?: DataVerificationData;
+  // ApprovalGate 동적 설정 (옵셔널)
+  approvalGateConfig?: import('./ToolCall/constants').ApprovalGateHitlConfig;
 }
 
 interface PPTScenarioRendererProps {

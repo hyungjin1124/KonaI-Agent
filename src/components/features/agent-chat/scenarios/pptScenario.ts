@@ -107,13 +107,43 @@ export const PPT_SCENARIO_STEPS: ScenarioStep[] = [
     dependsOn: 'tool_data_query_4',
   },
 
+  // 12-1a. 승인 게이트 - Low (ERP 데이터 조회 권한 확인 — Toast)
+  {
+    id: 'tool_approval_gate_low',
+    type: 'tool-call',
+    toolType: 'approval_gate',
+    isHitl: true,
+    delayMs: 800,
+    dependsOn: 'tool_data_validation',
+  },
+
+  // 12-1b. 승인 게이트 - Medium (데이터 처리 승인 — InlineCard)
+  {
+    id: 'tool_approval_gate_medium',
+    type: 'tool-call',
+    toolType: 'approval_gate',
+    isHitl: true,
+    delayMs: 800,
+    dependsOn: 'tool_approval_gate_low',
+  },
+
+  // 12-1c. 승인 게이트 - High (경영진 배포 승인 — Modal)
+  {
+    id: 'tool_approval_gate_high',
+    type: 'tool-call',
+    toolType: 'approval_gate',
+    isHitl: true,
+    delayMs: 800,
+    dependsOn: 'tool_approval_gate_medium',
+  },
+
   // 9. 에이전트 응답 (데이터 검증 후)
   {
     id: 'agent_validation_confirm',
     type: 'agent-text',
     agentContent: '데이터가 확인되었습니다. 이제 PPT 세부 설정을 진행합니다.',
     delayMs: 500,
-    dependsOn: 'tool_data_validation',
+    dependsOn: 'tool_approval_gate_high',
   },
 
   // 10. 도구 사용 #7: PPT 세부 설정 (HITL #3)

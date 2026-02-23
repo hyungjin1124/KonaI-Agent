@@ -34,7 +34,7 @@ export const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
       <ScrollArea className="flex-1 pt-2 pb-2">
         <div>
           <SessionGroup
-            label="실행 중"
+            label="활성"
             sessions={activeSessions}
             activeSessionId={activeSessionId}
             onSessionSelect={onSessionSelect}

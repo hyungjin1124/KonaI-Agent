@@ -272,9 +272,9 @@ Radix UI 기반 컴포넌트는 기본 접근성이 내장되어 있으므로, �
 
 전체 결과를 종합하여 최종 판정한다:
 
-- **PASS**: 모든 Acceptance Criteria 충족 + 심각한 엣지 케이스 없음 + 통합 문제 없음
-- **CONDITIONAL PASS**: 경미한 이슈가 있지만 배포 가능. 이슈를 기록하고 후속 수정 권고.
-- **FAIL**: Acceptance Criteria 미충족 또는 심각한 엣지 케이스 발견. 수정 후 재검증 필요.
+- **PASS**: Critical/Major 이슈 0건 + 모든 Acceptance Criteria PASS. Minor 이슈만 허용. **수정 사이클 없이 종료.**
+- **CONDITIONAL PASS**: Critical 이슈 0건이지만 Major 이슈 1건 이상, 또는 Acceptance Criteria PARTIAL 존재. **수정 사이클 대상** — fix-request.md를 생성하고 `/implement` 수정 모드로 전달.
+- **FAIL**: Critical 이슈 1건 이상 또는 Acceptance Criteria FAIL 존재. **수정 사이클 대상** — fix-request.md를 생성하고 `/implement` 수정 모드로 전달.
 
 ### 출력
 
@@ -407,14 +407,35 @@ FAIL 또는 CONDITIONAL PASS인 경우, `/implement`에 전달할 수정 사항:
 
 ---
 
-## Step 7 — FAIL 시 수정 사이클
+## Step 7 — FAIL 또는 CONDITIONAL PASS 시 수정 사이클
 
-QA 판정이 FAIL인 경우, 수정 사이클을 시작한다.
+QA 판정이 **FAIL** 또는 **CONDITIONAL PASS**인 경우, 수정 사이클을 시작한다.
+**PASS**만이 수정 없이 종료되는 유일한 판정이다.
+
+### fix-request.md 생성
+
+판정이 PASS가 아니면 `specs/implementation-logs/{component_id}/fix-request.md`를 생성한다.
+**Critical과 Major 이슈만 포함**한다 (Minor는 QA 리포트에만 기록).
+
+```markdown
+# Fix Request: {component_name}
+
+## QA 판정: {FAIL | CONDITIONAL PASS}
+## 수정 사이클: {N}/{MAX}
+
+### 수정 항목
+
+- [ ] **[{심각도}] {이슈 제목}** — {관련 파일:라인}
+  {상세 설명 및 수정 방향}
+
+- [ ] **[{심각도}] {이슈 제목}** — {관련 파일:라인}
+  {상세 설명 및 수정 방향}
+```
 
 ### 자동 수정 제안
 
 ```
-QA 검증 결과: FAIL
+QA 검증 결과: {FAIL | CONDITIONAL PASS}
 수정이 필요한 항목 {N}건:
   1. [Critical] {이슈 설명}
   2. [Major] {이슈 설명}
@@ -426,13 +447,14 @@ QA 검증 결과: FAIL
 ```
 
 사용자가 `fix`를 선택하면:
-1. QA 리포트의 수정 요청 사항을 `specs/implementation-logs/{component_id}/fix-request.md`에 저장
-2. `/implement {component_id}` 를 실행한다. implement는 fix-request.md를 감지하면 **수정 모드**로 동작한다:
+1. `/implement {component_id}` 를 실행한다. implement는 fix-request.md를 감지하면 **수정 모드**로 동작한다:
    - Stage 1~3 건너뜀 (기존 select.md, plan.md 재사용)
    - Stage 4에서 fix-request.md의 항목만 수정
    - Stage 5에서 dev test 재실행
-3. Dev test 통과 후 다시 `/qa {component_id}` 실행
-4. **최대 3회** 반복. 3회 후에도 FAIL이면 이슈를 기록하고 사용자에게 보고한다.
+2. Dev test 통과 후 다시 `/qa {component_id}` 실행
+3. **최대 3회** 반복. 3회 후에도:
+   - **FAIL이면**: 이슈를 기록하고 사용자에게 보고. 파이프라인 중단.
+   - **CONDITIONAL PASS이면**: 잔여 이슈를 기록하고 현재 상태로 수락. 파이프라인 계속.
 
 ### 수정 모드 (implement가 감지)
 

@@ -12,7 +12,7 @@
 `$ARGUMENTS`에 따라 스캔 범위를 결정한다:
 
 - **비어있음** → broad 모드: 전체 소스 레지스트리를 순회한다.
-- **카탈로그 카테고리 ID** → category 모드: 해당 카테고리 소스만 스캔한다.
+- **카탈로그 카테고리 ID** → category 모드: 해당 카테고리의 매핑된 소스만 스캔한다.
 - **경쟁사 이름** → competitor 모드: 해당 경쟁사 소스만 스캔한다.
 
 카탈로그 카테고리 ID 목록:
@@ -24,19 +24,36 @@
 ## 소스 레지스트리
 
 아래 소스를 고정 대상으로 확인한다. 웹 검색으로 "알아서 찾기" 하지 않는다.
+Primary URL 접근 실패 시 Fallback URL을 시도한다.
 
 ### 경쟁사 제품
 
-| id | 제품 | 체인지로그 / 릴리즈 | 블로그 / 뉴스 |
-|----|------|---------------------|--------------|
-| chatgpt | ChatGPT | openai.com/index (릴리즈 필터) | openai.com/blog |
-| claude | Claude | anthropic.com/research, claude.ai/changelog | anthropic.com/news |
-| cursor | Cursor | cursor.com/changelog | cursor.com/blog |
-| gemini | Gemini | blog.google/technology/ai | deepmind.google/blog |
+| id | 제품 | Primary | Fallback |
+|----|------|---------|----------|
+| chatgpt | ChatGPT | help.openai.com/en/articles/6825453-chatgpt-release-notes | releasebot.io/updates/openai/chatgpt |
+| claude | Claude | claude.com/blog | releasebot.io/updates/anthropic/claude |
+| cursor | Cursor | cursor.com/changelog | releasebot.io/updates/cursor |
+| gemini | Gemini | gemini.google/release-notes | blog.google/technology/ai |
 | windsurf | Windsurf | windsurf.com/changelog | windsurf.com/blog |
-| bolt | Bolt.new | bolt.new/changelog | — |
-| v0 | v0 by Vercel | v0.dev/changelog | vercel.com/blog |
-| copilot | GitHub Copilot | github.blog/changelog (copilot 필터) | github.blog |
+| bolt | Bolt.new | support.bolt.new/release-notes | — |
+| v0 | v0 by Vercel | v0.app/changelog | vercel.com/blog |
+| copilot | GitHub Copilot | github.com/features/copilot/whats-new | releasebot.io/updates/github |
+
+### 엔터프라이즈 AI 플랫폼
+
+| id | 제품 | Primary | Fallback |
+|----|------|---------|----------|
+| agentforce | Salesforce Agentforce | salesforce.com/blog (agentforce 필터) | releasebot.io/updates/salesforce |
+| copilot-studio | MS Copilot Studio | techcommunity.microsoft.com (copilot-studio 태그) | learn.microsoft.com/copilot-studio 릴리즈 |
+| agentspace | Google Agentspace | cloud.google.com/blog/products/ai | cloud.google.com/agentspace/docs/release-notes |
+
+### 데이터 / 분석 AI
+
+| id | 제품 | Primary | Fallback |
+|----|------|---------|----------|
+| thoughtspot | ThoughtSpot Sage | thoughtspot.com/blog | — |
+| powerbi | Power BI Copilot | powerbi.microsoft.com/blog | learn.microsoft.com/power-bi 릴리즈 |
+| hex | Hex AI | hex.tech/blog | — |
 
 ### 프레임워크 / 프로토콜
 
@@ -49,16 +66,65 @@
 | crewai | CrewAI | github.com/crewAIInc/crewAI/releases |
 | vercel-ai | Vercel AI SDK | github.com/vercel/ai/releases |
 
-### 업계 동향 소스
+### 오픈소스 AI UI
+
+| id | 프로젝트 | 소스 |
+|----|---------|------|
+| open-webui | Open WebUI | github.com/open-webui/open-webui/releases |
+| lobechat | LobeChat | github.com/lobehub/lobe-chat/releases |
+| chainlit | Chainlit | github.com/Chainlit/chainlit/releases |
+
+### UX 리서치
 
 | id | 이름 | 소스 |
 |----|------|------|
-| hn | Hacker News | 검색 쿼리로 확인 (hn.algolia.com) |
-| arxiv | arXiv | 검색 쿼리로 확인 |
-| newsletters | 뉴스레터 | TLDR AI, The Batch, AI Weekly 등 최근호 |
+| nngroup | NNGroup AI | nngroup.com/articles (AI 태그) |
 
-> **소스 관리**: 새 경쟁사나 프레임워크 등장 시 이 레지스트리에 추가한다.
-> 소스 URL이 변경되면 이 파일을 직접 수정한다.
+### 업계 동향 소스
+
+| id | 이름 | 소스 | 쿼리 |
+|----|------|------|------|
+| hn | Hacker News | hn.algolia.com/api/v1/search | "AI agent UI" OR "agentic interface" |
+| arxiv | arXiv | arxiv.org/search | cs.HC + cs.AI, "agent interface" OR "human-AI interaction" |
+
+> **소스 관리 규칙**:
+> - 새 경쟁사나 프레임워크 등장 시 이 레지스트리에 추가한다.
+> - 소스 URL이 변경되면 이 파일을 직접 수정한다.
+> - Primary URL 접근 실패 시 Fallback URL을 시도한다.
+> - Fallback도 실패하면 리포트에 "접근 실패" 기록 후 다음 소스로 진행.
+> - 3회 연속 접근 실패한 소스는 URL 재확인 필요 표시.
+> - 새 소스 추가 시 반드시 카테고리-소스 매핑도 함께 갱신한다.
+
+---
+
+## 카테고리-소스 매핑
+
+category 모드에서 해당 카테고리에 관련된 소스만 스캔한다.
+broad 모드에서는 이 매핑을 무시하고 전체 레지스트리를 순회한다.
+
+```yaml
+conversational_primitives:
+  - chatgpt, claude, gemini, lobechat, open-webui, nngroup
+
+agent_action_patterns:
+  - chatgpt, cursor, copilot, windsurf, agentforce, copilot-studio
+
+hitl_patterns:
+  - chatgpt, claude, cursor, agentforce, copilot-studio, chainlit
+  - mcp, langgraph, crewai
+
+artifact_visualization:
+  - chatgpt, claude, v0, hex, thoughtspot, powerbi, open-webui
+
+navigation_session:
+  - chatgpt, claude, cursor, gemini, lobechat
+
+admin_operations:
+  - agentforce, copilot-studio, agentspace, copilot, powerbi
+
+generative_emerging:
+  - chatgpt, claude, gemini, bolt, v0, ag-ui, copilotkit, vercel-ai
+```
 
 ---
 
@@ -66,20 +132,26 @@
 
 모드별로 아래 템플릿을 사용한다. `{date_range}`는 Step 0에서 결정된 기간이다.
 
+`{date_range}`의 검색 쿼리 적용 방식:
+- **웹 검색**: `"{month} {year}"` 형태로 삽입 (예: "February 2026")
+- **소스 직접 확인**: 날짜가 {시작일} ~ {종료일} 범위 내인 항목만 수집
+
 ### broad 모드
 
 경쟁사 소스: 레지스트리의 모든 경쟁사에 대해 체인지로그/릴리즈 페이지를 직접 확인한다.
 프레임워크 소스: 레지스트리의 모든 프레임워크에 대해 releases 페이지를 직접 확인한다.
-보충 웹 검색 (최대 3회):
+보충 웹 검색 (최대 5회):
 ```
 "AI agent UI" OR "agentic interface" new feature {date_range}
 "human-in-the-loop" OR "AI approval" UI pattern {date_range}
 "conversational AI" OR "chat UI" framework release {date_range}
+"enterprise AI dashboard" OR "AI copilot admin" {date_range}
+"AI data visualization" OR "natural language query" dashboard {date_range}
 ```
 
 ### category 모드
 
-해당 카테고리의 키워드 맵에서 쿼리를 생성한다:
+해당 카테고리의 매핑된 소스만 직접 확인한 뒤, 키워드 맵에서 쿼리를 생성한다:
 
 ```yaml
 conversational_primitives:
@@ -98,14 +170,12 @@ navigation_session:
   - "AI session" management UI {date_range}
   - "conversation history" navigation pattern {date_range}
 admin_operations:
-  - "AI admin" dashboard monitoring {date_range}
-  - "LLM observability" UI {date_range}
+  - "AI agent" admin dashboard governance {date_range}
+  - "enterprise AI" usage monitoring metrics {date_range}
 generative_emerging:
   - "generative UI" AI agent {date_range}
   - "dynamic interface" AI-generated {date_range}
 ```
-
-추가로, 해당 카테고리에 매핑되는 경쟁사 소스도 직접 확인한다.
 
 ### competitor 모드
 
@@ -133,6 +203,15 @@ generative_emerging:
 
 가장 최근 discovery report를 읽고, 기존에 보고된 항목 목록을 메모리에 유지한다.
 이 목록은 Step 3에서 중복 필터링에 사용한다.
+
+### 0-3. 미실행 액션 상태 확인
+
+이전 리포트(들)의 권장 액션 중 실제 실행 여부를 확인한다:
+
+- `/research {topic}` 액션: catalog에서 해당 component의 `last_researched`가
+  리포트 날짜 이후로 갱신되었으면 **"실행 완료"**
+- 카탈로그 수정 제안: catalog에서 해당 필드가 제안값과 일치하면 **"적용 완료"**
+- 확인 결과를 리포트 하단 "누적 액션 추적" 섹션에 표시한다.
 
 ---
 
@@ -175,6 +254,7 @@ Vault 경로: CLAUDE.md의 Obsidian Vault 경로 참조.
 
 - 체인지로그/릴리즈 페이지: 날짜가 범위 내인 항목만 수집
 - 블로그: 최신 포스트가 범위 내인지 확인
+- Primary URL 실패 시 Fallback URL 시도
 
 > 소스 URL 접근 실패 시 해당 소스를 건너뛰고, 리포트에 "접근 실패" 기록.
 
@@ -183,8 +263,8 @@ Vault 경로: CLAUDE.md의 Obsidian Vault 경로 참조.
 쿼리 템플릿의 검색어를 실행한다.
 검색 시 반드시 `{date_range}` 기간 필터를 적용한다.
 
-- broad 모드: 최대 3회 검색
-- category 모드: 해당 카테고리 쿼리 2개 + 경쟁사 소스 확인
+- broad 모드: 최대 5회 검색
+- category 모드: 해당 카테고리 쿼리 2개 + 매핑된 소스 직접 확인
 - competitor 모드: 보충 검색 2회 + 레지스트리 소스 확인
 
 ### 2-3. 수집 항목
@@ -219,11 +299,23 @@ Step 0-2에서 로드한 이전 리포트의 항목과 대조한다.
 **보고 제외 (무시)**:
 - 버그 수정, 성능 최적화 (UI 패턴과 무관)
 - 단순 텍스트/아이콘 변경
-- 1개 제품만의 실험적 기능
+- 1개 제품만의 실험적 기능 (아래 예외 참조)
 - 백엔드/인프라 변경 (UI에 영향 없는 것)
 - SDK/API 변경 (UI 패턴과 직접 관련 없는 것)
 
-### 3-3. 분류 기준
+**예외 — 1개 제품이라도 보고하는 경우**:
+- 카탈로그 기존 컴포넌트의 하위 기능으로 편입 가능 → **UPDATE**로 보고
+- 엔터프라이즈 거버넌스/보안에 직결 → **confidence: low**로 표시하되 보고
+
+### 3-3. Confidence 레벨
+
+각 발견 항목에 confidence를 부여한다:
+
+- **high**: 3개 이상 제품 채택 또는 프로토콜/표준 확립
+- **medium**: 2개 제품 채택 또는 주요 1개 제품의 정식 릴리즈
+- **low**: 1개 제품의 실험적/베타 기능 (예외 조건으로 보고된 경우)
+
+### 3-4. 분류 기준
 
 **NEW** — 카탈로그에 없는 새로운 패턴/컴포넌트
 - 기존 컴포넌트 중 해당되는 것이 없음
@@ -253,7 +345,9 @@ Step 0-2에서 로드한 이전 리포트의 항목과 대조한다.
 
 `specs/discovery-reports/{YYYY-MM-DD}-discovery.md` 파일을 생성한다.
 
-같은 날짜에 이미 리포트가 있으면 `-2`, `-3` 등 접미사를 붙인다.
+같은 날짜에 이미 리포트가 있으면 `-{N}` 접미사를 붙인다 (N은 2부터).
+예: `2026-02-16-discovery.md`, `2026-02-16-discovery-2.md`, `2026-02-16-discovery-3.md`
+※ 하이픈(`-`) 사용 통일. 언더스코어(`_`) 사용 금지.
 
 ```markdown
 # Discovery Report — {YYYY-MM-DD}
@@ -267,7 +361,7 @@ Step 0-2에서 로드한 이전 리포트의 항목과 대조한다.
 
 | # | 소스 | URL | 상태 |
 |---|------|-----|------|
-| 1 | ChatGPT changelog | openai.com/... | 확인 완료 / 변경 없음 / 접근 실패 |
+| 1 | ChatGPT changelog | help.openai.com/... | 확인 완료 / 변경 없음 / 접근 실패 |
 | ... | ... | ... | ... |
 
 ## 보충 검색 쿼리
@@ -295,9 +389,9 @@ Step 0-2에서 로드한 이전 리포트의 항목과 대조한다.
 
 ## 신규 패턴 (NEW)
 
-| # | 패턴명 | 설명 | 발견 출처 | 관련 카테고리 | 권장 priority | 권장 complexity |
-|---|--------|------|----------|-------------|--------------|----------------|
-| 1 | ... | ... | ... | ... | ... | ... |
+| # | 패턴명 | 설명 | 발견 출처 | 관련 카테고리 | 권장 priority | 권장 complexity | confidence |
+|---|--------|------|----------|-------------|--------------|----------------|------------|
+| 1 | ... | ... | ... | ... | ... | ... | high/medium/low |
 
 ### 상세
 
@@ -357,6 +451,17 @@ Step 0-2에서 로드한 이전 리포트의 항목과 대조한다.
 |---|-------------|------|------|------|
 | 1 | ... | priority | low | high |
 | 2 | ... | status | implemented | deprecated |
+
+---
+
+## 누적 액션 추적
+
+이전 리포트의 권장 액션 실행 여부:
+
+| 리포트 | 액션 | 상태 | 비고 |
+|--------|------|------|------|
+| {이전 리포트 날짜} | /research {topic} | 실행 완료 / 미실행 | last_researched: {날짜} 또는 변동 없음 |
+| {이전 리포트 날짜} | catalog: {id}.{field} → {value} | 적용 완료 / 미적용 | 현재: {현재값} |
 ```
 
 ### 터미널 출력
@@ -372,34 +477,26 @@ Step 0-2에서 로드한 이전 리포트의 항목과 대조한다.
  Filtered    : {N} duplicates excluded
  Report      : specs/discovery-reports/{date}-discovery.md
 ═══════════════════════════════════════════════
+
+권장 액션:
+  1. /research {topic-1} — {이유} (priority: high)
+  2. /research {topic-2} — {이유} (priority: medium)
+
+카탈로그 수정 제안:
+  1. {component_id}.priority: {현재} → {제안}
+
+다음 단계: /review 실행하여 액션 승인 후 진행
 ```
 
 ---
 
-## Step 5 — 다음 액션 실행
+## Step 5 — 다음 액션 제시
 
-리포트 생성 후, 권장 다음 액션을 사용자에게 제시한다.
+리포트 생성 후, 터미널에 권장 액션 목록을 출력한다.
+실제 실행은 `/review` → `/research` 파이프라인으로 위임한다.
 
-### 자동 실행 제안
-
-권장 액션이 있으면 다음과 같이 사용자에게 확인한다:
-
-```
-권장 /research 액션 {N}건:
-  1. /research {topic-1} — {이유}
-  2. /research {topic-2} — {이유}
-  3. ...
-
-실행할 항목을 선택해주세요:
-  - all: 전부 순서대로 실행
-  - 1,3: 선택한 번호만 실행
-  - none: 실행하지 않음 (리포트만 저장)
-```
-
-사용자가 선택하면 해당 `/research` 명령을 순서대로 실행한다.
-`none`이면 리포트만 저장하고 종료한다.
-
-카탈로그 직접 수정 제안(priority 변경, deprecated 등)도 동일하게 확인 후 적용한다.
+> `/research` 직접 실행 및 사용자 선택 프롬프트는 수행하지 않는다.
+> `/review`가 배치 승인/거절의 게이트 역할을 담당한다.
 
 ---
 
@@ -407,7 +504,7 @@ Step 0-2에서 로드한 이전 리포트의 항목과 대조한다.
 
 - **카테고리 ID를 찾을 수 없음**: 유사한 카테고리 ID를 제안하고 중단.
 - **경쟁사 이름 불명확**: 소스 레지스트리의 경쟁사 id 목록을 표시하고 확인 요청.
-- **소스 URL 접근 실패**: 해당 소스를 건너뛰고 리포트에 "접근 실패" 기록. 나머지 소스로 계속 진행.
+- **소스 URL 접근 실패**: Primary → Fallback 순으로 시도. 모두 실패 시 해당 소스를 건너뛰고 리포트에 "접근 실패" 기록. 나머지 소스로 계속 진행.
 - **웹 검색 실패**: vault 내부 분석만으로 STALE 분류는 수행 가능. 검색 실패를 리포트에 기록.
 - **발견 사항 없음**: "스캔 범위 내 유의미한 변경 없음" 메시지. 리포트에 확인한 소스 목록과 시간 범위를 기록하여 추적성 유지.
 - **이전 리포트 없음**: 중복 필터링을 건너뛰고, `{date_range}`를 "최근 14일"로 설정하여 초회 실행으로 처리.

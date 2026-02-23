@@ -307,6 +307,15 @@ export const TOOL_METADATA: Record<ToolType, ToolMetadata> = {
     ],
   },
 
+  // ApprovalGate 시나리오
+  approval_gate: {
+    id: 'approval_gate',
+    label: '승인 요청',
+    labelRunning: '승인 대기 중...',
+    labelComplete: '승인 처리 완료',
+    icon: '🛡️',
+  },
+
   // Phase 5: 결과 정리
   analysis_completion: {
     id: 'analysis_completion',
@@ -331,6 +340,8 @@ export const HITL_TOOLS: ToolType[] = [
   // 매출 분석 시나리오 HITL
   'analysis_scope_confirm',
   'data_verification',
+  // ApprovalGate
+  'approval_gate',
 ];
 
 // 도구가 HITL인지 확인하는 헬퍼
@@ -345,6 +356,8 @@ export const HITL_QUESTIONS: Partial<Record<ToolType, string>> = {
   ppt_setup: '포함할 내용과 슬라이드 수를 설정해 주세요.',
   slide_outline_review: '생성된 슬라이드 개요를 검토해 주세요. 우측 사이드바에서 파일을 클릭하면 내용을 확인하고 편집할 수 있습니다.',
   theme_font_select: '슬라이드 디자인을 선택해 주세요.',
+  // ApprovalGate
+  approval_gate: '데이터 처리 작업을 실행하기 전에 승인이 필요합니다.',
   // 매출 분석 시나리오 HITL 질문
   analysis_scope_confirm: '아래 분석 범위가 맞는지 확인해 주세요.',
   data_verification: '분석에 사용된 주요 데이터가 정확한지 확인해 주세요.',
@@ -365,6 +378,11 @@ export const HITL_OPTIONS: Partial<Record<ToolType, HitlOption[]>> = {
     { id: 'approve_all', label: '모두 승인', description: '모든 슬라이드 개요가 적절합니다', recommended: true },
     { id: 'needs_revision', label: '수정 필요', description: '일부 슬라이드 수정이 필요합니다' },
   ],
+  // ApprovalGate (ChatInputArea에서 ApprovalGate 컴포넌트로 렌더링)
+  approval_gate: [
+    { id: 'approved', label: '승인', description: '작업 실행을 승인합니다', recommended: true },
+    { id: 'rejected', label: '거절', description: '작업 실행을 거절합니다' },
+  ],
   // 매출 분석 시나리오 HITL 옵션
   analysis_scope_confirm: [
     { id: 'confirm', label: '확인', description: '설정된 범위로 분석을 진행합니다', recommended: true },
@@ -375,6 +393,50 @@ export const HITL_OPTIONS: Partial<Record<ToolType, HitlOption[]>> = {
     { id: 'confirm', label: '확인', description: '데이터가 정확합니다', recommended: true },
     { id: 'modify', label: '수정 요청', description: '일부 데이터 수정이 필요합니다' },
   ],
+};
+
+// ─── ApprovalGate HITL 설정 (stepId별 riskLevel/actionType/items) ─────
+import type { ActionType, RiskLevel, ApprovalItem } from '../ApprovalGate/types';
+
+export interface ApprovalGateHitlConfig {
+  actionType: ActionType;
+  riskLevel: RiskLevel;
+  description: string;
+  question: string;
+  items: ApprovalItem[];
+}
+
+export const APPROVAL_GATE_CONFIGS: Record<string, ApprovalGateHitlConfig> = {
+  tool_approval_gate_low: {
+    actionType: 'execute',
+    riskLevel: 'low',
+    question: 'ERP 시스템에서 재무 데이터 조회 권한이 필요합니다.',
+    description: 'ERP 시스템에서 Q4 2025 재무 데이터를 조회합니다.',
+    items: [
+      { id: 'erp_access', title: 'ERP 데이터 조회 권한', description: '영림원 ERP 재무 데이터 읽기 접근', status: 'pending' },
+    ],
+  },
+  tool_approval_gate_medium: {
+    actionType: 'execute',
+    riskLevel: 'medium',
+    question: '데이터 처리 작업을 실행하기 전에 승인이 필요합니다.',
+    description: '검증된 데이터를 기반으로 PPT 생성 작업을 실행합니다.',
+    items: [
+      { id: 'revenue', title: '매출 데이터 (1,258억원)', description: 'ERP 손익계산서 기준', status: 'pending' },
+      { id: 'profit', title: '영업이익 데이터 (189억원)', description: 'ERP 손익계산서 기준', status: 'pending' },
+      { id: 'kpi', title: '생산/물류 KPI', description: 'MES 시스템 연동', status: 'pending' },
+    ],
+  },
+  tool_approval_gate_high: {
+    actionType: 'modify',
+    riskLevel: 'high',
+    question: '경영진 공유 폴더에 PPT를 배포합니다. 이 작업은 되돌릴 수 없습니다.',
+    description: '생성된 PPT를 경영진 공유 폴더에 배포합니다. 이 작업은 되돌릴 수 없습니다.',
+    items: [
+      { id: 'ppt_file', title: 'Q4 2025 경영 실적 보고서.pptx', description: '7장 슬라이드, 12.4MB', status: 'pending' },
+      { id: 'distribution', title: '경영진 공유 폴더 배포', description: '수신자 12명, 자동 알림 발송', status: 'pending' },
+    ],
+  },
 };
 
 // 기본 데이터 소스 옵션

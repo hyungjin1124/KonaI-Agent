@@ -200,6 +200,7 @@ run_research_implement_qa() {
     # 형식: N. `/research {topic}` → `/implement {component_id}`
     local in_batch1=false
     local batch1_count=0
+    local skipped_count=0
 
     while IFS= read -r line; do
         if [[ "$line" == "### Batch 1"* ]]; then
@@ -217,6 +218,7 @@ run_research_implement_qa() {
 
             if [ -n "$research_topic" ] && [ -n "$component_id" ]; then
                 batch1_count=$((batch1_count + 1))
+                log "항목 감지 [전체 사이클]: research=$research_topic, implement=$component_id"
 
                 header "Batch 1-${batch1_count}: ${component_id}"
 
@@ -228,21 +230,12 @@ run_research_implement_qa() {
                 }
                 success "Research 완료: $research_topic"
 
-                # Feature branch 생성/전환
+                # Step 2: Implement (implement가 feature branch를 자체 관리)
                 local feature_branch="feature/${component_id}"
-                if git rev-parse --verify "$feature_branch" >/dev/null 2>&1; then
-                    git checkout "$feature_branch"
-                    log "기존 브랜치로 전환: $feature_branch"
-                else
-                    git checkout -b "$feature_branch"
-                    log "새 브랜치 생성: $feature_branch (from $base_branch)"
-                fi
-
-                # Step 2: Implement (feature branch에서 실행)
                 echo -e "  ${BLUE}→ /implement ${component_id}${NC}"
                 run_claude "implement" "$component_id" || {
                     error "Implement 실패: $component_id"
-                    git checkout "$base_branch"
+                    git checkout "$base_branch" 2>/dev/null
                     continue
                 }
                 success "Implement 완료: $component_id"
@@ -252,18 +245,25 @@ run_research_implement_qa() {
                 run_qa "$component_id" || {
                     error "QA 실패: $component_id — 파이프라인을 중단합니다."
                     error "브랜치 $feature_branch 에서 수정 후 재실행하세요."
+                    git checkout "$base_branch" 2>/dev/null
                     return 1
                 }
 
                 # QA 통과 후 base branch로 복귀
                 git checkout "$base_branch"
                 success "브랜치 $feature_branch 작업 완료, $base_branch 로 복귀"
+            else
+                skipped_count=$((skipped_count + 1))
+                warn "파싱 실패 — Batch 항목이 '/research X → /implement Y' 형식이 아닙니다: $line"
             fi
         fi
     done < "$latest_review"
 
     if [ "$batch1_count" -eq 0 ]; then
         warn "Batch 1 실행 항목이 없습니다."
+    fi
+    if [ "$skipped_count" -gt 0 ]; then
+        warn "Batch 1에서 ${skipped_count}건의 항목이 형식 불일치로 건너뛰어졌습니다."
     fi
 
     # 이전 실행에서 QA 미완료된 컴포넌트 확인
@@ -295,6 +295,7 @@ run_qa() {
     local component_id="${1:-}"
     local max_fix_attempts=3
     local attempt=0
+    local last_verdict=""
 
     while [ $attempt -lt $max_fix_attempts ]; do
         log "QA 실행: $component_id (시도 $((attempt+1))/$max_fix_attempts)"
@@ -311,20 +312,26 @@ run_qa() {
             return 1
         fi
 
-        # QA 판정 확인
-        if grep -q "## 판정: PASS" "$qa_report" 2>/dev/null; then
+        # QA 판정 확인 (CONDITIONAL PASS를 먼저 체크 — PASS 부분 문자열 매칭 방지)
+        if grep -q "## 판정: CONDITIONAL PASS" "$qa_report" 2>/dev/null; then
+            last_verdict="CONDITIONAL_PASS"
+            warn "QA CONDITIONAL PASS: $component_id"
+        elif grep -q "## 판정: PASS" "$qa_report" 2>/dev/null; then
             success "QA PASS: $component_id"
             return 0
-        elif grep -q "## 판정: CONDITIONAL PASS" "$qa_report" 2>/dev/null; then
-            success "QA CONDITIONAL PASS: $component_id (경미한 이슈 기록됨)"
-            return 0
+        elif grep -q "## 판정: FAIL" "$qa_report" 2>/dev/null; then
+            last_verdict="FAIL"
+            warn "QA FAIL: $component_id"
+        else
+            warn "QA 판정을 파싱할 수 없습니다: $component_id"
+            return 1
         fi
 
-        # FAIL → 수정 사이클
+        # FAIL 또는 CONDITIONAL PASS → 수정 사이클
         attempt=$((attempt + 1))
 
         if [ $attempt -lt $max_fix_attempts ]; then
-            warn "QA FAIL: $component_id — 수정 사이클 시작 (시도 $attempt/$max_fix_attempts)"
+            warn "수정 사이클 시작 (시도 $attempt/$max_fix_attempts) — 판정: $last_verdict"
 
             # fix-request.md가 생성되어 있어야 함 (qa 커맨드가 생성)
             if [ -f "specs/implementation-logs/${component_id}/fix-request.md" ]; then
@@ -333,14 +340,26 @@ run_qa() {
                     return 1
                 }
             else
-                warn "fix-request.md가 없습니다. 수정 사이클을 건너뜁니다."
+                warn "fix-request.md가 없습니다."
+                # CONDITIONAL PASS인데 fix-request가 없으면 → Minor만 남은 것으로 수락
+                if [ "$last_verdict" = "CONDITIONAL_PASS" ]; then
+                    warn "CONDITIONAL PASS — fix-request 없이 현재 상태로 수락"
+                    return 0
+                fi
                 return 1
             fi
         fi
     done
 
-    error "QA 수정 사이클 $max_fix_attempts회 초과: $component_id"
-    return 1
+    # 최대 시도 횟수 초과
+    if [ "$last_verdict" = "CONDITIONAL_PASS" ]; then
+        warn "수정 사이클 ${max_fix_attempts}회 후에도 CONDITIONAL PASS: $component_id"
+        warn "잔여 이슈를 기록하고 파이프라인을 계속합니다."
+        return 0
+    else
+        error "수정 사이클 ${max_fix_attempts}회 초과 (FAIL): $component_id"
+        return 1
+    fi
 }
 
 # ============================================================================
