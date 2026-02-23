@@ -75,6 +75,16 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
     }
   }, [toolType]);
 
+  // 시나리오 진행 상태를 기반으로 동적 Todo list 계산
+  // NOTE: hooks는 조건부 early return 이전에 호출되어야 함 (React hooks 규칙)
+  const scenarioTodos = useMemo(() => {
+    if (completedStepIds) {
+      return getScenarioTodosWithStatus(currentStepId ?? null, completedStepIds);
+    }
+    // fallback: 기존 정적 todos
+    return SCENARIO_TODOS.map(todo => ({ ...todo, status: 'pending' as const }));
+  }, [currentStepId, completedStepIds]);
+
   // 실패 상태 처리 — 모든 도구 타입에 공통 적용
   if (status === 'failed') {
     return (
@@ -130,15 +140,6 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
   }
 
   // 심층 사고 (동적 할 일 목록)
-  // 시나리오 진행 상태를 기반으로 동적 Todo list 계산
-  const scenarioTodos = useMemo(() => {
-    if (completedStepIds) {
-      return getScenarioTodosWithStatus(currentStepId ?? null, completedStepIds);
-    }
-    // fallback: 기존 정적 todos
-    return SCENARIO_TODOS.map(todo => ({ ...todo, status: 'pending' as const }));
-  }, [currentStepId, completedStepIds]);
-
   if (toolType === 'deep_thinking') {
     // Task 목록은 우측 사이드바 ProgressSection에서만 표시
     // 좌측 패널에서는 Chain-of-Thought 분석 박스만 표시
