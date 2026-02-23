@@ -159,10 +159,18 @@ Plan에 따라 feature branch에서 코드를 작성한다.
 
 ### 실행 절차
 
-1. **브랜치 생성**
-   ```
-   git checkout -b feature/{component_id}
-   ```
+1. **Feature 브랜치 전환**
+   - 현재 브랜치가 이미 `feature/{component_id}`이면 그대로 유지한다.
+   - `feature/{component_id}` 브랜치가 존재하면 checkout한다:
+     ```
+     git checkout feature/{component_id}
+     ```
+   - 브랜치가 존재하지 않으면 새로 생성한다:
+     ```
+     git checkout -b feature/{component_id}
+     ```
+   - 수정 모드에서는 이미 feature 브랜치에 있을 것을 기대하지만,
+     아닌 경우에도 위 로직으로 안전하게 전환된다.
 
 2. **코드 작성**
    - Plan의 파일 구조에 따라 파일을 생성한다.

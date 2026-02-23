@@ -18,6 +18,7 @@ import {
   DEFAULT_DATA_SOURCE_OPTIONS,
   HITL_QUESTIONS,
   HITL_OPTIONS,
+  APPROVAL_GATE_CONFIGS,
 } from '../components/features/agent-chat/components/ToolCall/constants';
 import { PPTConfig, HitlOption } from '../types';
 import { useScenarioOrchestration, ActiveHitl } from './useScenarioOrchestration';
@@ -33,6 +34,9 @@ const STEP_TO_TOOL_TYPE: Record<string, ToolType> = {
   tool_data_query_3: 'data_query',
   tool_data_query_4: 'data_query',
   tool_data_validation: 'data_validation',
+  tool_approval_gate_low: 'approval_gate',
+  tool_approval_gate_medium: 'approval_gate',
+  tool_approval_gate_high: 'approval_gate',
   tool_ppt_setup: 'ppt_setup',
   tool_web_search: 'web_search',
   tool_slide_planning: 'slide_planning',
@@ -47,7 +51,7 @@ const PROGRESS_TASK_GROUPS = [
   { id: 'planning', label: '\uC791\uC5C5 \uACC4\uD68D \uC218\uB9BD', stepIds: ['agent_greeting', 'tool_planning'] },
   { id: 'data_source', label: '\uB370\uC774\uD130 \uC18C\uC2A4 \uC120\uD0DD', stepIds: ['tool_data_source', 'agent_data_source_confirm'] },
   { id: 'data_query', label: '\uB370\uC774\uD130 \uC870\uD68C', stepIds: ['tool_erp_connect', 'tool_parallel_query', 'tool_data_query_1', 'tool_data_query_2', 'tool_data_query_3', 'tool_data_query_4'] },
-  { id: 'data_validation', label: '\uB370\uC774\uD130 \uAC80\uC99D', stepIds: ['tool_data_validation', 'agent_validation_confirm'] },
+  { id: 'data_validation', label: '\uB370\uC774\uD130 \uAC80\uC99D', stepIds: ['tool_data_validation', 'tool_approval_gate_low', 'tool_approval_gate_medium', 'tool_approval_gate_high', 'agent_validation_confirm'] },
   { id: 'ppt_setup', label: 'PPT \uC124\uC815', stepIds: ['tool_ppt_setup', 'agent_setup_confirm'] },
   { id: 'slide_planning', label: '\uC2AC\uB77C\uC774\uB4DC \uAD6C\uC131', stepIds: ['tool_web_search', 'tool_slide_planning', 'agent_slide_planning_confirm'] },
   { id: 'slide_outline_review', label: '\uC2AC\uB77C\uC774\uB4DC \uAC1C\uC694 \uAC80\uD1A0', stepIds: ['tool_slide_outline_review', 'agent_outline_approved'] },
@@ -72,7 +76,7 @@ const RENDER_TASK_GROUPS: TaskGroup[] = [
   {
     id: 'data_validation',
     label: '\uB370\uC774\uD130 \uAC80\uC99D',
-    toolStepIds: ['tool_data_validation'],
+    toolStepIds: ['tool_data_validation', 'tool_approval_gate_low', 'tool_approval_gate_medium', 'tool_approval_gate_high'],
     followingTextStepId: 'agent_validation_confirm',
   },
   {
@@ -268,11 +272,20 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
       if (step.isHitl) {
         stepIndexRef.current = stepIndex;
         setIsPaused(true);
+
+        // ApprovalGate 스텝이면 동적 config 주입
+        const approvalGateConfig = step.toolType === 'approval_gate'
+          ? APPROVAL_GATE_CONFIGS[step.id]
+          : undefined;
+
         setActiveHitl({
           stepId: step.id,
           toolType: step.toolType,
-          question: HITL_QUESTIONS[step.toolType] || '\uC635\uC158\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.',
+          question: approvalGateConfig?.question
+            ?? HITL_QUESTIONS[step.toolType]
+            ?? '\uC635\uC158\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.',
           options: HITL_OPTIONS[step.toolType] || DEFAULT_DATA_SOURCE_OPTIONS,
+          approvalGateConfig,
         });
         onHitlRequired?.(step.id, step.toolType);
         return;
@@ -363,6 +376,24 @@ export function usePPTScenario(options: UsePPTScenarioOptions = {}): UsePPTScena
     // ppt_setup special handling
     if (stepId === 'tool_ppt_setup') {
       completePptSetup();
+      return;
+    }
+
+    // approval_gate handling (generic step completion for any tier)
+    if (stepId.startsWith('tool_approval_gate')) {
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id.includes(stepId)
+            ? { ...msg, toolStatus: 'completed' as ToolStatus, hitlSelectedOption: selectedOption }
+            : msg
+        )
+      );
+      setCompletedStepIds(prev => new Set([...prev, stepId]));
+      setIsPaused(false);
+      onStepComplete?.(stepId);
+      const nextIndex = stepIndexRef.current + 1;
+      stepIndexRef.current = nextIndex;
+      executeStep(nextIndex);
       return;
     }
 

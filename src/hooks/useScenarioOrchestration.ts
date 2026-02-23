@@ -20,6 +20,7 @@ export interface ActiveHitl {
   toolType: ToolType;   // → InterruptPayload.tool_type
   question: string;     // → InterruptPayload.question
   options: HitlOption[]; // → InterruptPayload.options
+  approvalGateConfig?: import('../components/features/agent-chat/components/ToolCall/constants').ApprovalGateHitlConfig;
 }
 
 // Progress task group definition (scenario step -> progress mapping)

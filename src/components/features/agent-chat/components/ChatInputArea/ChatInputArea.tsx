@@ -5,6 +5,8 @@ import { DEFAULT_VALIDATION_DATA } from '../../scenarios/pptScenario';
 import { PPTConfig, HitlOption } from '../../../../../types';
 import { ActiveHitl } from '../PPTScenarioRenderer';
 import { DataValidationSummary, AttachedFile, ARTIFACT_DRAG_MIME_TYPE } from '../../types';
+import { ApprovalGate } from '../ApprovalGate';
+import type { ApprovalItem } from '../ApprovalGate/types';
 import { AttachedFileChip } from './AttachedFileChip';
 import { DropZoneOverlay } from './DropZoneOverlay';
 import { Button } from '../../../../ui/button';
@@ -17,6 +19,13 @@ interface SuggestionChip {
   label: string;
   prompt: string;
 }
+
+// ApprovalGate 데모용 다중 항목 데이터
+const APPROVAL_GATE_DEMO_ITEMS: ApprovalItem[] = [
+  { id: 'revenue', title: '매출 데이터 (1,258억원)', description: 'ERP 손익계산서 기준', status: 'pending' },
+  { id: 'profit', title: '영업이익 데이터 (189억원)', description: 'ERP 손익계산서 기준', status: 'pending' },
+  { id: 'kpi', title: '생산/물류 KPI', description: 'MES 시스템 연동', status: 'pending' },
+];
 
 // 순수 유틸리티 함수를 컴포넌트 외부로 이동 (rendering-hoist-jsx, rerender-memo)
 const BINARY_EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.xls', '.pptx', '.ppt'];
@@ -229,30 +238,44 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     <div className={`p-4 pb-6 bg-white flex flex-col items-center ${
       activeHitl && hitlResumeCallback ? '' : 'border-t border-gray-100'
     }`}>
-      {/* HITL 플로팅 패널 - 입력창 위에 표시 */}
+      {/* HITL 플로팅 패널 / ApprovalGate - 입력창 위에 표시 */}
       {activeHitl && hitlResumeCallback && (
         <div className="w-full max-w-3xl">
-          <HITLFloatingPanel
-            isVisible={true}
-            question={activeHitl.question}
-            options={activeHitl.options}
-            onSelect={(optionId) => hitlResumeCallback(activeHitl.stepId, optionId)}
-            onSkip={() => hitlResumeCallback(activeHitl.stepId, 'skip')}
-            onClose={onHitlClose}
-            toolType={activeHitl.toolType}
-            validationData={activeHitl.toolType === 'data_validation' ? DEFAULT_VALIDATION_DATA : undefined}
-            pptConfig={(activeHitl.toolType === 'ppt_setup' || activeHitl.toolType === 'theme_font_select') ? pptConfig : undefined}
-            onPptConfigUpdate={(activeHitl.toolType === 'ppt_setup' || activeHitl.toolType === 'theme_font_select') ? updatePptConfig : undefined}
-            onPptSetupComplete={activeHitl.toolType === 'ppt_setup' && hitlResumeCallback ? () => {
-              hitlResumeCallback(activeHitl.stepId, 'complete');
-            } : undefined}
-            onThemeFontComplete={activeHitl.toolType === 'theme_font_select' && onThemeFontComplete ? () => {
-              onThemeFontComplete();
-              onGenerateStart?.();
-            } : undefined}
-            analysisScopeData={activeHitl.analysisScopeData}
-            dataVerificationData={activeHitl.dataVerificationData}
-          />
+          {activeHitl.toolType === 'approval_gate' ? (
+            <ApprovalGate
+              actionType={activeHitl.approvalGateConfig?.actionType ?? 'execute'}
+              riskLevel={activeHitl.approvalGateConfig?.riskLevel ?? 'medium'}
+              title={activeHitl.question}
+              description={activeHitl.approvalGateConfig?.description ?? '작업 실행 전 승인이 필요합니다.'}
+              items={activeHitl.approvalGateConfig?.items ?? APPROVAL_GATE_DEMO_ITEMS}
+              onApprove={() => hitlResumeCallback(activeHitl.stepId, 'approved')}
+              onReject={() => hitlResumeCallback(activeHitl.stepId, 'rejected')}
+              onClose={onHitlClose}
+              showSessionPermission
+            />
+          ) : (
+            <HITLFloatingPanel
+              isVisible={true}
+              question={activeHitl.question}
+              options={activeHitl.options}
+              onSelect={(optionId) => hitlResumeCallback(activeHitl.stepId, optionId)}
+              onSkip={() => hitlResumeCallback(activeHitl.stepId, 'skip')}
+              onClose={onHitlClose}
+              toolType={activeHitl.toolType}
+              validationData={activeHitl.toolType === 'data_validation' ? DEFAULT_VALIDATION_DATA : undefined}
+              pptConfig={(activeHitl.toolType === 'ppt_setup' || activeHitl.toolType === 'theme_font_select') ? pptConfig : undefined}
+              onPptConfigUpdate={(activeHitl.toolType === 'ppt_setup' || activeHitl.toolType === 'theme_font_select') ? updatePptConfig : undefined}
+              onPptSetupComplete={activeHitl.toolType === 'ppt_setup' && hitlResumeCallback ? () => {
+                hitlResumeCallback(activeHitl.stepId, 'complete');
+              } : undefined}
+              onThemeFontComplete={activeHitl.toolType === 'theme_font_select' && onThemeFontComplete ? () => {
+                onThemeFontComplete();
+                onGenerateStart?.();
+              } : undefined}
+              analysisScopeData={activeHitl.analysisScopeData}
+              dataVerificationData={activeHitl.dataVerificationData}
+            />
+          )}
         </div>
       )}
 

@@ -85,7 +85,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   } | null>(null);
 
   // --- 좌측 대화 히스토리 사이드바 상태 ---
-  const [isConversationSidebarOpen, setIsConversationSidebarOpen] = useState(false);
+  const [isConversationSidebarOpen, setIsConversationSidebarOpen] = useState(true);
 
   // --- 우측 패널 상태 ---
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
