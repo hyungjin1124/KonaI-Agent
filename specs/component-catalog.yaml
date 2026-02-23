@@ -17,8 +17,8 @@
 # last_researched: YYYY-MM-DD (마지막 리서치 수행일, /research 커맨드가 갱신, 30일 경과 시 stale 후보)
 
 metadata:
-  version: "1.2.0"
-  last_updated: "2026-02-21"
+  version: "1.2.1"
+  last_updated: "2026-02-23"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -199,6 +199,7 @@ categories:
         source_files: []
         obsidian_sources:
           - "Insights/agent-ui/patterns/tool-call-visualization.md"
+        last_researched: "2026-02-23"
 
       - id: agent_thinking
         name: "Agent Thinking / Reasoning Display"
@@ -427,7 +428,7 @@ categories:
       - id: document_viewer
         name: "Document Viewer (docx/pdf/pptx)"
         description: "에이전트가 생성하거나 참조하는 문서를 인라인 프리뷰"
-        status: implemented
+        status: needs_update
         priority: high
         complexity: complex
         contexts: [artifact_panel, chat_view]
