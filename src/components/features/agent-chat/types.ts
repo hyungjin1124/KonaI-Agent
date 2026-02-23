@@ -198,13 +198,15 @@ export type ToolType =
   | 'key_insight_generation'     // 핵심 인사이트 도출
   | 'visualization_generation'   // 시각화 생성
   | 'analysis_completion'        // 분석 완료
+  // ApprovalGate 시나리오
+  | 'approval_gate'              // 승인/거절 게이트 (HITL)
   // 레거시 (호환성 유지)
   | 'trend_analysis'       // 트렌드 분석
   | 'insight_generation'   // 인사이트 도출
   | 'visualization';       // 시각화 생성
 
 // 도구 상태
-export type ToolStatus = 'pending' | 'running' | 'completed' | 'awaiting-input';
+export type ToolStatus = 'pending' | 'running' | 'completed' | 'failed' | 'awaiting-input';
 
 // Human-In-The-Loop 옵션
 export interface HitlOption {

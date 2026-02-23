@@ -40,6 +40,10 @@ export interface ToolCallWidgetProps {
 
   // 마크다운 파일 생성 콜백 (slide_planning용)
   onMarkdownFileGenerated?: (file: SlideFile) => void;
+
+  // 에러/재시도
+  onRetry?: () => void;
+  errorMessage?: string;
 }
 
 // ToolCallHeader Props
@@ -49,6 +53,7 @@ export interface ToolCallHeaderProps {
   isExpanded: boolean;
   onToggle: () => void;
   metadata: ToolMetadata;
+  errorMessage?: string;
 }
 
 // ToolCallContent Props
@@ -90,11 +95,16 @@ export interface ToolCallContentProps {
 
   // 마크다운 파일 생성 콜백 (slide_planning용)
   onMarkdownFileGenerated?: (file: SlideFile) => void;
+
+  // 에러/재시도
+  onRetry?: () => void;
+  errorMessage?: string;
 }
 
 // ToolCallStatusIndicator Props
 export interface ToolCallStatusIndicatorProps {
   status: ToolStatus;
+  size?: number;
 }
 
 // 개별 도구 변형 컴포넌트 공통 Props
@@ -203,6 +213,9 @@ export interface ToolCallGroupProps {
 
   // 마크다운 파일 생성 콜백 (slide_planning용)
   onMarkdownFileGenerated?: (file: SlideFile) => void;
+
+  // 에러/재시도
+  onRetry?: (messageId: string) => void;
 }
 
 // ToolCallGroupHeader Props (외부 아코디언 헤더)

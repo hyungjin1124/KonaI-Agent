@@ -192,14 +192,23 @@ categories:
       - id: tool_call_display
         name: "Tool Call Display"
         description: "에이전트의 도구 호출을 시각화 (호출 → 실행 중 → 완료/실패)"
-        status: not_implemented
+        status: implemented
         priority: critical
         complexity: moderate
         contexts: [chat_view, agent_scenario]
-        source_files: []
+        source_files:
+          - "src/components/features/agent-chat/components/ToolCall/ToolCallStatusIndicator.tsx"
+          - "src/components/features/agent-chat/components/ToolCall/ToolCallHeader.tsx"
+          - "src/components/features/agent-chat/components/ToolCall/ToolCallWidget.tsx"
+          - "src/components/features/agent-chat/components/ToolCall/ToolCallContent.tsx"
+          - "src/components/features/agent-chat/components/ToolCall/ToolCallGroup.tsx"
+          - "src/components/features/agent-chat/components/ToolCall/types.ts"
+          - "src/components/features/agent-chat/components/ToolCall/constants.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/tool-call-visualization.md"
         last_researched: "2026-02-23"
+        metadata:
+          last_updated: "2026-02-23"
 
       - id: agent_thinking
         name: "Agent Thinking / Reasoning Display"

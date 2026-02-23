@@ -31,6 +31,8 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
   currentStepId,
   completedStepIds,
   onMarkdownFileGenerated,
+  onRetry,
+  errorMessage,
 }) => {
   // 내부 상태 (외부에서 제어하지 않는 경우)
   const [internalExpanded, setInternalExpanded] = useState(false);
@@ -81,6 +83,7 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
         isExpanded={isExpanded}
         onToggle={handleToggle}
         metadata={metadata}
+        errorMessage={errorMessage}
       />
 
       {/* 상세 내용 (Collapsible이 관리) */}
@@ -104,6 +107,8 @@ const ToolCallWidget: React.FC<ToolCallWidgetProps> = ({
           completedStepIds={completedStepIds}
           skipStreaming={hasBeenCollapsedAfterComplete}
           onMarkdownFileGenerated={onMarkdownFileGenerated}
+          onRetry={onRetry}
+          errorMessage={errorMessage}
         />
       </CollapsibleContent>
     </Collapsible>

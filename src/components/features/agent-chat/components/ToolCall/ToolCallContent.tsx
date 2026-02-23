@@ -60,6 +60,8 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
   completedStepIds,
   skipStreaming = false,
   onMarkdownFileGenerated,
+  onRetry,
+  errorMessage,
 }) => {
   // 스트리밍 활성화 여부 (skipStreaming이 true면 비활성화)
   const streamingEnabled = !skipStreaming;
@@ -72,6 +74,36 @@ const ToolCallContent: React.FC<ToolCallContentProps> = ({
       setIntroComplete(false);
     }
   }, [toolType]);
+
+  // 실패 상태 처리 — 모든 도구 타입에 공통 적용
+  if (status === 'failed') {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+          <span className="text-red-500 mt-0.5 flex-shrink-0">⚠</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-red-700 font-medium">도구 실행 실패</p>
+            {errorMessage && (
+              <p className="text-xs text-red-600 mt-0.5">{errorMessage}</p>
+            )}
+            {result?.message && !errorMessage && (
+              <p className="text-xs text-red-600 mt-0.5">{result.message}</p>
+            )}
+          </div>
+        </div>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="text-xs text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+            aria-label="도구 재시도"
+          >
+            ↻ 재시도
+          </button>
+        )}
+      </div>
+    );
+  }
+
   // PPT 초기화 내용
   if (toolType === 'ppt_init') {
     return (

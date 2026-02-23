@@ -32,6 +32,7 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
   validationData,
   slideGenerationState,
   onMarkdownFileGenerated,
+  onRetry,
 }) => {
   // Tool 메시지만 필터링 (todo_update 제외)
   const toolMessages = useMemo(
@@ -86,6 +87,8 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
       <CollapsibleContent className="mt-1 ml-2 pl-2 border-l border-gray-200 space-y-0.5 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
         {toolMessages.map((message) => {
           const isExpanded = activeToolMessageId === message.id;
+          const retryHandler = onRetry ? () => onRetry(message.id) : undefined;
+          const msgErrorMessage = message.toolResult?.success === false ? message.toolResult.message : undefined;
 
           // PPT 세부 설정 (HITL)
           if (message.toolType === 'ppt_setup') {
@@ -99,6 +102,8 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
                 isHitl={true}
                 currentStepId={currentStepId}
                 completedStepIds={completedStepIds}
+                onRetry={retryHandler}
+                errorMessage={msgErrorMessage}
               />
             );
           }
@@ -122,6 +127,8 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
                 }
                 currentStepId={currentStepId}
                 completedStepIds={completedStepIds}
+                onRetry={retryHandler}
+                errorMessage={msgErrorMessage}
               />
             );
           }
@@ -143,6 +150,8 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
                 }}
                 currentStepId={currentStepId}
                 completedStepIds={completedStepIds}
+                onRetry={retryHandler}
+                errorMessage={msgErrorMessage}
               />
             );
           }
@@ -163,6 +172,8 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
                 }}
                 currentStepId={currentStepId}
                 completedStepIds={completedStepIds}
+                onRetry={retryHandler}
+                errorMessage={msgErrorMessage}
               />
             );
           }
@@ -180,6 +191,8 @@ const ToolCallGroup: React.FC<ToolCallGroupProps> = ({
               currentStepId={currentStepId}
               completedStepIds={completedStepIds}
               onMarkdownFileGenerated={message.toolType === 'slide_planning' ? onMarkdownFileGenerated : undefined}
+              onRetry={retryHandler}
+              errorMessage={msgErrorMessage}
             />
           );
         })}
