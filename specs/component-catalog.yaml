@@ -89,16 +89,23 @@ categories:
       - id: markdown_renderer
         name: "Markdown Renderer"
         description: "에이전트 응답의 마크다운을 렌더링 (코드블록, 테이블, 수식, 다이어그램)"
-        status: not_implemented
+        status: implemented
         priority: critical
         complexity: moderate
         contexts: [chat_view, artifact_panel]
-        source_files: []
+        source_files:
+          - "src/components/shared/markdown/MarkdownRenderer.tsx"
+          - "src/components/shared/markdown/markdownComponents.tsx"
+          - "src/components/shared/markdown/CodeBlock.tsx"
+          - "src/components/shared/markdown/index.ts"
+          - "src/components/shared/markdown/MarkdownRenderer.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/markdown-renderer.md"
           - "Insights/agent-ui/patterns/streaming-response-rendering.md"
         dependencies: []
         last_researched: "2026-02-24"
+        metadata:
+          last_updated: "2026-02-24"
 
       - id: streaming_typing
         name: "Streaming Typing Animation"

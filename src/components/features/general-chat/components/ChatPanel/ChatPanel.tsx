@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Bot, User, Plus, ArrowUp } from '../../../../icons';
 import { ChatMessage } from '../../types';
 import { CitationSourceLink } from '../../../agent-chat/components/CitationSourceLink';
+import { MarkdownRenderer } from '@/components/shared/markdown';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -142,11 +143,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     : 'bg-gray-100 text-gray-800 rounded-bl-md'
                 }`}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {message.content}
-                </p>
-                {message.type === 'assistant' && message.citations && message.citations.length > 0 && (
-                  <CitationSourceLink citations={message.citations} />
+                {message.type === 'assistant' ? (
+                  <>
+                    <MarkdownRenderer content={message.content} compact />
+                    {message.citations && message.citations.length > 0 && (
+                      <CitationSourceLink citations={message.citations} />
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {message.content}
+                  </p>
                 )}
               </div>
               <span className="text-[10px] text-gray-400 mt-1 px-1">

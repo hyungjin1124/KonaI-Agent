@@ -3,7 +3,7 @@ import { X, Eye, Pencil, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Artifact } from '../../types';
-import { markdownComponents } from './markdownComponents';
+import { markdownComponents } from '@/components/shared/markdown';
 
 interface MarkdownPreviewPanelProps {
   artifact: Artifact;

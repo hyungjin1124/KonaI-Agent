@@ -1,2 +1,2 @@
 export { default as MarkdownPreviewPanel } from './MarkdownPreviewPanel';
-export { markdownComponents } from './markdownComponents';
+export { markdownComponents } from '@/components/shared/markdown';

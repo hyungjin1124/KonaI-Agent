@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { User } from '../../icons';
+import { MarkdownRenderer } from '@/components/shared/markdown';
 
 export interface ChatBubbleProps {
   speaker: 'ai' | 'user';
@@ -9,46 +10,6 @@ export interface ChatBubbleProps {
 }
 
 export const ChatBubble = memo<ChatBubbleProps>(({ speaker, message, timestamp, isInterim }) => {
-  // Enhanced markdown parsing for lists and bold text
-  const renderMessage = (text: string) => {
-    return text.split('\n').map((line, lineIdx) => {
-      const parts = line.split(/(\*\*.*?\*\*)/g);
-      const renderedParts = parts.map((part, partIdx) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return (
-            <strong key={partIdx} className="font-bold text-gray-900">
-              {part.slice(2, -2)}
-            </strong>
-          );
-        }
-        return part;
-      });
-
-      // Handle simple list items (starting with - or 1.)
-      if (line.trim().startsWith('- ') || /^\d+\./.test(line.trim())) {
-        return (
-          <div key={lineIdx} className="pl-4 mb-1">
-            {renderedParts}
-          </div>
-        );
-      }
-      // Handle headers (###)
-      if (line.trim().startsWith('###')) {
-        return (
-          <h3 key={lineIdx} className="text-sm font-bold mt-3 mb-1 text-gray-800">
-            {line.replace('###', '').trim()}
-          </h3>
-        );
-      }
-
-      return (
-        <div key={lineIdx} className="min-h-[1.2em]">
-          {renderedParts}
-        </div>
-      );
-    });
-  };
-
   return (
     <div
       className={`flex w-full mb-6 animate-fade-in-up ${
@@ -75,13 +36,17 @@ export const ChatBubble = memo<ChatBubbleProps>(({ speaker, message, timestamp, 
           className={`flex flex-col ${speaker === 'user' ? 'items-end' : 'items-start'}`}
         >
           <div
-            className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed shadow-sm whitespace-pre-line ${
+            className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
               speaker === 'ai'
                 ? 'bg-white border border-gray-100 text-gray-800 rounded-tl-sm'
-                : 'bg-[#FF3C42] text-white rounded-tr-sm'
+                : 'bg-[#FF3C42] text-white rounded-tr-sm whitespace-pre-line'
             } ${isInterim ? 'animate-pulse text-gray-500' : ''}`}
           >
-            {renderMessage(message)}
+            {speaker === 'ai' ? (
+              <MarkdownRenderer content={message} compact />
+            ) : (
+              message
+            )}
           </div>
           <span className="text-[10px] text-gray-400 mt-1.5 px-1 flex items-center gap-1">
             {timestamp}
