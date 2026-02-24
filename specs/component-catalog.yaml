@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.2.1"
-  last_updated: "2026-02-23"
+  last_updated: "2026-02-24"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -95,8 +95,10 @@ categories:
         contexts: [chat_view, artifact_panel]
         source_files: []
         obsidian_sources:
+          - "Insights/agent-ui/patterns/markdown-renderer.md"
           - "Insights/agent-ui/patterns/streaming-response-rendering.md"
         dependencies: []
+        last_researched: "2026-02-24"
 
       - id: streaming_typing
         name: "Streaming Typing Animation"
