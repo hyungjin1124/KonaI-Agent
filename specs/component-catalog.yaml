@@ -620,6 +620,10 @@ categories:
         complexity: simple
         contexts: [chat_view]
         source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/model-agent-switcher.md"
+        last_researched: "2026-02-26"
+        notes: "Phase 1: Radix Select with inline metadata (context window, speed). Phase 2: Family grouping + pinning + hovercard. Phase 3: Auto mode + task-based suggestions."
 
       - id: notification_center
         name: "Notification Center"
