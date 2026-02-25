@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.2.1"
-  last_updated: "2026-02-24"
+  last_updated: "2026-02-25"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -527,6 +527,8 @@ categories:
         contexts: [chat_view, liveboard]
         obsidian_sources:
           - "Insights/agent-ui/patterns/nl-to-chart-pipeline.md"
+        last_researched: "2026-02-25"
+        notes: "Claude strict tool_use + Recharts JSON config 아키텍처 권장. Databricks Genie Agent Mode, ThoughtSpot SpotterViz, Power BI App Copilot 참조."
 
       - id: mermaid_diagram
         name: "Mermaid Diagram Renderer"
