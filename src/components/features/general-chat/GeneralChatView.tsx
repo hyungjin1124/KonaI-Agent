@@ -5,16 +5,20 @@ import { RightSidebar } from '../agent-chat/components/RightSidebar';
 import {
   ProgressTask,
   Artifact,
+  ArtifactPreviewType,
   ContextItem,
   SidebarSection,
   AttachedFile,
   FILE_TREE_DRAG_MIME_TYPE,
 } from '../agent-chat/types';
+import { ArtifactPanelProvider, useArtifactPanel } from '../agent-chat/context/ArtifactPanelContext';
+import { ArtifactPreviewPanel } from '../agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel';
 import { ConversationSidebar, MOCK_AGENT_SESSIONS } from '../agent-chat/components/ConversationSidebar';
 import { AttachedFileChip } from '../agent-chat/components/ChatInputArea/AttachedFileChip';
 import { DropZoneOverlay } from '../agent-chat/components/ChatInputArea/DropZoneOverlay';
 import { ChatPanel } from './components/ChatPanel';
 import { ChatMessage } from './types';
+import { useNLChart, NLChartRenderer } from '../nl-chart';
 
 const getFileType = (filename: string): AttachedFile['type'] => {
   const lower = filename.toLowerCase();
@@ -26,6 +30,21 @@ const getFileType = (filename: string): AttachedFile['type'] => {
   if (lower.endsWith('.csv')) return 'csv';
   if (lower.endsWith('.pptx') || lower.endsWith('.ppt')) return 'pptx';
   return 'other';
+};
+
+// Bridge pattern: expose ArtifactPanelContext methods via ref
+const ArtifactPanelBridge: React.FC<{
+  bridgeRef: React.MutableRefObject<{
+    openArtifactTab: (artifact: Artifact, previewType: ArtifactPreviewType) => void;
+    closePanel: () => void;
+  } | null>;
+}> = ({ bridgeRef }) => {
+  const panel = useArtifactPanel();
+  bridgeRef.current = {
+    openArtifactTab: panel.openArtifactTab,
+    closePanel: panel.closePanel,
+  };
+  return null;
 };
 
 export const GeneralChatView: React.FC = () => {
@@ -51,9 +70,19 @@ export const GeneralChatView: React.FC = () => {
     'artifacts',
   ]);
 
+  // NL-to-Chart
+  const { chartResult, processQuery, changeChartType, clearChart } = useNLChart();
+  const [isCenterPanelOpen, setIsCenterPanelOpen] = useState(false);
+  const artifactPanelRef = useRef<{
+    openArtifactTab: (artifact: Artifact, previewType: ArtifactPreviewType) => void;
+    closePanel: () => void;
+  } | null>(null);
+
+  // Track chart artifacts for sidebar
+  const [chartArtifacts, setChartArtifacts] = useState<Artifact[]>([]);
+
   // Empty state for right sidebar
   const tasks: ProgressTask[] = [];
-  const artifacts: Artifact[] = [];
   const contextItems: ContextItem[] = [];
 
   // Check if in empty state (no messages)
@@ -65,13 +94,19 @@ export const GeneralChatView: React.FC = () => {
     setMessages([]);
     setInputValue('');
     setAttachedFile(null);
-  }, []);
+    clearChart();
+    setIsCenterPanelOpen(false);
+    setChartArtifacts([]);
+  }, [clearChart]);
 
   const handleSessionSelect = useCallback((sessionId: string) => {
     setActiveSessionId(sessionId);
     setMessages([]);
     setAttachedFile(null);
-  }, []);
+    clearChart();
+    setIsCenterPanelOpen(false);
+    setChartArtifacts([]);
+  }, [clearChart]);
 
   const handleToggleLeftSidebar = useCallback(() => {
     setIsLeftSidebarCollapsed((prev) => !prev);
@@ -87,6 +122,11 @@ export const GeneralChatView: React.FC = () => {
         ? prev.filter((s) => s !== section)
         : [...prev, section]
     );
+  }, []);
+
+  const handleCloseCenterPanel = useCallback(() => {
+    setIsCenterPanelOpen(false);
+    artifactPanelRef.current?.closePanel();
   }, []);
 
   const handleSend = useCallback(() => {
@@ -109,19 +149,51 @@ export const GeneralChatView: React.FC = () => {
     setAttachedFile(null);
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const assistantMessage: ChatMessage = {
-        id: `msg-${Date.now() + 1}`,
-        type: 'assistant',
-        content:
-          '안녕하세요! 질문에 대해 분석을 시작하겠습니다. 잠시만 기다려 주세요.\n\n현재 데모 모드로 실행 중입니다. 실제 AI 응답은 백엔드 연동 후 제공됩니다.',
-        timestamp: new Date(),
+    // Try NL-to-Chart first
+    const result = processQuery(content);
+
+    if (result) {
+      // Chart query detected — generate chart artifact
+      const chartArtifact: Artifact = {
+        id: `chart-${Date.now()}`,
+        title: result.config.title,
+        type: 'chart',
+        createdAt: new Date(),
+        messageId: userMessage.id,
       };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsLoading(false);
-    }, 1500);
-  }, [inputValue, isLoading, attachedFile]);
+
+      setChartArtifacts((prev) => [...prev, chartArtifact]);
+
+      // Simulate processing delay
+      setTimeout(() => {
+        const assistantMessage: ChatMessage = {
+          id: `msg-${Date.now() + 1}`,
+          type: 'assistant',
+          content: `📊 **${result.config.title}**\n\n${result.reasoning}\n\n차트 패널에서 결과를 확인하세요. 차트 상단에서 다른 차트 유형으로 변경할 수 있습니다.`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        setIsLoading(false);
+
+        // Open chart in artifact panel
+        artifactPanelRef.current?.openArtifactTab(chartArtifact, 'chart');
+        setIsCenterPanelOpen(true);
+      }, 800);
+    } else {
+      // Non-chart query — standard response
+      setTimeout(() => {
+        const assistantMessage: ChatMessage = {
+          id: `msg-${Date.now() + 1}`,
+          type: 'assistant',
+          content:
+            '안녕하세요! 질문에 대해 분석을 시작하겠습니다. 잠시만 기다려 주세요.\n\n현재 데모 모드로 실행 중입니다. 실제 AI 응답은 백엔드 연동 후 제공됩니다.\n\n💡 **팁**: "월별 매출 추이 보여줘", "사업부별 비교 차트" 같은 데이터 분석 질문을 입력하면 차트를 자동 생성합니다.',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        setIsLoading(false);
+      }, 1500);
+    }
+  }, [inputValue, isLoading, attachedFile, processQuery]);
 
   const handleInputChange = useCallback((value: string) => {
     setInputValue(value);
@@ -239,6 +311,21 @@ export const GeneralChatView: React.FC = () => {
     </div>
   );
 
+  // Center Panel (Artifact Preview for charts)
+  const centerPanelContent = isCenterPanelOpen ? (
+    <ArtifactPreviewPanel
+      onClose={handleCloseCenterPanel}
+      dashboardRendererProps={{
+        dashboardComponent: chartResult ? (
+          <NLChartRenderer
+            result={chartResult}
+            onChangeChartType={changeChartType}
+          />
+        ) : undefined,
+      }}
+    />
+  ) : null;
+
   // Input Area (only shown when there are messages)
   const inputArea = isEmptyState ? null : (
     <div
@@ -300,25 +387,37 @@ export const GeneralChatView: React.FC = () => {
       onToggleSection={handleToggleSection}
       onToggleCollapse={handleToggleRightSidebar}
       tasks={tasks}
-      artifacts={artifacts}
+      artifacts={chartArtifacts}
       selectedArtifactId={undefined}
-      onArtifactSelect={() => {}}
+      onArtifactSelect={(artifact) => {
+        artifactPanelRef.current?.openArtifactTab(artifact, 'chart');
+        setIsCenterPanelOpen(true);
+      }}
       onArtifactDownload={() => {}}
       contextItems={contextItems}
     />
   );
 
   return (
-    <div className="w-full h-full">
-      <CoworkLayout
-        leftPanel={leftPanelContent}
-        centerPanel={null}
-        isCenterPanelOpen={false}
-        rightPanel={rightPanel}
-        isRightPanelCollapsed={isRightSidebarCollapsed}
-        inputArea={inputArea}
-      />
-    </div>
+    <ArtifactPanelProvider
+      markdownContents={{}}
+      markdownEditingState="idle"
+      onPanelOpenChange={(isOpen) => {
+        if (!isOpen) setIsCenterPanelOpen(false);
+      }}
+    >
+      <ArtifactPanelBridge bridgeRef={artifactPanelRef} />
+      <div className="w-full h-full">
+        <CoworkLayout
+          leftPanel={leftPanelContent}
+          centerPanel={centerPanelContent}
+          isCenterPanelOpen={isCenterPanelOpen}
+          rightPanel={rightPanel}
+          isRightPanelCollapsed={isRightSidebarCollapsed}
+          inputArea={inputArea}
+        />
+      </div>
+    </ArtifactPanelProvider>
   );
 };
 

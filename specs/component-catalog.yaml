@@ -521,14 +521,26 @@ categories:
       - id: nl_to_chart
         name: "Natural Language to Chart"
         description: "자연어 질문으로 차트/시각화를 자동 생성"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: complex
         contexts: [chat_view, liveboard]
+        source_files:
+          - "src/components/features/nl-chart/types.ts"
+          - "src/components/features/nl-chart/chartHeuristics.ts"
+          - "src/components/features/nl-chart/mockChartData.ts"
+          - "src/components/features/nl-chart/useNLChart.ts"
+          - "src/components/features/nl-chart/NLChartRenderer.tsx"
+          - "src/components/features/nl-chart/ChartTypeSelector.tsx"
+          - "src/components/features/nl-chart/index.ts"
+          - "src/components/features/nl-chart/nl-chart.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/nl-to-chart-pipeline.md"
+        dependencies: []
         last_researched: "2026-02-25"
-        notes: "Claude strict tool_use + Recharts JSON config 아키텍처 권장. Databricks Genie Agent Mode, ThoughtSpot SpotterViz, Power BI App Copilot 참조."
+        metadata:
+          last_updated: "2026-02-25"
+        notes: "Phase 1 구현 완료: Heuristic 차트 타입 추천 + Recharts 동적 렌더링 + ArtifactPanel 통합. 5개 목데이터셋, 6종 차트 타입(bar/line/pie/area/composed/table), 차트 타입 오버라이드 UI. GeneralChatView에 NL→차트 플로우 통합."
 
       - id: mermaid_diagram
         name: "Mermaid Diagram Renderer"
