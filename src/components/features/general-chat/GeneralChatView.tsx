@@ -19,6 +19,7 @@ import { DropZoneOverlay } from '../agent-chat/components/ChatInputArea/DropZone
 import { ChatPanel } from './components/ChatPanel';
 import { ChatMessage } from './types';
 import { useNLChart, NLChartRenderer } from '../nl-chart';
+import { ModelSwitcher } from '../model-switcher';
 
 const getFileType = (filename: string): AttachedFile['type'] => {
   const lower = filename.toLowerCase();
@@ -77,6 +78,9 @@ export const GeneralChatView: React.FC = () => {
     openArtifactTab: (artifact: Artifact, previewType: ArtifactPreviewType) => void;
     closePanel: () => void;
   } | null>(null);
+
+  // Model selection
+  const [selectedModelId, setSelectedModelId] = useState<string>();
 
   // Track chart artifacts for sidebar
   const [chartArtifacts, setChartArtifacts] = useState<Artifact[]>([]);
@@ -337,10 +341,17 @@ export const GeneralChatView: React.FC = () => {
     >
       <DropZoneOverlay isVisible={isDragging} />
       <div className="max-w-3xl mx-auto">
-        {/* Attached File Chip */}
-        {attachedFile && (
-          <div className="mb-2">
-            <AttachedFileChip file={attachedFile} onRemove={handleRemoveFile} />
+        {/* Model Switcher + Attached File */}
+        {(selectedModelId || attachedFile) && (
+          <div className="flex items-center gap-2 mb-2">
+            <ModelSwitcher
+              value={selectedModelId}
+              onValueChange={setSelectedModelId}
+              className="w-[200px]"
+            />
+            {attachedFile && (
+              <AttachedFileChip file={attachedFile} onRemove={handleRemoveFile} />
+            )}
           </div>
         )}
         <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] focus-within:border-[#FF3C42] focus-within:ring-1 focus-within:ring-[#FF3C42] transition-all shadow-sm flex items-end p-2 gap-2">

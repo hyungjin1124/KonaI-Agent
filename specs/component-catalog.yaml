@@ -615,15 +615,24 @@ categories:
       - id: model_agent_switcher
         name: "Model / Agent Switcher"
         description: "대화 중 모델 또는 에이전트를 전환하는 드롭다운"
-        status: not_implemented
+        status: implemented
         priority: medium
         complexity: simple
         contexts: [chat_view]
-        source_files: []
+        source_files:
+          - "src/types/model.ts"
+          - "src/constants/models.ts"
+          - "src/components/features/model-switcher/ModelSwitcher.tsx"
+          - "src/components/features/model-switcher/ModelSelectItem.tsx"
+          - "src/components/features/model-switcher/useModelSelection.ts"
+          - "src/components/features/model-switcher/index.ts"
+          - "src/components/features/model-switcher/ModelSwitcher.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/model-agent-switcher.md"
         last_researched: "2026-02-26"
-        notes: "Phase 1: Radix Select with inline metadata (context window, speed). Phase 2: Family grouping + pinning + hovercard. Phase 3: Auto mode + task-based suggestions."
+        notes: "Phase 1 implemented: Radix Select with inline metadata (context window, speed badges), localStorage persistence, keyboard navigation. Integrated into GeneralChatView. Phase 2 (grouping+pinning) and Phase 3 (Auto mode) ready for future enhancement."
+        metadata:
+          last_updated: "2026-02-26"
 
       - id: notification_center
         name: "Notification Center"
