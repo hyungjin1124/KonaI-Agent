@@ -20,6 +20,7 @@ import { ChatPanel } from './components/ChatPanel';
 import { ChatMessage } from './types';
 import { useNLChart, NLChartRenderer } from '../nl-chart';
 import { ModelSwitcher } from '../model-switcher';
+import { DEFAULT_MODEL_ID } from '@/constants/models';
 
 const getFileType = (filename: string): AttachedFile['type'] => {
   const lower = filename.toLowerCase();
@@ -80,7 +81,7 @@ export const GeneralChatView: React.FC = () => {
   } | null>(null);
 
   // Model selection
-  const [selectedModelId, setSelectedModelId] = useState<string>();
+  const [selectedModelId, setSelectedModelId] = useState<string>(DEFAULT_MODEL_ID);
 
   // Track chart artifacts for sidebar
   const [chartArtifacts, setChartArtifacts] = useState<Artifact[]>([]);

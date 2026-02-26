@@ -196,31 +196,36 @@ run_research_implement_qa() {
     local base_branch=$(git rev-parse --abbrev-ref HEAD)
     log "Base branch: $base_branch"
 
-    # Review decision에서 Batch 1 항목 추출
+    # Review decision에서 모든 Batch 항목을 순차 추출·실행
     # 형식: N. `/research {topic}` → `/implement {component_id}`
-    local in_batch1=false
-    local batch1_count=0
+    local current_batch=""
+    local batch_item_count=0
+    local total_count=0
     local skipped_count=0
 
     while IFS= read -r line; do
-        if [[ "$line" == "### Batch 1"* ]]; then
-            in_batch1=true
+        # Batch 헤더 감지 (### Batch 1, ### Batch 2, ...)
+        if echo "$line" | grep -qE '^### Batch [0-9]+'; then
+            current_batch=$(echo "$line" | sed -n 's/.*Batch \([0-9]*\).*/\1/p')
+            batch_item_count=0
             continue
         fi
-        # Batch 1 섹션이 끝나면 (다음 ### 헤더) 중단
-        if [[ "$in_batch1" == true && "$line" == "### "* ]]; then
-            break
+        # Batch 섹션 밖의 ### 헤더를 만나면 현재 Batch 종료 (다음 Batch가 올 수 있으므로 break 대신 reset)
+        if [[ -n "$current_batch" && "$line" == "### "* ]]; then
+            current_batch=""
+            continue
         fi
         # 번호 매긴 항목만 처리 (예: "1. `/research ...` → `/implement ...`")
-        if [[ "$in_batch1" == true ]] && echo "$line" | grep -qE '^[0-9]+\.'; then
+        if [[ -n "$current_batch" ]] && echo "$line" | grep -qE '^[0-9]+\.'; then
             local research_topic=$(echo "$line" | sed -n 's/.*`\/research \([^`]*\)`.*/\1/p')
             local component_id=$(echo "$line" | sed -n 's/.*`\/implement \([^`]*\)`.*/\1/p')
 
             if [ -n "$research_topic" ] && [ -n "$component_id" ]; then
-                batch1_count=$((batch1_count + 1))
-                log "항목 감지 [전체 사이클]: research=$research_topic, implement=$component_id"
+                batch_item_count=$((batch_item_count + 1))
+                total_count=$((total_count + 1))
+                log "항목 감지 [Batch ${current_batch}]: research=$research_topic, implement=$component_id"
 
-                header "Batch 1-${batch1_count}: ${component_id}"
+                header "Batch ${current_batch}-${batch_item_count}: ${component_id}"
 
                 # Step 1: Research (base branch에서 실행 — 공유 문서 갱신)
                 echo -e "  ${BLUE}→ /research ${research_topic}${NC}"
@@ -259,11 +264,11 @@ run_research_implement_qa() {
         fi
     done < "$latest_review"
 
-    if [ "$batch1_count" -eq 0 ]; then
-        warn "Batch 1 실행 항목이 없습니다."
+    if [ "$total_count" -eq 0 ]; then
+        warn "실행 가능한 Batch 항목이 없습니다."
     fi
     if [ "$skipped_count" -gt 0 ]; then
-        warn "Batch 1에서 ${skipped_count}건의 항목이 형식 불일치로 건너뛰어졌습니다."
+        warn "${skipped_count}건의 항목이 형식 불일치로 건너뛰어졌습니다."
     fi
 
     # 이전 실행에서 QA 미완료된 컴포넌트 확인

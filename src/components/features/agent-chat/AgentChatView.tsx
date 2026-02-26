@@ -16,6 +16,7 @@ import { generateMockModifiedMarkdown } from './utils/markdownUtils';
 import ChatHistoryPanel, { ChatMessage } from './components/ChatHistoryPanel';
 import { ConversationSidebar, MOCK_AGENT_SESSIONS } from './components/ConversationSidebar';
 import { ArtifactPanelProvider, useArtifactPanel } from './context/ArtifactPanelContext';
+import { useNLChart, NLChartRenderer } from '../nl-chart';
 
 // Re-export ChatMessage for external use
 export type { ChatMessage };
@@ -155,6 +156,9 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     isOpen: false,
     content: null,
   });
+
+  // NL-to-Chart
+  const { chartResult, processQuery: processChartQuery, changeChartType, clearChart } = useNLChart();
 
   // --- 아티팩트 열기/닫기 시 사이드 패널 자동 숨김/복원 ---
   const savedSidePanelStateRef = useRef<{
@@ -855,6 +859,45 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
     setUserQuery(text);
 
+    // NL-to-Chart: 차트 쿼리 감지 (시나리오 감지보다 먼저 시도)
+    const nlChartResult = processChartQuery(text);
+    if (nlChartResult && !attachedFile) {
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        type: 'user',
+        content: text,
+        timestamp: new Date(),
+      };
+
+      const chartArtifact: Artifact = {
+        id: `chart-${Date.now()}`,
+        title: nlChartResult.config.title,
+        type: 'chart',
+        createdAt: new Date(),
+        messageId: userMessage.id,
+      };
+
+      setChatHistory(prev => [...prev, userMessage]);
+      setArtifacts(prev => [...prev, chartArtifact]);
+      setShowDashboard(true);
+
+      setTimeout(() => {
+        const agentMessage: ChatMessage = {
+          id: `agent-chart-${Date.now()}`,
+          type: 'agent',
+          content: `📊 **${nlChartResult.config.title}**\n\n${nlChartResult.reasoning}\n\n차트 패널에서 결과를 확인하세요. 차트 상단에서 다른 차트 유형으로 변경할 수 있습니다.`,
+          timestamp: new Date(),
+        };
+        setChatHistory(prev => [...prev, agentMessage]);
+
+        artifactPanelRef.current?.openArtifactTab(chartArtifact, 'chart');
+        setCenterPanelState({ isOpen: true, content: 'chart' });
+      }, 800);
+
+      setInputValue('');
+      return;
+    }
+
     // Auto-detect triggered by context or text
     const isDidRequest = text.includes('DID') || text.includes('메탈') || text.includes('칩셋');
     const isPptRequest = text.includes('PPT') || text.includes('보고서') || text.includes('슬라이드');
@@ -1079,7 +1122,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
              }, 800);
          }
     }
-  }, [showDashboard, contextData, isOutlineRevisionMode, slideOutlineHITL, markdownContents, setContextItems, setArtifacts, setMarkdownContents, setCenterPanelState]);
+  }, [showDashboard, contextData, isOutlineRevisionMode, slideOutlineHITL, markdownContents, setContextItems, setArtifacts, setMarkdownContents, setCenterPanelState, processChartQuery]);
 
   const handleReset = useCallback(() => {
     setInputValue('');
@@ -1114,7 +1157,8 @@ setArtifacts([]); // Clear artifacts
     revisionTimersRef.current = [];
     savedSidePanelStateRef.current = null;
     prevCenterPanelOpenRef.current = false;
-  }, []);
+    clearChart(); // NL-to-Chart 상태 리셋
+  }, [clearChart]);
 
   // 대화 히스토리 사이드바 토글
   const handleToggleConversationSidebar = useCallback(() => {
@@ -1675,7 +1719,8 @@ setArtifacts([]); // Clear artifacts
     // 중앙 패널 (Artifact Preview - PPT/Dashboard/Slide Outline/Markdown)
     // previewType 결정: centerPanelState.content 기반으로 우선 결정
     const centerPanelPreviewType =
-      centerPanelState.content === 'markdown-preview' ? 'markdown'
+      centerPanelState.content === 'chart' ? 'chart'
+      : centerPanelState.content === 'markdown-preview' ? 'markdown'
       : centerPanelState.content === 'slide-outline' ? 'slide-outline'
       : centerPanelState.content === 'ppt-preview' ? 'ppt'
       : centerPanelState.content === 'ppt-result' ? 'ppt'  // 아티팩트에서 PPT 클릭 시
@@ -1710,7 +1755,12 @@ setArtifacts([]); // Clear artifacts
         }}
         // Dashboard Renderer Props (grouped)
         dashboardRendererProps={{
-          dashboardComponent: dashboardType !== 'ppt' ? (
+          dashboardComponent: centerPanelState.content === 'chart' && chartResult ? (
+            <NLChartRenderer
+              result={chartResult}
+              onChangeChartType={changeChartType}
+            />
+          ) : dashboardType !== 'ppt' ? (
             <Dashboard
               type={dashboardType}
               scenario={dashboardScenario}

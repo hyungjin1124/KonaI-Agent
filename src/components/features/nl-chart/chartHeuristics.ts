@@ -40,6 +40,13 @@ function recommendByDataType(dataset: DatasetMeta): HeuristicResult {
   const { dataType, metrics } = dataset;
 
   if (dataType === 'temporal') {
+    if (metrics.length >= 2) {
+      return {
+        recommended: 'composed',
+        alternatives: ['line', 'bar', 'area'],
+        reasoning: generateReasoning('composed', dataset, 'dataType'),
+      };
+    }
     return {
       recommended: 'line',
       alternatives: ['bar', 'area', 'composed'],

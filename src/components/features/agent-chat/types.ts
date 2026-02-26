@@ -388,7 +388,7 @@ export interface ArtifactPreviewState {
 // 가운데 패널 상태 (Artifact Preview 독립 제어)
 export interface CenterPanelState {
   isOpen: boolean;
-  content: 'ppt-preview' | 'ppt-result' | 'dashboard' | 'slide-outline' | 'markdown-preview' | 'document-preview' | null;
+  content: 'ppt-preview' | 'ppt-result' | 'dashboard' | 'slide-outline' | 'markdown-preview' | 'document-preview' | 'chart' | null;
 }
 
 // 레이아웃 모드

@@ -15,11 +15,16 @@ export function useModelSelection(defaultModelId: string = DEFAULT_MODEL_ID) {
     // SSR-safe: return default on server
     if (typeof window === 'undefined') return defaultModelId;
 
-    const cached = localStorage.getItem(STORAGE_KEY);
-    if (cached) {
-      // Validate cached ID exists in MODELS
-      const isValid = MODELS.some(m => m.id === cached);
-      if (isValid) return cached;
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (cached) {
+        // Validate cached ID exists in MODELS
+        const isValid = MODELS.some(m => m.id === cached);
+        if (isValid) return cached;
+      }
+    } catch (error) {
+      // Graceful degradation: private browsing or storage disabled
+      console.warn('[ModelSelection] localStorage.getItem failed:', error);
     }
     return defaultModelId;
   });
@@ -33,7 +38,12 @@ export function useModelSelection(defaultModelId: string = DEFAULT_MODEL_ID) {
   const handleModelChange = useCallback((modelId: string) => {
     setSelectedModelId(modelId);
     if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, modelId);
+      try {
+        localStorage.setItem(STORAGE_KEY, modelId);
+      } catch (error) {
+        // Graceful degradation: state updates but not persisted
+        console.warn('[ModelSelection] localStorage.setItem failed:', error);
+      }
     }
   }, []);
 

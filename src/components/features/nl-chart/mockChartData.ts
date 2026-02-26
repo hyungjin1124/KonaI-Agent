@@ -100,7 +100,7 @@ export const MOCK_DATASETS: DatasetMeta[] = [
   },
   {
     id: 'cost_breakdown',
-    keywords: ['비용', '원가', '경비', '지출', '코스트'],
+    keywords: ['비용', '원가', '경비', '지출', '코스트', '구성'],
     description: '비용 구성 분석',
     xAxisKey: 'category',
     xAxisLabel: '비용 항목',
