@@ -279,16 +279,24 @@ categories:
       - id: agent_self_review
         name: "Agent Self-Review / Auto-Validation"
         description: "에이전트가 산출물을 사용자에게 제시하기 전 자체 검증하는 품질 게이트"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [chat_view, agent_scenario]
         dependencies: [tool_call_display, approval_rejection]
-        source_files: []
+        source_files:
+          - "src/components/features/agent-chat/components/SelfReview/types.ts"
+          - "src/components/features/agent-chat/components/SelfReview/constants.ts"
+          - "src/components/features/agent-chat/components/SelfReview/SelfReviewCard.tsx"
+          - "src/components/features/agent-chat/components/SelfReview/SelfReviewCheckItem.tsx"
+          - "src/components/features/agent-chat/components/SelfReview/index.ts"
+          - "src/components/features/agent-chat/components/SelfReview/SelfReviewCard.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/agent-self-review.md"
         last_researched: "2026-02-27"
-        notes: "GitHub Copilot, Cursor, Xcode 3개 제품 동시 발표(Feb 26). Pre-approval validation layer로 기존 approval_rejection과 조합하여 2단계 품질 관리 구현. SelfReviewCard 컴포넌트 + 동적 risk 조정."
+        notes: "Phase 1 구현 완료. SelfReviewCard(접이식 검증 카드) + SelfReviewCheckItem(항목별 pass/warning/fail 표시) + deriveRiskLevel(ApprovalGate 연동용 동적 리스크 매핑). 19개 테스트 PASS. Phase 2: 시나리오 훅 통합 + 도메인별 검증 규칙."
+        metadata:
+          last_updated: "2026-02-27"
 
   # ============================================================================
   # 카테고리 3: HITL (Human-in-the-Loop) Patterns
