@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.2.1"
-  last_updated: "2026-02-25"
+  last_updated: "2026-02-27"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -254,6 +254,7 @@ categories:
         source_files: []
         obsidian_sources:
           - "Insights/agent-ui/patterns/parallel-execution-ui.md"
+        notes: "Cursor Cloud Agents (Feb 26): 내부 PR 1/3+ 자율 에이전트 생성. GitHub Copilot CLI Handoff: 클라우드↔로컬 seamless 전환. Perplexity Computer: 서브에이전트별 격리 환경 병렬 실행. 범위를 '에이전트 세션 관리'(시작/일시정지/핸드오프/롤백)로 확장 검토."
 
       - id: error_retry_ui
         name: "Error & Retry UI"
@@ -274,6 +275,20 @@ categories:
         complexity: simple
         contexts: [global]
         source_files: []
+
+      - id: agent_self_review
+        name: "Agent Self-Review / Auto-Validation"
+        description: "에이전트가 산출물을 사용자에게 제시하기 전 자체 검증하는 품질 게이트"
+        status: not_implemented
+        priority: high
+        complexity: moderate
+        contexts: [chat_view, agent_scenario]
+        dependencies: [tool_call_display, approval_rejection]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/agent-self-review.md"
+        last_researched: "2026-02-27"
+        notes: "GitHub Copilot, Cursor, Xcode 3개 제품 동시 발표(Feb 26). Pre-approval validation layer로 기존 approval_rejection과 조합하여 2단계 품질 관리 구현. SelfReviewCard 컴포넌트 + 동적 risk 조정."
 
   # ============================================================================
   # 카테고리 3: HITL (Human-in-the-Loop) Patterns
@@ -630,9 +645,13 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/model-agent-switcher.md"
         last_researched: "2026-02-26"
-        notes: "Phase 1 implemented: Radix Select with inline metadata (context window, speed badges), localStorage persistence, keyboard navigation. Integrated into GeneralChatView. Phase 2 (grouping+pinning) and Phase 3 (Auto mode) ready for future enhancement."
+        last_verified: "2026-02-26"
+        qa_cycles: 2
+        qa_verdict: "PASS"
+        notes: "Phase 1 MVP complete (✅ QA PASS 2026-02-26). Radix Select with inline metadata (context window, speed badges), localStorage persistence with graceful error handling, keyboard navigation, DEFAULT_MODEL_ID initialization. All 7 Acceptance Criteria verified. 3 Critical issues fixed in Cycle 1 (localStorage error handling, visibility bug). Backend integration deferred to Phase 2. Phase 2 (grouping+pinning) and Phase 3 (Auto mode) ready for future enhancement."
         metadata:
           last_updated: "2026-02-26"
+          qa_report: "specs/implementation-logs/model_agent_switcher/qa-report-cycle-2.md"
 
       - id: notification_center
         name: "Notification Center"
