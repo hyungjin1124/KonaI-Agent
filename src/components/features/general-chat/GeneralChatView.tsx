@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Plus, ArrowUp } from '../../icons';
 import { CoworkLayout } from '../agent-chat/layouts';
 import { RightSidebar } from '../agent-chat/components/RightSidebar';
 import {
@@ -9,30 +8,16 @@ import {
   ContextItem,
   SidebarSection,
   AttachedFile,
-  FILE_TREE_DRAG_MIME_TYPE,
 } from '../agent-chat/types';
 import { ArtifactPanelProvider, useArtifactPanel } from '../agent-chat/context/ArtifactPanelContext';
 import { ArtifactPreviewPanel } from '../agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel';
 import { ConversationSidebar, MOCK_AGENT_SESSIONS } from '../agent-chat/components/ConversationSidebar';
-import { AttachedFileChip } from '../agent-chat/components/ChatInputArea/AttachedFileChip';
-import { DropZoneOverlay } from '../agent-chat/components/ChatInputArea/DropZoneOverlay';
 import { ChatPanel } from './components/ChatPanel';
+import { UnifiedChatInput } from './components/UnifiedChatInput';
 import { ChatMessage } from './types';
 import { useNLChart, NLChartRenderer } from '../nl-chart';
-import { ModelSwitcher } from '../model-switcher';
 import { DEFAULT_MODEL_ID } from '@/constants/models';
-
-const getFileType = (filename: string): AttachedFile['type'] => {
-  const lower = filename.toLowerCase();
-  if (lower.endsWith('.md')) return 'markdown';
-  if (lower.endsWith('.txt')) return 'text';
-  if (lower.endsWith('.pdf')) return 'pdf';
-  if (lower.endsWith('.docx')) return 'docx';
-  if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) return 'xlsx';
-  if (lower.endsWith('.csv')) return 'csv';
-  if (lower.endsWith('.pptx') || lower.endsWith('.ppt')) return 'pptx';
-  return 'other';
-};
+import { useToast } from '@/context/ToastContext';
 
 // Bridge pattern: expose ArtifactPanelContext methods via ref
 const ArtifactPanelBridge: React.FC<{
@@ -60,10 +45,8 @@ export const GeneralChatView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // File attachment state (drag from file tree)
-  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragCounterRef = useRef(0);
+  // Toast for file validation errors
+  const { showToast } = useToast();
 
   // Right sidebar state (expanded by default)
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
@@ -98,7 +81,6 @@ export const GeneralChatView: React.FC = () => {
     setActiveSessionId(null);
     setMessages([]);
     setInputValue('');
-    setAttachedFile(null);
     clearChart();
     setIsCenterPanelOpen(false);
     setChartArtifacts([]);
@@ -107,7 +89,6 @@ export const GeneralChatView: React.FC = () => {
   const handleSessionSelect = useCallback((sessionId: string) => {
     setActiveSessionId(sessionId);
     setMessages([]);
-    setAttachedFile(null);
     clearChart();
     setIsCenterPanelOpen(false);
     setChartArtifacts([]);
@@ -134,12 +115,13 @@ export const GeneralChatView: React.FC = () => {
     artifactPanelRef.current?.closePanel();
   }, []);
 
-  const handleSend = useCallback(() => {
-    if (!inputValue.trim() && !attachedFile) return;
+  const handleSend = useCallback((attachedFiles?: AttachedFile[]) => {
+    if (!inputValue.trim() && (!attachedFiles || attachedFiles.length === 0)) return;
     if (isLoading) return;
 
-    const content = attachedFile
-      ? `${inputValue.trim() ? inputValue.trim() + '\n\n' : ''}📎 ${attachedFile.name}`
+    const fileNames = attachedFiles?.map((f) => f.name).join(', ');
+    const content = fileNames
+      ? `${inputValue.trim() ? inputValue.trim() + '\n\n' : ''}📎 ${fileNames}`
       : inputValue.trim();
 
     const userMessage: ChatMessage = {
@@ -151,7 +133,6 @@ export const GeneralChatView: React.FC = () => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
-    setAttachedFile(null);
     setIsLoading(true);
 
     // Try NL-to-Chart first
@@ -198,98 +179,15 @@ export const GeneralChatView: React.FC = () => {
         setIsLoading(false);
       }, 1500);
     }
-  }, [inputValue, isLoading, attachedFile, processQuery]);
+  }, [inputValue, isLoading, processQuery]);
 
   const handleInputChange = useCallback((value: string) => {
     setInputValue(value);
   }, []);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend]
-  );
-
-  // Auto-resize textarea
-  const handleTextareaChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setInputValue(e.target.value);
-      const textarea = e.target;
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
-    },
-    []
-  );
-
-  // Drag & Drop handlers (counter-based flicker prevention)
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'copy';
-  }, []);
-
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current++;
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current--;
-    if (dragCounterRef.current === 0) {
-      setIsDragging(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current = 0;
-    setIsDragging(false);
-
-    // File tree item drag
-    const fileTreeDataStr = e.dataTransfer.getData(FILE_TREE_DRAG_MIME_TYPE);
-    if (fileTreeDataStr) {
-      try {
-        const data = JSON.parse(fileTreeDataStr) as { id: string; name: string; extension: string };
-        setAttachedFile({
-          id: `filetree-${Date.now()}`,
-          name: data.name,
-          type: getFileType(data.name),
-          content: '',
-          size: 0,
-          lastModified: new Date(),
-        });
-      } catch { /* ignore parse errors */ }
-      return;
-    }
-
-    // OS native file drop
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setAttachedFile({
-        id: `file-${Date.now()}`,
-        name: file.name,
-        type: getFileType(file.name),
-        content: '',
-        size: file.size,
-        lastModified: new Date(file.lastModified),
-      });
-    }
-  }, []);
-
-  const handleRemoveFile = useCallback(() => {
-    setAttachedFile(null);
-  }, []);
-
-  const hasInput = !!(inputValue.trim() || attachedFile);
+  const handleValidationError = useCallback((message: string) => {
+    showToast({ type: 'error', title: '파일 첨부 오류', message });
+  }, [showToast]);
 
   // Left Panel (Chat History Sidebar + Chat Messages)
   const leftPanelContent = (
@@ -311,6 +209,9 @@ export const GeneralChatView: React.FC = () => {
           inputValue={inputValue}
           onInputChange={handleInputChange}
           onSend={handleSend}
+          selectedModelId={selectedModelId}
+          onModelChange={setSelectedModelId}
+          onValidationError={handleValidationError}
         />
       </div>
     </div>
@@ -333,62 +234,17 @@ export const GeneralChatView: React.FC = () => {
 
   // Input Area (only shown when there are messages)
   const inputArea = isEmptyState ? null : (
-    <div
-      className="border-t border-gray-200 bg-white px-4 py-3 relative"
-      onDragOver={handleDragOver}
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <DropZoneOverlay isVisible={isDragging} />
-      <div className="max-w-3xl mx-auto">
-        {/* Model Switcher + Attached File */}
-        {(selectedModelId || attachedFile) && (
-          <div className="flex items-center gap-2 mb-2">
-            <ModelSwitcher
-              value={selectedModelId}
-              onValueChange={setSelectedModelId}
-              className="w-[200px]"
-            />
-            {attachedFile && (
-              <AttachedFileChip file={attachedFile} onRemove={handleRemoveFile} />
-            )}
-          </div>
-        )}
-        <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] focus-within:border-[#FF3C42] focus-within:ring-1 focus-within:ring-[#FF3C42] transition-all shadow-sm flex items-end p-2 gap-2">
-          {/* Plus Button */}
-          <button className="p-2 mb-0.5 text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50 rounded-lg transition-colors">
-            <Plus size={20} />
-          </button>
-
-          {/* Text Input */}
-          <textarea
-            ref={textareaRef}
-            value={inputValue}
-            onChange={handleTextareaChange}
-            onKeyDown={handleKeyDown}
-            placeholder="데이터 분석, 보고서 생성, 또는 업무 지시를 입력하세요..."
-            rows={1}
-            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-[#000000] placeholder-[#848383] text-sm font-medium resize-none py-2.5 max-h-[120px] overflow-y-auto leading-relaxed"
-          />
-
-          {/* Send Button */}
-          <div className="flex items-center gap-1 mb-0.5">
-            <button
-              onClick={handleSend}
-              disabled={!hasInput || isLoading}
-              className={`p-2 rounded-lg transition-all ${
-                hasInput && !isLoading
-                  ? 'bg-[#FF3C42] text-white shadow-sm hover:bg-[#E5363B]'
-                  : 'bg-gray-100 text-[#848383] cursor-not-allowed'
-              }`}
-            >
-              <ArrowUp size={20} />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <UnifiedChatInput
+      inputValue={inputValue}
+      onInputChange={handleInputChange}
+      onSend={handleSend}
+      textareaRef={textareaRef}
+      disabled={isLoading}
+      showModelSwitcher
+      selectedModelId={selectedModelId}
+      onModelChange={setSelectedModelId}
+      onValidationError={handleValidationError}
+    />
   );
 
   // Right Panel

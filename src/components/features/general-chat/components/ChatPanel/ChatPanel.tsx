@@ -1,8 +1,10 @@
 import React, { useRef, useEffect } from 'react';
-import { Bot, User, Plus, ArrowUp } from '../../../../icons';
+import { User } from '../../../../icons';
 import { ChatMessage } from '../../types';
 import { CitationSourceLink } from '../../../agent-chat/components/CitationSourceLink';
 import { MarkdownRenderer } from '@/components/shared/markdown';
+import { UnifiedChatInput } from '../UnifiedChatInput';
+import type { AttachedFile } from '../../../agent-chat/types';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -10,7 +12,11 @@ interface ChatPanelProps {
   // Input props for empty state
   inputValue?: string;
   onInputChange?: (value: string) => void;
-  onSend?: () => void;
+  onSend?: (attachedFiles?: AttachedFile[]) => void;
+  // Model switcher props (passed to UnifiedChatInput)
+  selectedModelId?: string;
+  onModelChange?: (modelId: string) => void;
+  onValidationError?: (message: string) => void;
 }
 
 const formatTime = (date: Date): string => {
@@ -26,28 +32,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   inputValue = '',
   onInputChange,
   onSend,
+  selectedModelId,
+  onModelChange,
+  onValidationError,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Auto-resize textarea
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onInputChange?.(e.target.value);
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      onSend?.();
-    }
-  };
 
   // Empty state with KonaAgent branding - positioned at bottom center
   if (messages.length === 0 && !isLoading) {
@@ -68,38 +61,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             무엇을 도와드릴까요?
           </h2>
 
-          {/* Input Area - Dashboard Style */}
-          <div className="w-full">
-          <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] focus-within:border-[#FF3C42] focus-within:ring-1 focus-within:ring-[#FF3C42] transition-all shadow-sm flex items-end p-2 gap-2">
-            <button className="p-2 mb-0.5 text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50 rounded-lg transition-colors">
-              <Plus size={20} />
-            </button>
-
-            <textarea
-              ref={textareaRef}
-              className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-[#000000] placeholder-[#848383] text-sm font-medium resize-none py-2.5 min-h-[60px] max-h-[120px] overflow-y-auto leading-relaxed"
-              placeholder="데이터 분석, 보고서 생성, 또는 업무 지시를 입력하세요..."
-              rows={2}
-              value={inputValue}
-              onChange={handleTextareaChange}
-              onKeyDown={handleKeyDown}
-            />
-
-            <div className="flex items-center gap-1 mb-0.5">
-              <button
-                className={`p-2 rounded-lg transition-all ${
-                  inputValue.trim()
-                    ? 'bg-[#FF3C42] text-white shadow-sm hover:bg-[#E5363B]'
-                    : 'bg-gray-100 text-[#848383] cursor-not-allowed'
-                }`}
-                disabled={!inputValue.trim()}
-                onClick={onSend}
-              >
-                <ArrowUp size={20} />
-              </button>
-            </div>
-          </div>
-        </div>
+          {/* Input Area - Unified Component */}
+          <UnifiedChatInput
+            inputValue={inputValue}
+            onInputChange={onInputChange ?? (() => {})}
+            onSend={onSend ?? (() => {})}
+            variant="centered"
+            showModelSwitcher={!!selectedModelId}
+            selectedModelId={selectedModelId}
+            onModelChange={onModelChange}
+            onValidationError={onValidationError}
+          />
         </div>
       </div>
     );
