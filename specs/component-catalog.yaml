@@ -129,9 +129,13 @@ categories:
         source_files:
           - "src/components/ChatInterface.tsx"
           - "src/components/features/general-chat/GeneralChatView.tsx"
+          - "src/components/features/agent-chat/components/ChatInputArea/ChatInputArea.tsx"
+          - "src/components/features/agent-chat/components/ChatInputArea/AttachedFileChip.tsx"
+          - "src/components/features/agent-chat/components/ChatInputArea/DropZoneOverlay.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/multimodal-input-patterns.md"
-        notes: "기본 textarea는 구현됨. 파일 첨부, 이미지, 음성 등 멀티모달 확장 필요."
+        last_researched: "2026-02-27"
+        notes: "ChatInputArea(D&D, HITL, 제안칩), AttachedFileChip, DropZoneOverlay 구현 완료. GeneralChatView에 ModelSwitcher 통합. 미구현: + 메뉴 허브, @mention 자동완성, 이미지 클립보드, 복수 파일 첨부. 3개 입력 영역(ChatInputArea, GeneralChatView, ChatPanel) 통합 필요."
 
       - id: code_block
         name: "Code Block"
