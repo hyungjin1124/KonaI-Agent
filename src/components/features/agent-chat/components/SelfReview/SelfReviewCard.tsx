@@ -201,7 +201,7 @@ const SelfReviewCard: React.FC<SelfReviewCardProps> = ({
                       e.stopPropagation();
                       onAutoFix?.();
                     }}
-                    className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded"
                   >
                     <Wrench size={12} />
                     <span>자동 수정 시도</span>

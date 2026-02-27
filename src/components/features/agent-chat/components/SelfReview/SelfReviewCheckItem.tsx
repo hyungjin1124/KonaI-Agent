@@ -86,7 +86,7 @@ const SelfReviewCheckItem: React.FC<SelfReviewCheckItemProps> = ({ item, isActiv
       {item.evidence && item.status !== 'pending' && item.status !== 'checking' && (
         <div className="flex items-center gap-1.5 ml-[22px]">
           <EvidenceIcon type={item.evidence.type} />
-          <span className="text-[11px] text-gray-400 underline decoration-dotted cursor-default">
+          <span className="text-[11px] text-gray-500 underline decoration-dotted cursor-default">
             {item.evidence.label}
           </span>
         </div>
