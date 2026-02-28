@@ -173,6 +173,14 @@ export const UsageMonitoringView: React.FC = () => {
           title="에이전트 유형별 실행 수"
           height={220}
           insightSummary="PPT 에이전트가 전체 실행의 38%를 차지하며 가장 활발하게 사용됩니다."
+          insightDetail={
+            <div className="space-y-3 text-sm">
+              <p>에이전트 유형별 실행 분석 결과, PPT 에이전트(1,243회)가 전체 3,241회 실행 중 38%를 차지하며 가장 높은 활용도를 보입니다.</p>
+              <p>분석 에이전트(987회, 30%)가 2위이며, 채팅 에이전트(654회, 20%)와 데이터 에이전트(357회, 11%)가 뒤를 잇습니다.</p>
+              <p><strong>권장 액션:</strong> PPT 에이전트의 높은 사용량을 고려하여, 자주 사용되는 템플릿을 캐싱하면 토큰 소비를 15~20% 절감할 수 있습니다.</p>
+            </div>
+          }
+          expandTestId="agent-distribution-insight"
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -208,6 +216,14 @@ export const UsageMonitoringView: React.FC = () => {
           title="모델별 비용 분포"
           height={220}
           insightSummary="GPT-4o가 전체 비용의 50%를 차지합니다. GPT-4o-mini 전환으로 비용 절감 가능."
+          insightDetail={
+            <div className="space-y-3 text-sm">
+              <p>모델별 비용 분석 결과, GPT-4o($1,420)가 전체 $2,847 중 50%를 차지하며 비용 최적화의 핵심 대상입니다.</p>
+              <p>Claude 3.5 Sonnet($890, 31%)은 토큰당 비용 효율이 가장 높으며, GPT-4o-mini($320, 11%)는 경량 작업에 적합합니다. Claude 3 Haiku($217, 8%)는 가장 비용 효율적인 옵션입니다.</p>
+              <p><strong>권장 액션:</strong> 단순 질의 응답, 요약 등 경량 작업을 GPT-4o에서 GPT-4o-mini 또는 Claude 3 Haiku로 전환하면 월 $400~600 절감이 가능합니다.</p>
+            </div>
+          }
+          expandTestId="model-cost-insight"
         >
           <div className="flex items-center h-full gap-4">
             <div className="flex-1 h-full">
