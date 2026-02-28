@@ -721,14 +721,21 @@ categories:
       - id: usage_monitoring
         name: "Usage Monitoring Dashboard"
         description: "API 사용량, 토큰 소비, 비용, 에이전트 성능 모니터링"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: complex
         contexts: [monitoring]
-        source_files: []
+        source_files:
+          - "src/components/features/usage-monitoring/UsageMonitoringView.tsx"
+          - "src/components/features/usage-monitoring/usageMonitoringData.ts"
+          - "src/components/features/usage-monitoring/index.ts"
+          - "src/components/features/usage-monitoring/UsageMonitoringView.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/usage-monitoring-dashboard.md"
         last_researched: "2026-03-01"
+        notes: "Phase 1 구현 완료: KPI 4종(토큰/비용/활성사용자/에이전트 실행) + 일별 트렌드(ComposedChart) + 에이전트별 분포(BarChart) + 모델별 비용(PieChart). Admin 탭 통합. CSS Grid 반응형 레이아웃. Phase 2: react-grid-layout 드래그/리사이즈, 사용자별 분석 테이블, 비용 이상치 알림."
+        metadata:
+          last_updated: "2026-03-01"
 
       - id: agent_config
         name: "Agent Configuration"

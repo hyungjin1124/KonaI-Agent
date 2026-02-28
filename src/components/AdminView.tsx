@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Check, X, Lock, Users, Briefcase, Mail, Power
+  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2
 } from './icons';
+import { UsageMonitoringView } from './features/usage-monitoring';
 import { User, UserRole, UserStatus, RoleConfig } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -301,8 +302,8 @@ const AdminView: React.FC = () => {
       <div className="px-8 py-6 bg-white border-b border-gray-200 shrink-0">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">사용자 및 권한 관리</h2>
-            <p className="text-sm text-gray-500 mt-1">시스템 접속 사용자 계정 및 역할별 접근 권한을 설정합니다.</p>
+            <h2 className="text-2xl font-bold text-gray-900">관리자 대시보드</h2>
+            <p className="text-sm text-gray-500 mt-1">사용자 관리, 권한 설정, AI 사용량 모니터링을 관리합니다.</p>
           </div>
           <TabsList className="bg-gray-100 p-1 rounded-lg h-auto">
             <TabsTrigger value="users" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
@@ -310,6 +311,9 @@ const AdminView: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="permissions" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <Shield size={16} /> 권한 설정
+            </TabsTrigger>
+            <TabsTrigger value="usage" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <BarChart2 size={16} /> 사용량
             </TabsTrigger>
           </TabsList>
         </div>
@@ -348,6 +352,10 @@ const AdminView: React.FC = () => {
 
             <TabsContent value="permissions" className="mt-0">
                 {renderPermissionMatrix()}
+            </TabsContent>
+
+            <TabsContent value="usage" className="mt-0">
+                <UsageMonitoringView />
             </TabsContent>
         </div>
       </div>
