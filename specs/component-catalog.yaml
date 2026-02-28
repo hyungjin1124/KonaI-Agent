@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.2.1"
-  last_updated: "2026-02-27"
+  last_updated: "2026-03-01"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -726,6 +726,9 @@ categories:
         complexity: complex
         contexts: [monitoring]
         source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/usage-monitoring-dashboard.md"
+        last_researched: "2026-03-01"
 
       - id: agent_config
         name: "Agent Configuration"
