@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2
+  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, Clock
 } from './icons';
 import { UsageMonitoringView } from './features/usage-monitoring';
+import { ScheduledTasksView } from './features/scheduled-tasks';
 import { User, UserRole, UserStatus, RoleConfig } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -303,7 +304,7 @@ const AdminView: React.FC = () => {
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">관리자 대시보드</h2>
-            <p className="text-sm text-gray-500 mt-1">사용자 관리, 권한 설정, AI 사용량 모니터링을 관리합니다.</p>
+            <p className="text-sm text-gray-500 mt-1">사용자 관리, 권한 설정, AI 사용량 모니터링, 예약 작업을 관리합니다.</p>
           </div>
           <TabsList className="bg-gray-100 p-1 rounded-lg h-auto">
             <TabsTrigger value="users" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
@@ -314,6 +315,9 @@ const AdminView: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="usage" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <BarChart2 size={16} /> 사용량
+            </TabsTrigger>
+            <TabsTrigger value="scheduled" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <Clock size={16} /> 예약 작업
             </TabsTrigger>
           </TabsList>
         </div>
@@ -356,6 +360,10 @@ const AdminView: React.FC = () => {
 
             <TabsContent value="usage" className="mt-0">
                 <UsageMonitoringView />
+            </TabsContent>
+
+            <TabsContent value="scheduled" className="mt-0">
+                <ScheduledTasksView />
             </TabsContent>
         </div>
       </div>

@@ -869,15 +869,27 @@ categories:
       - id: scheduled_agent_tasks
         name: "Scheduled Agent Tasks"
         description: "에이전트 작업의 예약 실행, 반복 스케줄 관리, 실행 이력 모니터링 UI"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [chat_view, admin, monitoring]
-        source_files: []
+        source_files:
+          - "src/components/features/scheduled-tasks/types.ts"
+          - "src/components/features/scheduled-tasks/scheduledTasksData.ts"
+          - "src/components/features/scheduled-tasks/useScheduledTasks.ts"
+          - "src/components/features/scheduled-tasks/ScheduledTasksView.tsx"
+          - "src/components/features/scheduled-tasks/components/TaskStatusBadge.tsx"
+          - "src/components/features/scheduled-tasks/components/ScheduleForm.tsx"
+          - "src/components/features/scheduled-tasks/components/TaskTable.tsx"
+          - "src/components/features/scheduled-tasks/components/ExecutionHistory.tsx"
+          - "src/components/features/scheduled-tasks/index.ts"
+          - "src/components/features/scheduled-tasks/ScheduledTasksView.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/scheduled-agent-tasks.md"
         last_researched: "2026-03-02"
-        notes: "ChatGPT Tasks/Gemini/Claude Cowork 패턴 분석 완료. Hybrid 접근 권장: 자연어 스케줄 생성(채팅) + 사이드바 구조화 관리 + 라이브보드 위젯. 기존 useScenarioOrchestration, NotificationContext, Sidebar 확장으로 구현 가능."
+        notes: "Phase 1 구현 완료: Admin 탭 통합, KPI 4종(전체/활성/실행횟수/성공률), 작업 테이블(CRUD+일시정지/재개/즉시실행), 실행 이력 패널, 4빈도(1회/매일/매주/매월). Phase 2: 사이드바 통합, 자연어 스케줄 생성, 라이브보드 위젯."
+        metadata:
+          last_updated: "2026-03-02"
 
       - id: dark_mode
         name: "Dark Mode"
