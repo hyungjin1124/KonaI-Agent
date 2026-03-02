@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.2.1"
-  last_updated: "2026-03-01"
+  last_updated: "2026-03-02"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -134,8 +134,8 @@ categories:
           - "src/components/features/agent-chat/components/ChatInputArea/DropZoneOverlay.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/multimodal-input-patterns.md"
-        last_researched: "2026-02-27"
-        notes: "ChatInputArea(D&D, HITL, 제안칩), AttachedFileChip, DropZoneOverlay 구현 완료. GeneralChatView에 ModelSwitcher 통합. 미구현: + 메뉴 허브, @mention 자동완성, 이미지 클립보드, 복수 파일 첨부. 3개 입력 영역(ChatInputArea, GeneralChatView, ChatPanel) 통합 필요."
+        last_researched: "2026-03-02"
+        notes: "ChatInputArea(D&D, HITL, 제안칩), AttachedFileChip, DropZoneOverlay 구현 완료. GeneralChatView에 ModelSwitcher 통합. 미구현: + 메뉴 허브, @mention 자동완성, 이미지 클립보드, 복수 파일 첨부. 3개 입력 영역(ChatInputArea, GeneralChatView, ChatPanel) 통합 필요. UnifiedChatInput QA 테스트 파일 존재(구현체 미작성). 2026.03 업데이트: 10개 제품 비교(+Codex App, Copilot), 패턴 F(비동기 디스패치)+G(입력 훅) 추가, ChatGPT Drafts/Gemini 모핑 입력/Cursor Cloud Agent 디스패치 반영."
 
       - id: code_block
         name: "Code Block"
@@ -733,9 +733,13 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/usage-monitoring-dashboard.md"
         last_researched: "2026-03-01"
+        last_verified: "2026-03-01"
+        qa_cycles: 2
+        qa_verdict: "PASS"
         notes: "Phase 1 구현 완료: KPI 4종(토큰/비용/활성사용자/에이전트 실행) + 일별 트렌드(ComposedChart) + 에이전트별 분포(BarChart) + 모델별 비용(PieChart). Admin 탭 통합. CSS Grid 반응형 레이아웃. Phase 2: react-grid-layout 드래그/리사이즈, 사용자별 분석 테이블, 비용 이상치 알림."
         metadata:
           last_updated: "2026-03-01"
+          qa_report: "specs/implementation-logs/usage_monitoring/qa-report.md"
 
       - id: agent_config
         name: "Agent Configuration"
