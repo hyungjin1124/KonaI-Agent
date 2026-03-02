@@ -135,6 +135,8 @@ categories:
           - "src/components/features/general-chat/components/UnifiedChatInput/constants.ts"
           - "src/components/features/general-chat/components/UnifiedChatInput/index.ts"
           - "src/components/features/general-chat/components/UnifiedChatInput/UnifiedChatInput.test.tsx"
+          - "src/components/features/general-chat/components/UnifiedChatInput/UnifiedChatInput.qa.test.tsx"
+          - "src/components/features/general-chat/components/UnifiedChatInput/UnifiedChatInput.flow.qa.test.tsx"
           - "src/components/features/general-chat/components/ChatPanel/ChatPanel.tsx"
           - "src/components/features/agent-chat/components/ChatInputArea/ChatInputArea.tsx"
           - "src/components/features/agent-chat/components/ChatInputArea/AttachedFileChip.tsx"
@@ -144,7 +146,7 @@ categories:
         last_researched: "2026-02-27"
         notes: "Phase 1 MVP 완료. UnifiedChatInput: + 메뉴(Radix DropdownMenu), 이미지 클립보드(Ctrl+V), 복수 파일(최대 5개), 파일 타입/크기 검증, D&D, ModelSwitcher 통합, 접근성(aria-label). GeneralChatView + ChatPanel 통합 완료. 미구현: @mention 자동완성(Phase 2), 모드 선택(Phase 2)."
         metadata:
-          last_updated: "2026-02-27"
+          last_updated: "2026-03-02"
 
       - id: code_block
         name: "Code Block"

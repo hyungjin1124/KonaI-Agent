@@ -29,8 +29,52 @@
 | 19 | calls onValidationError for unsupported file types | PASS |
 | 20 | calls onValidationError for oversized files | PASS |
 
-- 총 테스트: 20개
+- 총 Dev 테스트: 20개
 - 통과: 20개, 실패: 0개
+
+## QA Edge Case 테스트 (UnifiedChatInput.qa.test.tsx)
+| # | 테스트명 | 결과 |
+|---|---------|------|
+| 1 | renders correctly with no attached files and empty input | PASS |
+| 2 | does not show file chip area when no files attached | PASS |
+| 3 | rejects 6th file with validation error | PASS |
+| 4 | handles very long input without layout breaking | PASS |
+| 5 | handles long file names in chips | PASS |
+| 6 | handles emoji in input | PASS |
+| 7 | handles special chars in file names | PASS |
+| 8 | renders without optional props | PASS |
+| 9 | renders without textareaRef | PASS |
+| 10 | does not call onSend multiple times on rapid button clicks | PASS |
+| 11 | prevents Enter key from sending when disabled | PASS |
+| 12 | send button is disabled when disabled prop is true even with input | PASS |
+| 13 | clears files after successful send | PASS |
+| 14 | allows sending when only files are attached and input is empty | PASS |
+| 15 | handles artifact drag data | PASS |
+| 16 | handles file tree drag data | PASS |
+| 17 | calls onInputChange when typing | PASS |
+| 18 | accepts valid mix of image and document files | PASS |
+
+- 총 QA Edge Case 테스트: 18개
+- 통과: 18개, 실패: 0개
+
+## QA Flow 테스트 (UnifiedChatInput.flow.qa.test.tsx)
+| # | 테스트명 | 결과 |
+|---|---------|------|
+| 1 | type → Enter → input cleared → parent receives message | PASS |
+| 2 | type → click send → input cleared | PASS |
+| 3 | paste image → type text → send → both delivered, files cleared | PASS |
+| 4 | add file → remove file → send button disabled (no text, no files) | PASS |
+| 5 | change model → send message → model selection preserved | PASS |
+| 6 | invalid file rejected → valid file accepted → send succeeds | PASS |
+| 7 | parent clearing input reflects in textarea | PASS |
+| 8 | both variants have same functional elements | PASS |
+
+- 총 QA Flow 테스트: 8개
+- 통과: 8개, 실패: 0개
+
+## 전체 테스트 요약
+- **총 테스트: 46개** (Dev 20 + QA Edge 18 + QA Flow 8)
+- **통과: 46개, 실패: 0개**
 
 ## 시나리오 커버리지
 | # | 시나리오 | 우선순위 | 테스트 위치 | 결과 |
