@@ -796,21 +796,28 @@ categories:
       - id: generative_ui
         name: "Generative UI (Dynamic Component Rendering)"
         description: "에이전트가 런타임에 UI 컴포넌트를 동적으로 생성/구성"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: epic
         contexts: [chat_view, artifact_panel]
+        source_files:
+          - "src/components/features/generative-ui/types.ts"
+          - "src/components/features/generative-ui/parseGenerativeUI.ts"
+          - "src/components/features/generative-ui/GenerativeUIRenderer.tsx"
+          - "src/components/features/generative-ui/GenerativeUIFallback.tsx"
+          - "src/components/features/generative-ui/index.ts"
+          - "src/components/features/generative-ui/GenerativeUIRenderer.test.tsx"
+          - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/GenerativeUIRendererAdapter.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/generative-ui-implementation.md"
         last_researched: "2026-03-03"
+        metadata:
+          last_updated: "2026-03-03"
         notes: >
-          2026 핵심 트렌드. 3대 프로토콜 레이어:
-          (1) A2UI v0.8/v0.9 (Google): 선언적 JSON UI 스펙 + 컴포넌트 카탈로그. A2A 확장 지원.
-          (2) MCP Apps (Anthropic, Jan 2026): MCP tool에 ui:// 리소스 첨부, 샌드박스 iframe 렌더링.
-          (3) AG-UI (CopilotKit): 16 표준 이벤트, SSE/WS/Webhook 전송. MS/Google/AWS 통합.
-          KonaI-Agent 권장: Phase 1 Static MVP (기존 NLChart/ChartWidget 재활용) →
-          Phase 2 A2UI Declarative (카탈로그 기반 선언적 렌더링) →
-          Phase 3 MCP Apps (서드파티 확장).
+          Phase 1 (Static MVP) 구현 완료: GenerativeUIRenderer(8종 컴포넌트 type dispatch),
+          parseGenerativeUI(JSON 검증+코드펜스 추출), GenerativeUIFallback(에러 UI),
+          ArtifactPreviewPanel 통합('generative-ui' previewType), AgentChatView 통합(키워드 감지→자동 렌더링).
+          27개 단위 테스트 PASS. Phase 2: A2UI 호환 Declarative 렌더러. Phase 3: MCP Apps 통합.
 
       - id: ambient_agent
         name: "Ambient Agent UI"

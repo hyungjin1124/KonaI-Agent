@@ -17,6 +17,9 @@ import ChatHistoryPanel, { ChatMessage } from './components/ChatHistoryPanel';
 import { ConversationSidebar, MOCK_AGENT_SESSIONS } from './components/ConversationSidebar';
 import { ArtifactPanelProvider, useArtifactPanel } from './context/ArtifactPanelContext';
 import { useNLChart, NLChartRenderer } from '../nl-chart';
+import { MultiAgentScenarioRenderer } from '../multi-agent';
+import { extractGenerativeUIFromMessage } from '../generative-ui';
+import type { GenerativeUISpec } from '../generative-ui';
 
 // Re-export ChatMessage for external use
 export type { ChatMessage };
@@ -159,6 +162,9 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // NL-to-Chart
   const { chartResult, processQuery: processChartQuery, changeChartType, clearChart } = useNLChart();
+
+  // Generative UI specs (탭 ID → spec 매핑)
+  const [generativeUISpecs, setGenerativeUISpecs] = useState<Record<string, import('../generative-ui').GenerativeUISpec>>({});
 
   // --- 아티팩트 열기/닫기 시 사이드 패널 자동 숨김/복원 ---
   const savedSidePanelStateRef = useRef<{
@@ -898,6 +904,72 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       return;
     }
 
+    // Generative UI: 대시보드/KPI/통계 요청 감지
+    const isGenerativeUIRequest =
+      !attachedFile && (
+        text.includes('대시보드') || text.includes('KPI') || text.includes('통계') ||
+        text.includes('현황판') || text.includes('지표')
+      );
+
+    if (isGenerativeUIRequest) {
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        type: 'user',
+        content: text,
+        timestamp: new Date(),
+      };
+
+      const tabId = `gen-ui-${Date.now()}`;
+      const guiSpec: GenerativeUISpec = {
+        type: 'stat-grid',
+        title: '주요 경영 지표 현황',
+        description: '에이전트가 생성한 실시간 KPI 대시보드입니다.',
+        data: {
+          items: [
+            { label: '매출 성장률', value: '₩42억', change: { value: 13.5, direction: 'up' }, subtitle: '목표 37억 초과 달성' },
+            { label: '원가 절감률', value: '8.2%', change: { value: 2.1, direction: 'up' }, subtitle: '전분기 대비 개선' },
+            { label: '활성 에이전트', value: 24, change: { value: 6, direction: 'up' }, subtitle: '신규 배포 3건' },
+            { label: 'API 호출', value: '1.2M', change: { value: 15, direction: 'up' }, subtitle: '일 평균 기준' },
+          ],
+        },
+      };
+
+      setGenerativeUISpecs(prev => ({ ...prev, [tabId]: guiSpec }));
+
+      const guiArtifact: Artifact = {
+        id: tabId,
+        title: guiSpec.title || '생성형 UI',
+        type: 'generative-ui' as Artifact['type'],
+        createdAt: new Date(),
+        messageId: userMessage.id,
+      };
+
+      setChatHistory(prev => [...prev, userMessage]);
+      setArtifacts(prev => [...prev, guiArtifact]);
+      setShowDashboard(true);
+
+      setTimeout(() => {
+        const agentMessage: ChatMessage = {
+          id: `agent-gui-${Date.now()}`,
+          type: 'agent',
+          content: `📊 **${guiSpec.title}**\n\n${guiSpec.description}\n\n아티팩트 패널에서 결과를 확인하세요.`,
+          timestamp: new Date(),
+        };
+        setChatHistory(prev => [...prev, agentMessage]);
+
+        artifactPanelRef.current?.openTab({
+          id: tabId,
+          artifact: guiArtifact,
+          previewType: 'generative-ui',
+          title: guiSpec.title || '생성형 UI',
+        });
+        setCenterPanelState({ isOpen: true, content: 'generative-ui' });
+      }, 800);
+
+      setInputValue('');
+      return;
+    }
+
     // Auto-detect triggered by context or text
     const isDidRequest = text.includes('DID') || text.includes('메탈') || text.includes('칩셋');
     const isPptRequest = text.includes('PPT') || text.includes('보고서') || text.includes('슬라이드');
@@ -909,12 +981,14 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     if (contextData?.scenario) {
         targetScenario = contextData.scenario;
     } else {
+        const isMultiAgentScenario = text.includes('멀티 에이전트') || text.includes('에이전트 팀') || text.includes('종합 보고서');
         const isSalesAnalysisScenario = isFinancialRequest && (
             text.includes("원가") ||
             text.includes("원인") ||
             text.includes("매출")
         );
-        if (isSalesAnalysisScenario) targetScenario = 'sales_analysis';
+        if (isMultiAgentScenario) targetScenario = 'multi_agent';
+        else if (isSalesAnalysisScenario) targetScenario = 'sales_analysis';
     }
 
     let targetType: 'financial' | 'did' | 'ppt' = 'financial';
@@ -954,11 +1028,13 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       { id: 'cite-strategy', index: 2, title: '사업 전략 기획안', url: 'https://docs.konai.com/strategy/2026', domain: 'docs.konai.com', snippet: '2026년 사업부별 전략 방향 및 핵심 추진 과제' },
     ] : [];
 
-    const confirmText = targetScenario === 'sales_analysis'
-      ? '요청하신 매출 실적 분석을 시작합니다. ERP, E2MAX, 플랫폼 포탈의 데이터를 연동하여 종합 분석을 수행합니다.'
-      : targetType === 'ppt'
-        ? '요청하신 PPT 생성을 시작합니다. 경영 실적 데이터를 기반으로 프레젠테이션을 구성합니다.'
-        : '';
+    const confirmText = targetScenario === 'multi_agent'
+      ? '멀티 에이전트 협업을 시작합니다. 4개 전문 에이전트가 병렬로 데이터 수집, 분석, 시각화, 보고서 작성을 수행합니다.'
+      : targetScenario === 'sales_analysis'
+        ? '요청하신 매출 실적 분석을 시작합니다. ERP, E2MAX, 플랫폼 포탈의 데이터를 연동하여 종합 분석을 수행합니다.'
+        : targetType === 'ppt'
+          ? '요청하신 PPT 생성을 시작합니다. 경영 실적 데이터를 기반으로 프레젠테이션을 구성합니다.'
+          : '';
 
     // 3. 에이전트 시나리오 응답 메시지를 히스토리에 추가
     const agentMessage: ChatMessage = {
@@ -1619,6 +1695,15 @@ setArtifacts([]); // Clear artifacts
         }
     }
 
+    // 4. Multi-Agent Orchestration Scenario
+    if (msgDashboardScenario === 'multi_agent') {
+      return (
+        <MultiAgentScenarioRenderer
+          scenarioId="sales_analysis"
+        />
+      );
+    }
+
     // Default Fallback
     return (
       <DefaultResponse
@@ -1795,6 +1880,8 @@ setArtifacts([]); // Clear artifacts
             handleMarkdownContentChange(artifactPreview.selectedArtifact.id, content);
           }
         }}
+        // Generative UI specs
+        generativeUISpecs={generativeUISpecs}
       />
     ) : null;
 

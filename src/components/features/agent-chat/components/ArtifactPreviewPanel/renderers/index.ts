@@ -12,3 +12,6 @@ export type { MarkdownRendererProps } from './MarkdownRenderer';
 
 export { SlideOutlineRenderer } from './SlideOutlineRenderer';
 export type { SlideOutlineRendererProps } from './SlideOutlineRenderer';
+
+export { GenerativeUIRendererAdapter } from './GenerativeUIRendererAdapter';
+export type { GenerativeUIRendererAdapterProps } from './GenerativeUIRendererAdapter';
