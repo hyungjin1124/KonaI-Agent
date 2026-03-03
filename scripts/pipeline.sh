@@ -3,9 +3,10 @@
 # KonaI-Agent Development Pipeline Orchestrator
 # ============================================================================
 # 사용법:
-#   ./scripts/pipeline.sh                    # 전체 파이프라인 (discover부터)
+#   ./scripts/pipeline.sh                    # 전체 파이프라인 (discover부터, main 기준)
 #   ./scripts/pipeline.sh --from=review      # review 단계부터 시작
 #   ./scripts/pipeline.sh --from=research    # research 단계부터 시작
+#   ./scripts/pipeline.sh --base=develop     # develop 브랜치 기준으로 실행
 #   ./scripts/pipeline.sh --discover-only    # discover만 실행
 #
 # 각 단계는 별도 Claude Code 세션으로 실행되어 컨텍스트 윈도우를 분리한다.
@@ -80,17 +81,62 @@ run_claude() {
     fi
 }
 
+# 파이프라인 단계 산출물을 커밋하여 clean working tree 유지
+commit_pipeline_artifacts() {
+    local stage="$1"
+    local msg="$2"
+
+    local files_to_add=()
+    case $stage in
+        discover)
+            files_to_add=(specs/discovery-reports/ specs/pipeline-logs/.last_discovery_report)
+            ;;
+        review)
+            files_to_add=(specs/review-decisions/ specs/component-catalog.yaml specs/pipeline-logs/.last_review_decision)
+            ;;
+        research)
+            files_to_add=(specs/component-catalog.yaml)
+            ;;
+    esac
+
+    git add "${files_to_add[@]}" 2>/dev/null || true
+    if ! git diff --cached --quiet 2>/dev/null; then
+        git commit -m "pipeline(${stage}): ${msg}" --no-verify
+        success "파이프라인 산출물 커밋: pipeline(${stage}): ${msg}"
+    else
+        log "커밋할 변경 사항 없음 (${stage})"
+    fi
+}
+
+# subprocess 후 예상 브랜치 복귀 보장
+ensure_on_branch() {
+    local target_branch="$1"
+    local current_branch
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$current_branch" != "$target_branch" ]; then
+        warn "예상 브랜치($target_branch)가 아닌 $current_branch에 있습니다. 복귀합니다."
+        git checkout "$target_branch" || {
+            error "$target_branch 로 복귀할 수 없습니다."
+            return 1
+        }
+    fi
+}
+
 # ============================================================================
 # 인자 파싱
 # ============================================================================
 
 FROM_STAGE="discover"
 DISCOVER_ONLY=false
+BASE_BRANCH="main"
 
 for arg in "$@"; do
     case $arg in
         --from=*)
             FROM_STAGE="${arg#*=}"
+            ;;
+        --base=*)
+            BASE_BRANCH="${arg#*=}"
             ;;
         --discover-only)
             DISCOVER_ONLY=true
@@ -100,6 +146,7 @@ for arg in "$@"; do
             echo ""
             echo "Options:"
             echo "  --from=STAGE        시작 단계 (discover|review|research|implement|qa)"
+            echo "  --base=BRANCH       기준 브랜치 (기본값: main)"
             echo "  --discover-only     discover만 실행하고 종료"
             echo "  --help, -h          이 도움말 표시"
             exit 0
@@ -132,6 +179,9 @@ run_discover() {
 
     success "Discovery 완료: $latest_report"
     echo "$latest_report" > "${LOG_DIR}/.last_discovery_report"
+
+    # 산출물 커밋 — clean working tree 유지
+    commit_pipeline_artifacts "discover" "${TODAY} discovery report"
 
     if [ "$DISCOVER_ONLY" = true ]; then
         header "파이프라인 종료 (--discover-only)"
@@ -169,11 +219,8 @@ run_review() {
     success "Review 완료: $latest_review"
     echo "$latest_review" > "${LOG_DIR}/.last_review_decision"
 
-    # Review에서 approved 항목이 없으면 종료
-    if grep -q "APPROVED (0건)" "$latest_review" 2>/dev/null; then
-        warn "승인된 항목이 없습니다. 파이프라인을 종료합니다."
-        return 0
-    fi
+    # 산출물 커밋 — clean working tree 유지
+    commit_pipeline_artifacts "review" "${TODAY} review decision"
 }
 
 # ============================================================================
@@ -192,8 +239,8 @@ run_research_implement_qa() {
 
     log "Review decision에서 실행 계획을 확인합니다."
 
-    # 현재 브랜치를 기준점으로 저장
-    local base_branch=$(git rev-parse --abbrev-ref HEAD)
+    # 기준 브랜치 (인자로 전달받은 값 사용)
+    local base_branch="$BASE_BRANCH"
     log "Base branch: $base_branch"
 
     # Review decision에서 모든 Batch 항목을 순차 추출·실행
@@ -235,14 +282,24 @@ run_research_implement_qa() {
                 }
                 success "Research 완료: $research_topic"
 
+                # 리서치 산출물 커밋 — implement의 branch switch 전에 clean tree 보장
+                commit_pipeline_artifacts "research" "${research_topic} research brief"
+
                 # Step 2: Implement (implement가 feature branch를 자체 관리)
                 local feature_branch="feature/${component_id}"
                 echo -e "  ${BLUE}→ /implement ${component_id}${NC}"
                 run_claude "implement" "$component_id" || {
                     error "Implement 실패: $component_id"
-                    git checkout "$base_branch" 2>/dev/null
+                    ensure_on_branch "$base_branch"
                     continue
                 }
+
+                # dev-test.md 존재 확인 — 실질적 구현 완료 검증
+                if [ ! -f "specs/implementation-logs/${component_id}/dev-test.md" ]; then
+                    error "Implement가 완료되지 않았습니다 (dev-test.md 미생성): $component_id"
+                    ensure_on_branch "$base_branch"
+                    continue
+                fi
                 success "Implement 완료: $component_id"
 
                 # Step 3: QA (feature branch에서 실행)
@@ -250,12 +307,12 @@ run_research_implement_qa() {
                 run_qa "$component_id" || {
                     error "QA 실패: $component_id — 파이프라인을 중단합니다."
                     error "브랜치 $feature_branch 에서 수정 후 재실행하세요."
-                    git checkout "$base_branch" 2>/dev/null
+                    ensure_on_branch "$base_branch"
                     return 1
                 }
 
                 # QA 통과 후 base branch로 복귀
-                git checkout "$base_branch"
+                ensure_on_branch "$base_branch"
                 success "브랜치 $feature_branch 작업 완료, $base_branch 로 복귀"
             else
                 skipped_count=$((skipped_count + 1))
@@ -371,10 +428,33 @@ run_qa() {
 # 메인 실행
 # ============================================================================
 
+# 스크립트 종료 시 base branch로 복귀 시도
+cleanup() {
+    local exit_code=$?
+    local current
+    current=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || true
+    if [ "$current" != "$BASE_BRANCH" ] && [ "$current" != "HEAD" ]; then
+        echo -e "${YELLOW}⚠ 스크립트 종료 — $BASE_BRANCH 로 복귀합니다.${NC}"
+        git checkout "$BASE_BRANCH" 2>/dev/null || true
+    fi
+    exit $exit_code
+}
+trap cleanup EXIT
+
 header "KonaI-Agent Development Pipeline"
 log "시작 단계: $FROM_STAGE"
+log "기준 브랜치: $BASE_BRANCH"
 log "프로젝트: $PROJECT_DIR"
 log "날짜: $TODAY"
+
+# 기준 브랜치로 이동 — feature branch에서 시작하는 상황 방지
+if [ "$(git rev-parse --abbrev-ref HEAD)" != "$BASE_BRANCH" ]; then
+    log "현재 브랜치가 $BASE_BRANCH가 아닙니다. 체크아웃합니다."
+    git checkout "$BASE_BRANCH" || {
+        error "$BASE_BRANCH 브랜치로 체크아웃할 수 없습니다. 변경사항을 커밋하거나 스태시하세요."
+        exit 1
+    }
+fi
 
 case $FROM_STAGE in
     discover)

@@ -36,6 +36,7 @@ Tech Lead 관점에서 discovery 리포트의 발견 항목들을 평가하고,
 - `specs/component-catalog.yaml` 로드
 - status별 분포 (특히 not_implemented, research_needed 수)
 - 현재 진행 중인 구현 항목 (partial 상태)
+- **완료 컴포넌트 목록**: `status: implemented` + `qa_verdict: PASS`인 항목을 수집하여 중복 실행 방지에 사용
 
 **프로젝트 목표** (CLAUDE.md에서 확인):
 - 프로젝트의 핵심 기능 영역
@@ -106,6 +107,23 @@ APPROVE된 항목들을 실행 순서로 정렬한다.
 3. 의존성 READY > PARTIAL
 4. complexity simple > moderate > complex
 
+### 완료 컴포넌트 필터링 (중복 실행 방지)
+
+Batch 편성 전에 다음 조건을 확인한다:
+
+카탈로그에서 `status: implemented` **AND** `qa_verdict: PASS`인 컴포넌트는:
+- **Batch에 포함하지 않는다** — 이미 구현+QA 완료된 항목의 재실행은 낭비
+- **예외**: 이번 discovery 리포트에 해당 컴포넌트의 UPDATE 발견이 있고, 그 UPDATE가 기존 구현을 변경해야 할 수준인 경우에만 포함
+- 이전 리포트 누적 미실행 항목을 Batch로 승격할 때도 동일하게 적용
+
+필터링된 항목은 review decision에 기록한다:
+```
+### SKIPPED — 이미 완료 ({N}건)
+| # | component_id | status | qa_verdict | 사유 |
+|---|-------------|--------|------------|------|
+| 1 | {id} | implemented | PASS | 구현+QA 완료. 재실행 불필요 |
+```
+
 ### 배치 그룹핑
 
 하루에 처리 가능한 작업량을 고려하여 배치로 나눈다:
@@ -156,6 +174,15 @@ APPROVE된 항목들을 실행 순서로 정렬한다.
 | # | 항목 | 유형 | 사유 |
 |---|------|------|------|
 | 1 | ... | ... | B2C 전용 패턴, 엔터프라이즈 시나리오에 부적합 |
+
+### SKIPPED — 이미 완료 ({N}건)
+
+> 카탈로그에서 `status: implemented` + `qa_verdict: PASS`로 확인된 컴포넌트.
+> 이전 리포트에서 Batch 후보였으나 이미 완료되어 제외됨.
+
+| # | component_id | qa_verdict | 사유 |
+|---|-------------|------------|------|
+| 1 | {id} | PASS | 구현+QA 완료. 재실행 불필요 |
 
 ---
 
