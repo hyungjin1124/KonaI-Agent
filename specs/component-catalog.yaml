@@ -830,6 +830,7 @@ categories:
           KonaI-Agent 권장: Phase 1 Static MVP (기존 NLChart/ChartWidget 재활용) →
           Phase 2 A2UI Declarative (카탈로그 기반 선언적 렌더링) →
           Phase 3 MCP Apps (서드파티 확장).
+          OpenAI AgentKit ChatKit (Mar 4): 드롭인 채팅 에이전트 임베딩 툴킷. Agent Builder + ChatKit + Connector Registry 통합 플랫폼.
 
       - id: ambient_agent
         name: "Ambient Agent UI"
@@ -857,7 +858,7 @@ categories:
         complexity: epic
         contexts: [admin, agent_scenario]
         source_files: []
-        notes: "DataManagementView의 ReactFlow 기반을 확장하여 구현 가능."
+        notes: "DataManagementView의 ReactFlow 기반을 확장하여 구현 가능. OpenAI AgentKit Agent Builder (Mar 4): 비주얼 캔버스에서 멀티에이전트 워크플로우 생성/버전관리. Connector Registry로 외부 서비스 중앙 관리."
 
       - id: memory_management
         name: "Agent Memory Management UI"
