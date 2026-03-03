@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.3.0"
-  last_updated: "2026-03-03"
+  last_updated: "2026-03-04"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -821,16 +821,17 @@ categories:
         contexts: [chat_view, artifact_panel]
         obsidian_sources:
           - "Insights/agent-ui/patterns/generative-ui-implementation.md"
-        last_researched: "2026-03-03"
+        last_researched: "2026-03-04"
         notes: >
-          2026 핵심 트렌드. 3대 프로토콜 레이어:
-          (1) A2UI v0.8/v0.9 (Google): 선언적 JSON UI 스펙 + 컴포넌트 카탈로그. A2A 확장 지원.
-          (2) MCP Apps (Anthropic, Jan 2026): MCP tool에 ui:// 리소스 첨부, 샌드박스 iframe 렌더링.
-          (3) AG-UI (CopilotKit): 16 표준 이벤트, SSE/WS/Webhook 전송. MS/Google/AWS 통합.
+          2026 핵심 트렌드. 4대 프로토콜 레이어:
+          (1) A2UI v0.9 Draft (Google): 선언적 JSON UI 스펙 + 카탈로그. "Prompt First" 패러다임 전환, const 판별자 기반 평면 구조.
+          (2) MCP Apps (Anthropic+OpenAI, Jan 2026): MCP tool에 ui:// 리소스 첨부, iframe 렌더링. 양사 동시 채택.
+          (3) AG-UI (CopilotKit): 16 표준 이벤트, 양방향 런타임 오케스트레이션 레이어. MS/Google/AWS 통합.
+          (4) Open-JSON-UI (OpenAI): JSON 기반 UI 기술 포맷, OpenAI 모델 스키마 최적화.
+          OpenAI AgentKit (Mar 4): ChatKit(React/Vue/Angular 드롭인 채팅 임베딩, GA) + Agent Builder(비주얼 워크플로우) + Connector Registry(서비스 중앙 관리).
           KonaI-Agent 권장: Phase 1 Static MVP (기존 NLChart/ChartWidget 재활용) →
           Phase 2 A2UI Declarative (카탈로그 기반 선언적 렌더링) →
           Phase 3 MCP Apps (서드파티 확장).
-          OpenAI AgentKit ChatKit (Mar 4): 드롭인 채팅 에이전트 임베딩 툴킷. Agent Builder + ChatKit + Connector Registry 통합 플랫폼.
 
       - id: ambient_agent
         name: "Ambient Agent UI"
