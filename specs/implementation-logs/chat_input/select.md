@@ -5,30 +5,18 @@
 - **Priority**: high
 - **Complexity**: moderate
 - **Contexts**: [chat_view]
-- **Dependencies**: 없음 (독립 구현 가능)
+- **Dependencies**: none (no explicit dependencies in catalog)
 - **Obsidian Sources**: Insights/agent-ui/patterns/multimodal-input-patterns.md
-- **Last Researched**: 2026-03-02
+- **Existing Source Files**:
+  - `src/components/ChatInterface.tsx`
+  - `src/components/features/general-chat/GeneralChatView.tsx`
+  - `src/components/features/agent-chat/components/ChatInputArea/ChatInputArea.tsx`
+  - `src/components/features/agent-chat/components/ChatInputArea/AttachedFileChip.tsx`
+  - `src/components/features/agent-chat/components/ChatInputArea/DropZoneOverlay.tsx`
 
-## Existing Source Files
+## Selection Rationale
 
-| 파일 | 역할 | 재사용도 |
-|------|------|---------|
-| `src/components/ChatInterface.tsx` | 대시보드 입력 (126줄) | 60% |
-| `src/components/features/general-chat/GeneralChatView.tsx` | 채팅 입력 (437줄) | 80% |
-| `src/components/features/agent-chat/components/ChatInputArea/ChatInputArea.tsx` | 에이전트 채팅 입력 (382줄) | 100% |
-| `src/components/features/agent-chat/components/ChatInputArea/AttachedFileChip.tsx` | 첨부 파일 칩 (84줄) | 100% |
-| `src/components/features/agent-chat/components/ChatInputArea/DropZoneOverlay.tsx` | 드롭존 오버레이 (39줄) | 100% |
-
-## QA Test Files (구현체 없음)
-
-| 파일 | 설명 |
-|------|------|
-| `src/components/features/general-chat/components/UnifiedChatInput/UnifiedChatInput.qa.test.tsx` | 엣지케이스 테스트 (396줄) |
-| `src/components/features/general-chat/components/UnifiedChatInput/UnifiedChatInput.flow.qa.test.tsx` | 통합 플로우 테스트 (365줄) |
-
-## 선정 사유
-
-- 8회 연속 리뷰에서 구현 권장됨
-- 리서치 완료 (2026-03-02 업데이트, 10개 제품 비교)
-- 의존성 없음, 즉시 구현 가능
-- 채팅 입력은 AI 제품의 가장 기본적인 인터페이스 — critical 사용자 가치
+- 7회 연속 리뷰에서 권장된 항목 (Batch 2 최상위)
+- status `partial`: 기본 입력 + D&D + 파일 첨부 구현 완료, + 메뉴 / 이미지 클립보드 / 복수 파일 / 접근성 미구현
+- Phase 1 (MVP) 구현 범위: + 메뉴 허브, 이미지 클립보드, 복수 파일, 파일 타입/크기 검증, 접근성
+- Phase 2 (@mention)는 별도 사이클로 분리

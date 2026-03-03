@@ -428,7 +428,7 @@ export const FILE_TREE_DRAG_MIME_TYPE = 'application/x-konai-filetree';
 export interface AttachedFile {
   id: string;
   name: string;
-  type: 'markdown' | 'text' | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx' | 'other';
+  type: 'markdown' | 'text' | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx' | 'image' | 'other';
   content: string;
   size: number;
   lastModified: Date;

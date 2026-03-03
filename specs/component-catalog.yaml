@@ -122,20 +122,31 @@ categories:
       - id: chat_input
         name: "Chat Input (Multi-modal)"
         description: "텍스트, 파일, 이미지 등 멀티모달 입력을 지원하는 채팅 입력창"
-        status: partial
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [chat_view]
         source_files:
           - "src/components/ChatInterface.tsx"
           - "src/components/features/general-chat/GeneralChatView.tsx"
+          - "src/components/features/general-chat/components/UnifiedChatInput/UnifiedChatInput.tsx"
+          - "src/components/features/general-chat/components/UnifiedChatInput/PlusMenu.tsx"
+          - "src/components/features/general-chat/components/UnifiedChatInput/useFileAttachment.ts"
+          - "src/components/features/general-chat/components/UnifiedChatInput/constants.ts"
+          - "src/components/features/general-chat/components/UnifiedChatInput/index.ts"
+          - "src/components/features/general-chat/components/UnifiedChatInput/UnifiedChatInput.test.tsx"
+          - "src/components/features/general-chat/components/UnifiedChatInput/UnifiedChatInput.qa.test.tsx"
+          - "src/components/features/general-chat/components/UnifiedChatInput/UnifiedChatInput.flow.qa.test.tsx"
+          - "src/components/features/general-chat/components/ChatPanel/ChatPanel.tsx"
           - "src/components/features/agent-chat/components/ChatInputArea/ChatInputArea.tsx"
           - "src/components/features/agent-chat/components/ChatInputArea/AttachedFileChip.tsx"
           - "src/components/features/agent-chat/components/ChatInputArea/DropZoneOverlay.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/multimodal-input-patterns.md"
         last_researched: "2026-03-02"
-        notes: "ChatInputArea(D&D, HITL, 제안칩), AttachedFileChip, DropZoneOverlay 구현 완료. GeneralChatView에 ModelSwitcher 통합. 미구현: + 메뉴 허브, @mention 자동완성, 이미지 클립보드, 복수 파일 첨부. 3개 입력 영역(ChatInputArea, GeneralChatView, ChatPanel) 통합 필요. UnifiedChatInput QA 테스트 파일 존재(구현체 미작성). 2026.03 업데이트: 10개 제품 비교(+Codex App, Copilot), 패턴 F(비동기 디스패치)+G(입력 훅) 추가, ChatGPT Drafts/Gemini 모핑 입력/Cursor Cloud Agent 디스패치 반영."
+        notes: "Phase 1 MVP 완료. UnifiedChatInput: + 메뉴(Radix DropdownMenu), 이미지 클립보드(Ctrl+V), 복수 파일(최대 5개), 파일 타입/크기 검증, D&D, ModelSwitcher 통합, 접근성(aria-label). GeneralChatView + ChatPanel 통합 완료. 미구현: @mention 자동완성(Phase 2), 모드 선택(Phase 2)."
+        metadata:
+          last_updated: "2026-03-02"
 
       - id: code_block
         name: "Code Block"
