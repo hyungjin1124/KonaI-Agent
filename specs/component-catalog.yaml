@@ -895,8 +895,8 @@ categories:
         source_files: []
         obsidian_sources:
           - "Insights/agent-ui/patterns/scheduled-agent-tasks.md"
-        last_researched: "2026-03-02"
-        notes: "ChatGPT Tasks/Gemini/Claude Cowork 패턴 분석 완료. Hybrid 접근 권장: 자연어 스케줄 생성(채팅) + 사이드바 구조화 관리 + 라이브보드 위젯. 기존 useScenarioOrchestration, NotificationContext, Sidebar 확장으로 구현 가능."
+        last_researched: "2026-03-03"
+        notes: "14개 경쟁사/프레임워크 분석, 6가지 패턴(A~F) 분류. 2026-03 업데이트: MS Copilot Tasks(Feb 26, 클라우드 샌드박스+check-in 승인), Gemini Enterprise Agent Designer(Schedule 탭), OpenAI Frontier(엔터프라이즈 멀티에이전트) 추가. 패턴 F(Cloud Sandbox + Check-in Approval) 신규 도출. Hybrid 접근 권장: 자연어 생성(채팅) + 사이드바 관리 + check-in 승인(ApprovalGate 재사용) + 라이브보드 위젯. QA 테스트 22개 PASS(구현체 미작성)."
 
       - id: dark_mode
         name: "Dark Mode"
