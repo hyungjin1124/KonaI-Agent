@@ -907,15 +907,33 @@ categories:
       - id: scheduled_agent_tasks
         name: "Scheduled Agent Tasks"
         description: "에이전트 작업의 예약 실행, 반복 스케줄 관리, 실행 이력 모니터링 UI"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [chat_view, admin, monitoring]
-        source_files: []
+        source_files:
+          - "src/components/features/scheduled-tasks/types.ts"
+          - "src/components/features/scheduled-tasks/scheduledTasksData.ts"
+          - "src/components/features/scheduled-tasks/useScheduledTasks.ts"
+          - "src/components/features/scheduled-tasks/ScheduledTasksView.tsx"
+          - "src/components/features/scheduled-tasks/components/TaskStatusBadge.tsx"
+          - "src/components/features/scheduled-tasks/components/ScheduleForm.tsx"
+          - "src/components/features/scheduled-tasks/components/TaskTable.tsx"
+          - "src/components/features/scheduled-tasks/components/ExecutionHistory.tsx"
+          - "src/components/features/scheduled-tasks/index.ts"
+          - "src/components/features/scheduled-tasks/ScheduledTasksView.test.tsx"
+          - "src/components/features/scheduled-tasks/ScheduledTasksView.qa.test.tsx"
+          - "src/components/features/scheduled-tasks/ScheduledTasksView.flow.qa.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/scheduled-agent-tasks.md"
         last_researched: "2026-03-03"
-        notes: "14개 경쟁사/프레임워크 분석, 6가지 패턴(A~F) 분류. 2026-03 업데이트: MS Copilot Tasks(Feb 26, 클라우드 샌드박스+check-in 승인), Gemini Enterprise Agent Designer(Schedule 탭), OpenAI Frontier(엔터프라이즈 멀티에이전트) 추가. 패턴 F(Cloud Sandbox + Check-in Approval) 신규 도출. Hybrid 접근 권장: 자연어 생성(채팅) + 사이드바 관리 + check-in 승인(ApprovalGate 재사용) + 라이브보드 위젯. QA 테스트 22개 PASS(구현체 미작성)."
+        last_verified: "2026-03-03"
+        qa_cycles: 1
+        qa_verdict: "PASS"
+        notes: "Phase 1 구현 완료: AdminView 4번째 탭. KPI 4종(전체/활성/총실행/성공률) + 상태 필터(5종) + 작업 테이블(CRUD+일시정지/재개/즉시실행) + 실행 이력 패널 + 생성/편집 다이얼로그(이름/지시사항/빈도/시간/요일). 6개 Mock 작업. 테스트 45개 ALL PASS(dev 20 + QA edge 17 + QA flow 8). Phase 2: 채팅 자연어 스케줄 생성, 사이드바 통합, 인앱 알림, 라이브보드 위젯. Phase 3: check-in 승인(ApprovalGate), 이벤트 트리거, 멀티에이전트 체이닝."
+        metadata:
+          last_updated: "2026-03-03"
+          qa_report: "specs/implementation-logs/scheduled_agent_tasks/qa-report.md"
 
       - id: dark_mode
         name: "Dark Mode"
