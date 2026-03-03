@@ -1,20 +1,20 @@
 # Select: Agent Self-Review / Auto-Validation
 
 - **ID**: agent_self_review
-- **Status**: not_implemented (QA 테스트 파일만 존재, 구현 코드 부재)
+- **Status**: not_implemented
 - **Priority**: high
 - **Complexity**: moderate
 - **Contexts**: [chat_view, agent_scenario]
 - **Dependencies**:
-  - tool_call_display: implemented
-  - approval_rejection: implemented
+  - tool_call_display: **implemented** ✅
+  - approval_rejection: **implemented** ✅
 - **Obsidian Sources**: Insights/agent-ui/patterns/agent-self-review.md
-- **Existing Source Files**: (없음 — QA 테스트 파일만 존재)
-  - src/components/features/agent-chat/components/SelfReview/SelfReviewCard.qa.test.tsx
-  - src/components/features/agent-chat/components/SelfReview/SelfReviewCard.flow.qa.test.tsx
+- **Existing Source Files**: (없음 — 신규 구현)
 
-## 비고
+## 선정 사유
 
-- 이전 세션에서 QA 리포트(qa-report.md, PASS)와 QA 테스트 파일이 생성되었으나, 실제 구현 코드는 커밋/저장되지 않은 상태
-- 전체 구현 파이프라인을 처음부터 실행 필요
-- 기존 QA 테스트 파일은 구현 코드의 인터페이스 참고 자료로 활용 가능
+- Review Decision 2026-02-27 Batch 1 승인 (APPROVE-1)
+- GitHub Copilot, Cursor, Apple Xcode 3개 제품 동시 발표(Feb 26)로 패턴 성숙도 높음
+- 기존 tool_call_display + approval_rejection 패턴 확장으로 구현 가능
+- ROI: HIGH (moderate 복잡도 / high 사용자 가치)
+- 모든 의존성 충족
