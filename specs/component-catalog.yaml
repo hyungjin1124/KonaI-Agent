@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.3.0"
-  last_updated: "2026-03-03"
+  last_updated: "2026-03-05"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -272,8 +272,8 @@ categories:
         source_files: []
         obsidian_sources:
           - "Insights/agent-ui/patterns/multi-agent-orchestration-ui.md"
-        last_researched: "2026-03-02"
-        notes: "5가지 패턴 분류: Transparent Supervisor, Visible Orchestrator Tree, Visual Graph Editor, Role-Based Crew Builder, Code-First. KonaI-Agent는 Visible Orchestrator + Sidebar Task List 하이브리드 권장. parallel_execution_view를 포괄하는 상위 개념으로, 함께 구현 권장."
+        last_researched: "2026-03-05"
+        notes: "5가지 패턴 분류(2026.03 업데이트): Transparent Supervisor, Visible Orchestrator Tree, Visual Graph Editor, Role-Based Crew Builder, Code-First Command Center. Anthropic Agent Teams(2-16 피어-투-피어, Feb 5), OpenAI Codex App(Thread/Turn/Item 커맨드 센터, Feb 2), Cursor 2.5(비동기 서브에이전트+Plugins, Feb). AG-UI 프로토콜: Microsoft/Google ADK 공식 호환. 72% 엔터프라이즈 채택. Phase 1 구현 진행(useMultiAgentOrchestration + 12 UI 파일). parallel_execution_view를 포괄하는 상위 개념."
 
       - id: error_retry_ui
         name: "Error & Retry UI"
@@ -811,13 +811,20 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/generative-ui-implementation.md"
         last_researched: "2026-03-03"
+        last_verified: "2026-03-04"
+        qa_cycles: 1
+        qa_verdict: "PASS"
         metadata:
-          last_updated: "2026-03-03"
+          last_updated: "2026-03-04"
+          qa_report: "specs/implementation-logs/generative_ui/qa-report.md"
         notes: >
-          Phase 1 (Static MVP) 구현 완료: GenerativeUIRenderer(8종 컴포넌트 type dispatch),
+          Phase 1 (Static MVP) 구현 완료 (✅ QA PASS 2026-03-04): GenerativeUIRenderer(8종 컴포넌트 type dispatch),
           parseGenerativeUI(JSON 검증+코드펜스 추출), GenerativeUIFallback(에러 UI),
           ArtifactPreviewPanel 통합('generative-ui' previewType), AgentChatView 통합(키워드 감지→자동 렌더링).
-          27개 단위 테스트 PASS. Phase 2: A2UI 호환 Declarative 렌더러. Phase 3: MCP Apps 통합.
+          82개 테스트 PASS (Dev 27 + QA 55). Minor 이슈 6건 기록.
+          Phase 2: A2UI 호환 Declarative 렌더러. Phase 3: MCP Apps 통합.
+          OpenAI AgentKit ChatKit (Mar 4): 드롭인 채팅 에이전트 임베딩 툴킷. Agent Builder + ChatKit + Connector Registry 통합 플랫폼.
+          Cursor 2.6 MCP Apps (Mar 3): MCP 서버 기반 인터랙티브 UI를 에이전트 채팅 내 네이티브 렌더링. Phase 3 MCP Apps 통합 설계의 실제 구현 사례.
 
       - id: ambient_agent
         name: "Ambient Agent UI"
@@ -832,10 +839,11 @@ categories:
         name: "Agent Marketplace / Store"
         description: "에이전트, 스킬, 플러그인을 탐색하고 설치하는 마켓플레이스"
         status: not_implemented
-        priority: low
+        priority: medium
         complexity: complex
         contexts: [admin]
         source_files: []
+        notes: "Cursor 2.6 Team Marketplaces (Mar 3): Teams/Enterprise 관리자가 프라이빗 플러그인 마켓플레이스 생성·배포·거버넌스. skill_management 확장으로 구현 가능."
 
       - id: workflow_builder
         name: "Visual Workflow Builder"
