@@ -4,7 +4,7 @@ import Dashboard from '../dashboard/Dashboard';
 import { SampleInterfaceContext, PPTConfig } from '../../../types';
 import { SlideItem, Artifact, ArtifactPreviewType, RightPanelType, ProgressTask, ContextItem, SidebarSection, ArtifactPreviewState, CenterPanelState, AttachedFile, Citation } from './types';
 import { useCaptureStateInjection, StateInjectionHandlers, useScrollToBottomButton, useSlideOutlineHITL } from '../../../hooks';
-import { AnomalyResponse, DefaultResponse, PPTDoneResponse, SalesAnalysisDoneResponse } from './components/AgentResponse';
+import { AnomalyResponse, DefaultResponse, PPTDoneResponse, SalesAnalysisDoneResponse, MultiAgentDoneResponse } from './components/AgentResponse';
 import PPTScenarioRenderer, { ActiveHitl } from './components/PPTScenarioRenderer';
 import { SLIDE_OUTLINE_CONTENTS, type SlideFile, CONSOLIDATED_SLIDE_FILE, CONSOLIDATED_SLIDE_OUTLINE_CONTENT, SLIDE_OUTLINE_SECTION_COUNT } from './components/ToolCall/constants';
 import SalesAnalysisScenarioRenderer from './components/SalesAnalysisScenarioRenderer';
@@ -17,6 +17,7 @@ import ChatHistoryPanel, { ChatMessage } from './components/ChatHistoryPanel';
 import { ConversationSidebar, MOCK_AGENT_SESSIONS } from './components/ConversationSidebar';
 import { ArtifactPanelProvider, useArtifactPanel } from './context/ArtifactPanelContext';
 import { useNLChart, NLChartRenderer } from '../nl-chart';
+import { MultiAgentScenarioRenderer } from '../multi-agent';
 
 // Re-export ChatMessage for external use
 export type { ChatMessage };
@@ -53,6 +54,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   // 시나리오 완료 상태 추적
   const [salesAnalysisComplete, setSalesAnalysisComplete] = useState(false);
   const [anomalyDetectionComplete, setAnomalyDetectionComplete] = useState(false);
+  const [multiAgentComplete, setMultiAgentComplete] = useState(false);
 
   // 대화 히스토리 상태
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -909,12 +911,14 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     if (contextData?.scenario) {
         targetScenario = contextData.scenario;
     } else {
+        const isMultiAgentScenario = text.includes('멀티 에이전트') || text.includes('에이전트 팀') || text.includes('종합 보고서');
         const isSalesAnalysisScenario = isFinancialRequest && (
             text.includes("원가") ||
             text.includes("원인") ||
             text.includes("매출")
         );
-        if (isSalesAnalysisScenario) targetScenario = 'sales_analysis';
+        if (isMultiAgentScenario) targetScenario = 'multi_agent';
+        else if (isSalesAnalysisScenario) targetScenario = 'sales_analysis';
     }
 
     let targetType: 'financial' | 'did' | 'ppt' = 'financial';
@@ -954,11 +958,13 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
       { id: 'cite-strategy', index: 2, title: '사업 전략 기획안', url: 'https://docs.konai.com/strategy/2026', domain: 'docs.konai.com', snippet: '2026년 사업부별 전략 방향 및 핵심 추진 과제' },
     ] : [];
 
-    const confirmText = targetScenario === 'sales_analysis'
-      ? '요청하신 매출 실적 분석을 시작합니다. ERP, E2MAX, 플랫폼 포탈의 데이터를 연동하여 종합 분석을 수행합니다.'
-      : targetType === 'ppt'
-        ? '요청하신 PPT 생성을 시작합니다. 경영 실적 데이터를 기반으로 프레젠테이션을 구성합니다.'
-        : '';
+    const confirmText = targetScenario === 'multi_agent'
+      ? '멀티 에이전트 협업을 시작합니다. 4개 전문 에이전트가 병렬로 데이터 수집, 분석, 시각화, 보고서 작성을 수행합니다.'
+      : targetScenario === 'sales_analysis'
+        ? '요청하신 매출 실적 분석을 시작합니다. ERP, E2MAX, 플랫폼 포탈의 데이터를 연동하여 종합 분석을 수행합니다.'
+        : targetType === 'ppt'
+          ? '요청하신 PPT 생성을 시작합니다. 경영 실적 데이터를 기반으로 프레젠테이션을 구성합니다.'
+          : '';
 
     // 3. 에이전트 시나리오 응답 메시지를 히스토리에 추가
     const agentMessage: ChatMessage = {
@@ -1101,6 +1107,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     // 시나리오 전환 시 이전 완료 상태 리셋
     setSalesAnalysisComplete(false);
     setAnomalyDetectionComplete(false);
+    setMultiAgentComplete(false);
     // 시각화 완료 상태 리셋 (Skeleton UI가 제대로 표시되도록)
     setIsVisualizationComplete(false);
     // 수정 1: 우측 사이드바 기본값 열림 유지 (PPT 시나리오 시작 시에도 닫지 않음)
@@ -1246,6 +1253,11 @@ setArtifacts([]); // Clear artifacts
   // 이상 탐지 완료 핸들러
   const handleAnomalyDetectionComplete = useCallback(() => {
     setAnomalyDetectionComplete(true);
+  }, []);
+
+  // 멀티 에이전트 오케스트레이션 완료 핸들러
+  const handleMultiAgentComplete = useCallback(() => {
+    setMultiAgentComplete(true);
   }, []);
 
   // Auto-scroll to bottom only if user is already at bottom
@@ -1617,6 +1629,24 @@ setArtifacts([]); // Clear artifacts
             />
           );
         }
+    }
+
+    // 4. Multi-Agent Orchestration Scenario
+    if (msgDashboardScenario === 'multi_agent') {
+      if (isLatest) {
+        return (
+          <MultiAgentScenarioRenderer
+            scenarioId="sales_analysis"
+            onComplete={handleMultiAgentComplete}
+          />
+        );
+      } else {
+        return (
+          <MultiAgentDoneResponse
+            onRequestPPT={handleRequestPPT}
+          />
+        );
+      }
     }
 
     // Default Fallback

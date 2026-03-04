@@ -35,6 +35,11 @@ export const ScenarioProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (mode === 'scenario_ppt') {
       setAgentQuery("Q4 2025 경영 실적 보고서 PPT를 만들어주세요.");
     }
+
+    // Special case for multi-agent orchestration
+    if (mode === 'scenario_multi_agent') {
+      setAgentQuery("종합 보고서를 멀티 에이전트 팀으로 작성해주세요.");
+    }
   }, []);
 
   const clearScenario = useCallback(() => {
