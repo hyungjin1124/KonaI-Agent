@@ -35,11 +35,18 @@ export const AgentTaskCard: React.FC<AgentTaskCardProps> = ({
   const config = STATUS_CONFIG[task.status];
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       data-testid={`agent-card-${agent.id}`}
-      className={`w-full text-left rounded-lg border p-3 transition-all ${
+      className={`w-full text-left rounded-lg border p-3 transition-all cursor-pointer ${
         isSelected
           ? 'border-blue-400 bg-blue-50/50 shadow-sm'
           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -81,7 +88,14 @@ export const AgentTaskCard: React.FC<AgentTaskCardProps> = ({
 
       {/* Progress Bar */}
       {(task.status === 'running' || task.status === 'completed') && (
-        <div className="w-full bg-gray-100 rounded-full h-1.5">
+        <div
+          className="w-full bg-gray-100 rounded-full h-1.5"
+          role="progressbar"
+          aria-valuenow={task.progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`${agent.name} 진행률`}
+        >
           <div
             className={`h-1.5 rounded-full transition-all duration-500 ${
               task.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
@@ -111,7 +125,7 @@ export const AgentTaskCard: React.FC<AgentTaskCardProps> = ({
           재시도
         </button>
       )}
-    </button>
+    </div>
   );
 };
 

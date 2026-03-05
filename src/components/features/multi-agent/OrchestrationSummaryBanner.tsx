@@ -25,6 +25,8 @@ export const OrchestrationSummaryBanner: React.FC<OrchestrationSummaryBannerProp
   return (
     <div
       data-testid="orchestration-summary-banner"
+      role="status"
+      aria-live="polite"
       className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border ${
         isComplete
           ? hasFailed
@@ -74,7 +76,7 @@ export const OrchestrationSummaryBanner: React.FC<OrchestrationSummaryBannerProp
                 status === 'failed' ? 'bg-red-100' :
                 'bg-gray-100'
               }`}
-              title={`${agent.name}: ${status}`}
+              aria-label={`${agent.name}: ${status}`}
             >
               {agent.icon}
             </span>
