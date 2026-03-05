@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.3.0"
-  last_updated: "2026-03-05"
+  last_updated: "2026-03-06"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -259,7 +259,7 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/parallel-execution-ui.md"
           - "Insights/agent-ui/patterns/multi-agent-orchestration-ui.md"
-        notes: "multi_agent_orchestration_ui에 포괄되는 하위 개념. 함께 구현 권장. Cursor Cloud Agents (Feb 26): 내부 PR 1/3+ 자율 에이전트 생성. GitHub Copilot CLI Handoff: 클라우드↔로컬 seamless 전환."
+        notes: "multi_agent_orchestration_ui에 포괄되는 하위 개념. 함께 구현 권장. Cursor Cloud Agents with Computer Use (Feb 24): 내부 PR 35% 자율 에이전트 생성, 브라우저 UI 테스트. Cursor Automations (Mar 5): always-on 에이전트, 이벤트 트리거. OpenAI Codex App Windows (Mar 4): 네이티브 Windows 샌드박스, isolated worktree, editable diffs. 3대 코딩 AI(Cursor 2.5, Copilot CLI, Codex App) 공통 병렬 에이전트 UI 채택."
 
       - id: multi_agent_orchestration_ui
         name: "Multi-Agent Orchestration UI"
@@ -272,8 +272,8 @@ categories:
         source_files: []
         obsidian_sources:
           - "Insights/agent-ui/patterns/multi-agent-orchestration-ui.md"
-        last_researched: "2026-03-05"
-        notes: "5가지 패턴 분류(2026.03 업데이트): Transparent Supervisor, Visible Orchestrator Tree, Visual Graph Editor, Role-Based Crew Builder, Code-First Command Center. Anthropic Agent Teams(2-16 피어-투-피어, Feb 5), OpenAI Codex App(Thread/Turn/Item 커맨드 센터, Feb 2), Cursor 2.5(비동기 서브에이전트+Plugins, Feb). AG-UI 프로토콜: Microsoft/Google ADK 공식 호환. 72% 엔터프라이즈 채택. Phase 1 구현 진행(useMultiAgentOrchestration + 12 UI 파일). parallel_execution_view를 포괄하는 상위 개념."
+        last_researched: "2026-03-06"
+        notes: "5가지 패턴 분류(2026.03 업데이트): Transparent Supervisor, Visible Orchestrator Tree, Visual Graph Editor, Role-Based Crew Builder, Code-First Command Center. Anthropic Agent Teams(2-16 피어-투-피어, Feb 5), OpenAI Codex App(macOS Feb+Windows Mar 4, isolated worktrees, editable diffs, 네이티브 샌드박스), Cursor 2.5(비동기 서브에이전트+Plugins+Automations Mar 5, 내부 PR 35% 자율 에이전트). AG-UI 프로토콜: Microsoft/Google ADK 공식 호환. 72% 엔터프라이즈 채택. QA 테스트 사전 작성(35 tests), TDD 기반 구현 대기. parallel_execution_view를 포괄하는 상위 개념."
 
       - id: error_retry_ui
         name: "Error & Retry UI"
