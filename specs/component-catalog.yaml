@@ -829,6 +829,9 @@ categories:
         complexity: moderate
         contexts: [admin, monitoring]
         source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/feedback-quality-management-ui.md"
+        last_researched: "2026-03-11"
         notes: "Discovery 2026-03-11 NEW-4. MS Copilot Studio(thumbs-up/down+테마 분석+에이전트 평가), ChatGPT Enterprise(engagement 추적) 패턴."
 
       - id: login_auth
