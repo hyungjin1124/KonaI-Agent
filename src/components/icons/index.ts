@@ -14,7 +14,7 @@ export { Activity, AlertCircle, AlertTriangle, ArrowDownRight, ArrowLeft, ArrowR
 export { Banknote, BarChart2, Bell, Bot, Box, Briefcase } from 'lucide-react';
 
 // C
-export { Calendar, CalendarDays, Check, CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Clock, Code, Cpu, CreditCard } from 'lucide-react';
+export { Calendar, CalendarDays, Check, CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Code, Cpu, CreditCard } from 'lucide-react';
 
 // D
 export { Database, Download } from 'lucide-react';

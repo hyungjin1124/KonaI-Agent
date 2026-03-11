@@ -743,11 +743,15 @@ categories:
       - id: audit_log
         name: "Audit Log"
         description: "에이전트 액션, 사용자 활동, 승인 이력의 감사 로그 — 세션 리플레이, Activity Map 시각화, 컴플라이언스 필터"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [admin, monitoring]
-        source_files: []
+        source_files:
+          - "src/components/features/audit-log/AuditLogView.tsx"
+          - "src/components/features/audit-log/auditLogData.ts"
+          - "src/components/features/audit-log/AuditLogView.test.tsx"
+          - "src/components/features/audit-log/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/audit-log-design.md"
         last_researched: "2026-03-11"
