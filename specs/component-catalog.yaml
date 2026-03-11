@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.3.0"
-  last_updated: "2026-03-11"
+  last_updated: "2026-03-12"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -561,8 +561,8 @@ categories:
 
       - id: nl_to_chart
         name: "Natural Language to Chart"
-        description: "자연어 질문으로 차트/시각화를 자동 생성"
-        status: implemented
+        description: "자연어 질문으로 차트/시각화를 자동 생성. Phase 2: 멀티 위젯 대시보드 생성"
+        status: needs_update
         priority: high
         complexity: complex
         contexts: [chat_view, liveboard]
@@ -578,10 +578,10 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/nl-to-chart-pipeline.md"
         dependencies: []
-        last_researched: "2026-02-25"
+        last_researched: "2026-03-12"
         metadata:
-          last_updated: "2026-02-25"
-        notes: "Phase 1 구현 완료: Heuristic 차트 타입 추천 + Recharts 동적 렌더링 + ArtifactPanel 통합. 5개 목데이터셋, 6종 차트 타입(bar/line/pie/area/composed/table), 차트 타입 오버라이드 UI. GeneralChatView에 NL→차트 플로우 통합."
+          last_updated: "2026-03-12"
+        notes: "Phase 1 구현 완료. Phase 2 리서치 완료(2026-03-12): 멀티 위젯 대시보드 생성(DashboardConfig JSON + react-grid-layout), 고급 차트 4종 추가(sankey/treemap/heatmap/waterfall → 총 10종), 대화형 대시보드 분석. Databricks 19종 차트+12-col grid, ThoughtSpot SpotterViz 서사 기반 대시보드, Power BI Create Report 참조."
 
       - id: mermaid_diagram
         name: "Mermaid Diagram Renderer"
