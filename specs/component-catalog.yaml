@@ -742,12 +742,15 @@ categories:
 
       - id: audit_log
         name: "Audit Log"
-        description: "에이전트 액션, 사용자 활동, 승인 이력의 감사 로그"
+        description: "에이전트 액션, 사용자 활동, 승인 이력의 감사 로그 — 세션 리플레이, Activity Map 시각화, 컴플라이언스 필터"
         status: not_implemented
-        priority: medium
+        priority: high
         complexity: moderate
         contexts: [admin, monitoring]
         source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/audit-log-design.md"
+        last_researched: "2026-03-11"
 
       - id: usage_monitoring
         name: "Usage Monitoring Dashboard"
@@ -774,21 +777,41 @@ categories:
 
       - id: agent_config
         name: "Agent Configuration"
-        description: "에이전트 설정 관리 (모델, 도구 권한, 프롬프트, 파라미터)"
+        description: "에이전트 설정 관리 — 모델 선택, 기능 토글, 콘텐츠 모더레이션 감도, 통합 편집 화면"
         status: not_implemented
-        priority: medium
+        priority: high
         complexity: moderate
         contexts: [admin]
         source_files: []
 
       - id: prompt_management
         name: "Prompt Management"
-        description: "시스템 프롬프트, 템플릿 관리 및 버전 관리"
+        description: "시스템 프롬프트/템플릿 버전 관리, 인라인 편집+테스트, 모델 바인딩"
         status: not_implemented
-        priority: low
+        priority: medium
         complexity: moderate
         contexts: [admin]
         source_files: []
+
+      - id: knowledge_base_management
+        name: "Knowledge Base Management"
+        description: "RAG 소스/문서 관리 — 파일 업로드, 문서 CRUD, 파일 그룹, 메타데이터 필터, 그룹별 접근 제어"
+        status: not_implemented
+        priority: high
+        complexity: moderate
+        contexts: [admin]
+        source_files: []
+        notes: "Discovery 2026-03-11 NEW-3. MS Copilot Studio(SharePoint 지식+파일 그룹), Open WebUI(문서 스토어), ChatGPT Enterprise(워크스페이스 파일) 패턴."
+
+      - id: feedback_quality_management
+        name: "Feedback & Quality Management"
+        description: "사용자 피드백(👍👎) 수집, 응답 품질 메트릭, 미답변 쿼리 테마 분석, 품질 추이 대시보드"
+        status: not_implemented
+        priority: high
+        complexity: moderate
+        contexts: [admin, monitoring]
+        source_files: []
+        notes: "Discovery 2026-03-11 NEW-4. MS Copilot Studio(thumbs-up/down+테마 분석+에이전트 평가), ChatGPT Enterprise(engagement 추적) 패턴."
 
       - id: login_auth
         name: "Login & Authentication"
