@@ -10,6 +10,17 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   citations?: Citation[];
+  parentMessageId?: string | null;
+  branchId?: string;
+}
+
+// Branch metadata
+export interface BranchInfo {
+  id: string;
+  name: string;
+  forkPointMessageId: string;
+  createdAt: Date;
+  messageCount: number;
 }
 
 // Chat session type (for history sidebar)
@@ -20,6 +31,8 @@ export interface ChatSession {
   createdAt: Date;
   updatedAt: Date;
   messageCount: number;
+  branches?: BranchInfo[];
+  activeBranchId?: string;
 }
 
 // Left sidebar expanded sections

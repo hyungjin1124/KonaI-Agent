@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Plus, ArrowUp } from '../../icons';
 import { CoworkLayout } from '../agent-chat/layouts';
 import { RightSidebar } from '../agent-chat/components/RightSidebar';
@@ -13,14 +13,23 @@ import {
 } from '../agent-chat/types';
 import { ArtifactPanelProvider, useArtifactPanel } from '../agent-chat/context/ArtifactPanelContext';
 import { ArtifactPreviewPanel } from '../agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel';
-import { ConversationSidebar, MOCK_AGENT_SESSIONS } from '../agent-chat/components/ConversationSidebar';
 import { AttachedFileChip } from '../agent-chat/components/ChatInputArea/AttachedFileChip';
 import { DropZoneOverlay } from '../agent-chat/components/ChatInputArea/DropZoneOverlay';
 import { ChatPanel } from './components/ChatPanel';
-import { ChatMessage } from './types';
+import { LeftSidebar } from './components/LeftSidebar/LeftSidebar';
+import { ChatMessage, ChatSession } from './types';
+import { useBranching } from './hooks/useBranching';
 import { useNLChart, NLChartRenderer } from '../nl-chart';
 import { ModelSwitcher } from '../model-switcher';
 import { DEFAULT_MODEL_ID } from '@/constants/models';
+
+const MOCK_SESSIONS: ChatSession[] = [
+  { id: 's1', title: 'Q4 경영 실적 분석', preview: '최근 실적 데이터를 요약...', createdAt: new Date('2025-12-28'), updatedAt: new Date('2025-12-28'), messageCount: 8 },
+  { id: 's2', title: 'DID 사업부 원가 진단', preview: '원가 효율성 관련 분석...', createdAt: new Date('2025-12-27'), updatedAt: new Date('2025-12-27'), messageCount: 12 },
+  { id: 's3', title: '일본 지사 환율 리스크', preview: '환율 변동 대응 전략...', createdAt: new Date('2025-12-26'), updatedAt: new Date('2025-12-26'), messageCount: 5 },
+  { id: 's4', title: '신규 플랫폼 기획', preview: '새 서비스 아이디어 정리...', createdAt: new Date('2025-12-20'), updatedAt: new Date('2025-12-20'), messageCount: 24 },
+  { id: 's5', title: '12월 매출 심층 분석', preview: '월별 추이를 보면...', createdAt: new Date('2025-12-15'), updatedAt: new Date('2025-12-15'), messageCount: 6 },
+];
 
 const getFileType = (filename: string): AttachedFile['type'] => {
   const lower = filename.toLowerCase();
@@ -55,10 +64,22 @@ export const GeneralChatView: React.FC = () => {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // Chat state
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Branching
+  const {
+    branches,
+    activeBranchId,
+    activeMessages: messages,
+    createBranch,
+    switchBranch,
+    deleteBranch,
+    addMessage,
+    getBranchesAtMessage,
+    resetBranching,
+  } = useBranching();
 
   // File attachment state (drag from file tree)
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
@@ -93,25 +114,53 @@ export const GeneralChatView: React.FC = () => {
   // Check if in empty state (no messages)
   const isEmptyState = messages.length === 0 && !isLoading;
 
+  // Keyboard shortcuts for branching
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      // Ctrl+Shift+B — create branch from last assistant message
+      if (e.ctrlKey && e.shiftKey && e.key === 'B') {
+        e.preventDefault();
+        const lastMsg = [...messages].reverse().find((m) => m.type === 'assistant');
+        if (lastMsg) createBranch(lastMsg.id);
+        return;
+      }
+      // Ctrl+[ — switch to previous branch
+      if (e.ctrlKey && e.key === '[') {
+        e.preventDefault();
+        const idx = branches.findIndex((b) => b.id === activeBranchId);
+        if (idx > 0) switchBranch(branches[idx - 1].id);
+        return;
+      }
+      // Ctrl+] — switch to next branch
+      if (e.ctrlKey && e.key === ']') {
+        e.preventDefault();
+        const idx = branches.findIndex((b) => b.id === activeBranchId);
+        if (idx < branches.length - 1) switchBranch(branches[idx + 1].id);
+      }
+    };
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [messages, branches, activeBranchId, createBranch, switchBranch]);
+
   // Handlers
   const handleNewChat = useCallback(() => {
     setActiveSessionId(null);
-    setMessages([]);
+    resetBranching();
     setInputValue('');
     setAttachedFile(null);
     clearChart();
     setIsCenterPanelOpen(false);
     setChartArtifacts([]);
-  }, [clearChart]);
+  }, [clearChart, resetBranching]);
 
   const handleSessionSelect = useCallback((sessionId: string) => {
     setActiveSessionId(sessionId);
-    setMessages([]);
+    resetBranching();
     setAttachedFile(null);
     clearChart();
     setIsCenterPanelOpen(false);
     setChartArtifacts([]);
-  }, [clearChart]);
+  }, [clearChart, resetBranching]);
 
   const handleToggleLeftSidebar = useCallback(() => {
     setIsLeftSidebarCollapsed((prev) => !prev);
@@ -149,7 +198,7 @@ export const GeneralChatView: React.FC = () => {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    addMessage(userMessage);
     setInputValue('');
     setAttachedFile(null);
     setIsLoading(true);
@@ -177,7 +226,7 @@ export const GeneralChatView: React.FC = () => {
           content: `📊 **${result.config.title}**\n\n${result.reasoning}\n\n차트 패널에서 결과를 확인하세요. 차트 상단에서 다른 차트 유형으로 변경할 수 있습니다.`,
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, assistantMessage]);
+        addMessage(assistantMessage);
         setIsLoading(false);
 
         // Open chart in artifact panel
@@ -194,11 +243,11 @@ export const GeneralChatView: React.FC = () => {
             '안녕하세요! 질문에 대해 분석을 시작하겠습니다. 잠시만 기다려 주세요.\n\n현재 데모 모드로 실행 중입니다. 실제 AI 응답은 백엔드 연동 후 제공됩니다.\n\n💡 **팁**: "월별 매출 추이 보여줘", "사업부별 비교 차트" 같은 데이터 분석 질문을 입력하면 차트를 자동 생성합니다.',
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, assistantMessage]);
+        addMessage(assistantMessage);
         setIsLoading(false);
       }, 1500);
     }
-  }, [inputValue, isLoading, attachedFile, processQuery]);
+  }, [inputValue, isLoading, attachedFile, processQuery, addMessage]);
 
   const handleInputChange = useCallback((value: string) => {
     setInputValue(value);
@@ -295,13 +344,17 @@ export const GeneralChatView: React.FC = () => {
   const leftPanelContent = (
     <div className="flex h-full">
       {/* Left Sidebar */}
-      <ConversationSidebar
+      <LeftSidebar
         isCollapsed={isLeftSidebarCollapsed}
         onToggleCollapse={handleToggleLeftSidebar}
-        sessions={MOCK_AGENT_SESSIONS}
+        sessions={MOCK_SESSIONS}
         activeSessionId={activeSessionId}
         onSessionSelect={handleSessionSelect}
         onNewChat={handleNewChat}
+        branches={branches}
+        activeBranchId={activeBranchId}
+        onSwitchBranch={switchBranch}
+        onDeleteBranch={deleteBranch}
       />
       {/* Chat Panel */}
       <div className="flex-1 flex flex-col bg-[#F7F9FB]">
@@ -311,6 +364,11 @@ export const GeneralChatView: React.FC = () => {
           inputValue={inputValue}
           onInputChange={handleInputChange}
           onSend={handleSend}
+          onCreateBranch={createBranch}
+          onSwitchBranch={switchBranch}
+          onDeleteBranch={deleteBranch}
+          getBranchesAtMessage={getBranchesAtMessage}
+          activeBranchId={activeBranchId}
         />
       </div>
     </div>

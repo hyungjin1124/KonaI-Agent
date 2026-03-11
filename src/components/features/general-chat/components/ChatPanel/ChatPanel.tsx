@@ -1,8 +1,9 @@
 import React, { useRef, useEffect } from 'react';
-import { Bot, User, Plus, ArrowUp } from '../../../../icons';
-import { ChatMessage } from '../../types';
+import { Bot, User, Plus, ArrowUp, GitBranch } from '../../../../icons';
+import { ChatMessage, BranchInfo } from '../../types';
 import { CitationSourceLink } from '../../../agent-chat/components/CitationSourceLink';
 import { MarkdownRenderer } from '@/components/shared/markdown';
+import { BranchIndicator } from '../BranchIndicator';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -11,6 +12,12 @@ interface ChatPanelProps {
   inputValue?: string;
   onInputChange?: (value: string) => void;
   onSend?: () => void;
+  // Branching props
+  onCreateBranch?: (messageId: string) => void;
+  onSwitchBranch?: (branchId: string) => void;
+  onDeleteBranch?: (branchId: string) => void;
+  getBranchesAtMessage?: (messageId: string) => BranchInfo[];
+  activeBranchId?: string;
 }
 
 const formatTime = (date: Date): string => {
@@ -26,6 +33,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   inputValue = '',
   onInputChange,
   onSend,
+  onCreateBranch,
+  onSwitchBranch,
+  onDeleteBranch,
+  getBranchesAtMessage,
+  activeBranchId,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -108,60 +120,88 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <div className="flex-1 overflow-y-auto px-4 py-6">
       <div className="max-w-3xl mx-auto space-y-6">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex gap-3 ${
-              message.type === 'user' ? 'flex-row-reverse' : ''
-            }`}
-          >
-            {/* Avatar */}
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                message.type === 'user'
-                  ? 'bg-gray-200'
-                  : 'bg-[#FF3C42]'
-              }`}
-            >
-              {message.type === 'user' ? (
-                <User size={16} className="text-gray-600" />
-              ) : (
-                <span className="text-white font-bold text-xs">K</span>
-              )}
-            </div>
+        {messages.map((message) => {
+          const branchesAtMsg = getBranchesAtMessage?.(message.id) ?? [];
+          const hasBranchesHere = branchesAtMsg.length > 0;
 
-            {/* Message Content */}
+          return (
             <div
-              className={`flex flex-col max-w-[80%] ${
-                message.type === 'user' ? 'items-end' : 'items-start'
+              key={message.id}
+              className={`group/msg flex gap-3 ${
+                message.type === 'user' ? 'flex-row-reverse' : ''
               }`}
             >
+              {/* Avatar */}
               <div
-                className={`px-4 py-2.5 rounded-2xl ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                   message.type === 'user'
-                    ? 'bg-[#FF3C42] text-white rounded-br-md'
-                    : 'bg-gray-100 text-gray-800 rounded-bl-md'
+                    ? 'bg-gray-200'
+                    : 'bg-[#FF3C42]'
                 }`}
               >
-                {message.type === 'assistant' ? (
-                  <>
-                    <MarkdownRenderer content={message.content} compact />
-                    {message.citations && message.citations.length > 0 && (
-                      <CitationSourceLink citations={message.citations} />
-                    )}
-                  </>
+                {message.type === 'user' ? (
+                  <User size={16} className="text-gray-600" />
                 ) : (
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                  <span className="text-white font-bold text-xs">K</span>
                 )}
               </div>
-              <span className="text-[10px] text-gray-400 mt-1 px-1">
-                {formatTime(message.timestamp)}
-              </span>
+
+              {/* Message Content */}
+              <div
+                className={`flex flex-col max-w-[80%] ${
+                  message.type === 'user' ? 'items-end' : 'items-start'
+                }`}
+              >
+                <div
+                  className={`px-4 py-2.5 rounded-2xl ${
+                    message.type === 'user'
+                      ? 'bg-[#FF3C42] text-white rounded-br-md'
+                      : 'bg-gray-100 text-gray-800 rounded-bl-md'
+                  }`}
+                >
+                  {message.type === 'assistant' ? (
+                    <>
+                      <MarkdownRenderer content={message.content} compact />
+                      {message.citations && message.citations.length > 0 && (
+                        <CitationSourceLink citations={message.citations} />
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                  )}
+                </div>
+                {/* Branch indicator + hover actions row */}
+                <div className="flex items-center gap-1.5 mt-1 px-1">
+                  <span className="text-[10px] text-gray-400">
+                    {formatTime(message.timestamp)}
+                  </span>
+                  {hasBranchesHere && activeBranchId && onSwitchBranch && onCreateBranch && (
+                    <BranchIndicator
+                      messageId={message.id}
+                      branches={branchesAtMsg}
+                      activeBranchId={activeBranchId}
+                      onSwitchBranch={onSwitchBranch}
+                      onCreateBranch={onCreateBranch}
+                      onDeleteBranch={onDeleteBranch}
+                    />
+                  )}
+                  {onCreateBranch && !hasBranchesHere && (
+                    <button
+                      onClick={() => onCreateBranch(message.id)}
+                      className="opacity-0 group-hover/msg:opacity-100 inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                      aria-label="여기서 분기"
+                    >
+                      <GitBranch size={10} />
+                      <span>분기</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Loading indicator */}
         {isLoading && (

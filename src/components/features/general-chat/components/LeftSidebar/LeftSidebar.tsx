@@ -4,8 +4,9 @@ import {
   PanelLeftOpen,
   Plus,
 } from '../../../../icons';
-import { ChatSession } from '../../types';
+import { ChatSession, BranchInfo } from '../../types';
 import ChatSessionItem from './ChatSessionItem';
+import BranchItem from './BranchItem';
 
 interface LeftSidebarProps {
   isCollapsed: boolean;
@@ -14,6 +15,10 @@ interface LeftSidebarProps {
   activeSessionId: string | null;
   onSessionSelect: (sessionId: string) => void;
   onNewChat: () => void;
+  branches?: BranchInfo[];
+  activeBranchId?: string;
+  onSwitchBranch?: (branchId: string) => void;
+  onDeleteBranch?: (branchId: string) => void;
 }
 
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({
@@ -23,6 +28,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   activeSessionId,
   onSessionSelect,
   onNewChat,
+  branches,
+  activeBranchId,
+  onSwitchBranch,
+  onDeleteBranch,
 }) => {
   // Collapsed state
   if (isCollapsed) {
@@ -83,12 +92,27 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         ) : (
           <div className="space-y-0.5">
             {sessions.map((session) => (
-              <ChatSessionItem
-                key={session.id}
-                session={session}
-                isActive={session.id === activeSessionId}
-                onClick={() => onSessionSelect(session.id)}
-              />
+              <React.Fragment key={session.id}>
+                <ChatSessionItem
+                  session={session}
+                  isActive={session.id === activeSessionId}
+                  onClick={() => onSessionSelect(session.id)}
+                />
+                {/* Show branches under the active session */}
+                {session.id === activeSessionId && branches && branches.length > 1 && (
+                  <div className="space-y-0.5 mt-0.5">
+                    {branches.map((branch) => (
+                      <BranchItem
+                        key={branch.id}
+                        branch={branch}
+                        isActive={branch.id === activeBranchId}
+                        onClick={() => onSwitchBranch?.(branch.id)}
+                        onDelete={onDeleteBranch}
+                      />
+                    ))}
+                  </div>
+                )}
+              </React.Fragment>
             ))}
           </div>
         )}

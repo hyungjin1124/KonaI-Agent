@@ -26,7 +26,7 @@ export { Edit2, ExternalLink, Eye, EyeOff } from 'lucide-react';
 export { Factory, FileArchive, FileDown, FileImage, FileOutput, FileText, Filter, Flame, FolderOpen } from 'lucide-react';
 
 // G
-export { Globe, GripVertical } from 'lucide-react';
+export { GitBranch, Globe, GripVertical } from 'lucide-react';
 
 // H
 export { History } from 'lucide-react';
