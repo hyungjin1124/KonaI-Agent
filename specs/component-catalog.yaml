@@ -651,7 +651,7 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/session-branching-ui.md"
         last_researched: "2026-03-11"
-        notes: "9개 제품/라이브러리 비교(+LibreChat, Nodini, assistant-ui). 3가지 패턴: 세션 복제(A), 형제 탐색(B), 그래프 탐색(C). 하이브리드 A+B 권장. Phase 1 구현+Dev Test 완료. 27/27 테스트 통과. AC1-AC8 구현 완료(AC5,AC8 테스트 PARTIAL), AC9 Phase 2 연기."
+        notes: "12개 제품/라이브러리 비교(+Fork AI, Threds.dev, Conduit). 3가지 패턴: 세션 복제(A), 형제 탐색(B), 그래프 탐색(C). 하이브리드 A+B 권장. Phase 1 구현+Dev Test 완료. 27/27 테스트 통과. AC1-AC8 구현 완료(AC5,AC8 테스트 PARTIAL), AC9 Phase 2 연기. GitHub Copilot VS Code v1.110 (Mar 6): /fork + 체크포인트 포크 + 세션 메모리 + /compact. GCC 논문(arXiv:2508.00031): COMMIT/BRANCH/MERGE/CONTEXT 프리미티브, SWE-Bench +13%."
 
       - id: context_window_indicator
         name: "Context Window Indicator"
