@@ -2,11 +2,12 @@
 import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, FileText, Bot
+  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, FileText, Bot, Database
 } from './icons';
 import { UsageMonitoringView } from './features/usage-monitoring';
 import { AuditLogView } from './features/audit-log';
 import { AgentConfigView } from './features/agent-config';
+import { KnowledgeBaseView } from './features/knowledge-base';
 import { User, UserRole, UserStatus, RoleConfig } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -323,6 +324,9 @@ const AdminView: React.FC = () => {
             <TabsTrigger value="agent-config" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <Bot size={16} /> 에이전트 설정
             </TabsTrigger>
+            <TabsTrigger value="knowledge-base" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <Database size={16} /> 지식 관리
+            </TabsTrigger>
           </TabsList>
         </div>
       </div>
@@ -372,6 +376,10 @@ const AdminView: React.FC = () => {
 
             <TabsContent value="agent-config" className="mt-0">
                 <AgentConfigView />
+            </TabsContent>
+
+            <TabsContent value="knowledge-base" className="mt-0">
+                <KnowledgeBaseView />
             </TabsContent>
         </div>
       </div>

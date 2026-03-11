@@ -807,11 +807,15 @@ categories:
       - id: knowledge_base_management
         name: "Knowledge Base Management"
         description: "RAG 소스/문서 관리 — 파일 업로드, 문서 CRUD, 파일 그룹, 메타데이터 필터, 그룹별 접근 제어"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [admin]
-        source_files: []
+        source_files:
+          - "src/components/features/knowledge-base/KnowledgeBaseView.tsx"
+          - "src/components/features/knowledge-base/knowledgeBaseData.ts"
+          - "src/components/features/knowledge-base/KnowledgeBaseView.test.tsx"
+          - "src/components/features/knowledge-base/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/knowledge-base-management-ui.md"
         last_researched: "2026-03-11"
