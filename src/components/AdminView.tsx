@@ -2,10 +2,11 @@
 import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, FileText
+  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, FileText, Bot
 } from './icons';
 import { UsageMonitoringView } from './features/usage-monitoring';
 import { AuditLogView } from './features/audit-log';
+import { AgentConfigView } from './features/agent-config';
 import { User, UserRole, UserStatus, RoleConfig } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -319,6 +320,9 @@ const AdminView: React.FC = () => {
             <TabsTrigger value="audit" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <FileText size={16} /> 감사 로그
             </TabsTrigger>
+            <TabsTrigger value="agent-config" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <Bot size={16} /> 에이전트 설정
+            </TabsTrigger>
           </TabsList>
         </div>
       </div>
@@ -364,6 +368,10 @@ const AdminView: React.FC = () => {
 
             <TabsContent value="audit" className="mt-0">
                 <AuditLogView />
+            </TabsContent>
+
+            <TabsContent value="agent-config" className="mt-0">
+                <AgentConfigView />
             </TabsContent>
         </div>
       </div>

@@ -782,11 +782,15 @@ categories:
       - id: agent_config
         name: "Agent Configuration"
         description: "에이전트 설정 관리 — 모델 선택, 기능 토글, 콘텐츠 모더레이션 감도, 통합 편집 화면"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [admin]
-        source_files: []
+        source_files:
+          - "src/components/features/agent-config/agentConfigData.ts"
+          - "src/components/features/agent-config/AgentConfigView.tsx"
+          - "src/components/features/agent-config/AgentConfigView.test.tsx"
+          - "src/components/features/agent-config/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/agent-configuration-ui.md"
         last_researched: "2026-03-11"
