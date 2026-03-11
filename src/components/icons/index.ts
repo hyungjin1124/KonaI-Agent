@@ -50,7 +50,7 @@ export { RotateCcw } from 'lucide-react';
 export { Save, Search, Send, Settings, Shield, ShieldCheck, Smartphone, Sparkles, Spline, Square, Share2 } from 'lucide-react';
 
 // T
-export { Table, Target, Trash2, TrendingDown, TrendingUp, Type } from 'lucide-react';
+export { Table, Target, ThumbsDown, ThumbsUp, Trash2, TrendingDown, TrendingUp, Type } from 'lucide-react';
 
 // U
 export { Upload, User, UserCog, Users } from 'lucide-react';

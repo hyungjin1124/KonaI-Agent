@@ -824,11 +824,15 @@ categories:
       - id: feedback_quality_management
         name: "Feedback & Quality Management"
         description: "사용자 피드백(👍👎) 수집, 응답 품질 메트릭, 미답변 쿼리 테마 분석, 품질 추이 대시보드"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [admin, monitoring]
-        source_files: []
+        source_files:
+          - "src/components/features/feedback-quality/feedbackQualityData.ts"
+          - "src/components/features/feedback-quality/FeedbackQualityView.tsx"
+          - "src/components/features/feedback-quality/FeedbackQualityView.test.tsx"
+          - "src/components/features/feedback-quality/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/feedback-quality-management-ui.md"
         last_researched: "2026-03-11"

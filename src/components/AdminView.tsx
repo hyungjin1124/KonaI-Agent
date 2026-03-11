@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, FileText, Bot, Database
+  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, FileText, Bot, Database, MessageSquare
 } from './icons';
 import { UsageMonitoringView } from './features/usage-monitoring';
 import { AuditLogView } from './features/audit-log';
 import { AgentConfigView } from './features/agent-config';
 import { KnowledgeBaseView } from './features/knowledge-base';
+import { FeedbackQualityView } from './features/feedback-quality';
 import { User, UserRole, UserStatus, RoleConfig } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -327,6 +328,9 @@ const AdminView: React.FC = () => {
             <TabsTrigger value="knowledge-base" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <Database size={16} /> 지식 관리
             </TabsTrigger>
+            <TabsTrigger value="feedback-quality" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <MessageSquare size={16} /> 피드백 품질
+            </TabsTrigger>
           </TabsList>
         </div>
       </div>
@@ -380,6 +384,10 @@ const AdminView: React.FC = () => {
 
             <TabsContent value="knowledge-base" className="mt-0">
                 <KnowledgeBaseView />
+            </TabsContent>
+
+            <TabsContent value="feedback-quality" className="mt-0">
+                <FeedbackQualityView />
             </TabsContent>
         </div>
       </div>
