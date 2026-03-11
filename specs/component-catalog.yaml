@@ -787,6 +787,9 @@ categories:
         complexity: moderate
         contexts: [admin]
         source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/agent-configuration-ui.md"
+        last_researched: "2026-03-11"
 
       - id: prompt_management
         name: "Prompt Management"
