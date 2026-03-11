@@ -838,6 +838,56 @@ categories:
         last_researched: "2026-03-11"
         notes: "Discovery 2026-03-11 NEW-4. MS Copilot Studio(thumbs-up/down+테마 분석+에이전트 평가), ChatGPT Enterprise(engagement 추적) 패턴."
 
+      - id: agent_registry
+        name: "Agent Registry"
+        description: "조직 전체 에이전트 인벤토리 + ID 관리 + 섀도우 에이전트 탐지"
+        status: not_implemented
+        priority: medium
+        complexity: complex
+        contexts: [admin]
+        source_files: []
+        notes: "Discovery 2026-03-11 NEW-1. MS Agent 365(May 2026 GA) 패턴. 에이전트 1급 ID, 조건부 접근 제어."
+
+      - id: cost_budget_controls
+        name: "Cost & Budget Controls"
+        description: "팀/역할별 예산 할당 + 사용 한도 + 비용 알림"
+        status: not_implemented
+        priority: medium
+        complexity: moderate
+        contexts: [admin]
+        source_files: []
+        notes: "Discovery 2026-03-11 NEW-5. usage_monitoring Phase 2와 병합 후보. ChatGPT Enterprise, MS Copilot Studio, GitHub Copilot 패턴."
+
+      - id: system_health_dashboard
+        name: "System Health Dashboard"
+        description: "모델 가용성 + 응답 지연 + 서비스 상태 실시간 모니터링"
+        status: not_implemented
+        priority: medium
+        complexity: moderate
+        contexts: [admin, monitoring]
+        source_files: []
+        notes: "Discovery 2026-03-11 NEW-6. 엔터프라이즈 AI 플랫폼 공통 패턴."
+
+      - id: integration_management
+        name: "Integration Management"
+        description: "외부 서비스 연동 + API 키 + 웹훅 + MCP 서버 관리"
+        status: not_implemented
+        priority: medium
+        complexity: moderate
+        contexts: [admin]
+        source_files: []
+        notes: "Discovery 2026-03-11 NEW-7. MS Copilot Studio, Open WebUI, Salesforce 패턴."
+
+      - id: data_retention_privacy
+        name: "Data Retention & Privacy"
+        description: "대화 이력 보존 기간 + PII 처리 + 데이터 거버넌스 규칙"
+        status: not_implemented
+        priority: medium
+        complexity: moderate
+        contexts: [admin]
+        source_files: []
+        notes: "Discovery 2026-03-11 NEW-8. ISMS-P 컴플라이언스 필수. LibreChat, ChatGPT Enterprise 패턴."
+
       - id: login_auth
         name: "Login & Authentication"
         description: "로그인, 인증, 세션 관리"
