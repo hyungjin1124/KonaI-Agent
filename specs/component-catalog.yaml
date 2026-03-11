@@ -812,6 +812,9 @@ categories:
         complexity: moderate
         contexts: [admin]
         source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/knowledge-base-management-ui.md"
+        last_researched: "2026-03-11"
         notes: "Discovery 2026-03-11 NEW-3. MS Copilot Studio(SharePoint 지식+파일 그룹), Open WebUI(문서 스토어), ChatGPT Enterprise(워크스페이스 파일) 패턴."
 
       - id: feedback_quality_management
