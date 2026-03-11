@@ -562,7 +562,7 @@ categories:
       - id: nl_to_chart
         name: "Natural Language to Chart"
         description: "자연어 질문으로 차트/시각화를 자동 생성. Phase 2: 멀티 위젯 대시보드 생성"
-        status: needs_update
+        status: implemented
         priority: high
         complexity: complex
         contexts: [chat_view, liveboard]
@@ -574,6 +574,9 @@ categories:
           - "src/components/features/nl-chart/NLChartRenderer.tsx"
           - "src/components/features/nl-chart/ChartTypeSelector.tsx"
           - "src/components/features/nl-chart/index.ts"
+          - "src/components/features/nl-chart/NLDashboardRenderer.tsx"
+          - "src/components/features/nl-chart/HeatmapChart.tsx"
+          - "src/components/features/nl-chart/mockDashboardConfigs.ts"
           - "src/components/features/nl-chart/nl-chart.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/nl-to-chart-pipeline.md"
@@ -581,7 +584,7 @@ categories:
         last_researched: "2026-03-12"
         metadata:
           last_updated: "2026-03-12"
-        notes: "Phase 1 구현 완료. Phase 2 리서치 완료(2026-03-12): 멀티 위젯 대시보드 생성(DashboardConfig JSON + react-grid-layout), 고급 차트 4종 추가(sankey/treemap/heatmap/waterfall → 총 10종), 대화형 대시보드 분석. Databricks 19종 차트+12-col grid, ThoughtSpot SpotterViz 서사 기반 대시보드, Power BI Create Report 참조."
+        notes: "Phase 1 구현 완료. Phase 2 구현 완료(2026-03-12): 멀티 위젯 대시보드 생성(NLDashboardRenderer + DashboardConfig JSON + react-grid-layout), 고급 차트 HeatmapChart 추가(총 10종), 대화형 대시보드 분석. Databricks 19종 차트+12-col grid, ThoughtSpot SpotterViz 서사 기반 대시보드, Power BI Create Report 참조."
 
       - id: mermaid_diagram
         name: "Mermaid Diagram Renderer"

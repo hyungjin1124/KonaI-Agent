@@ -16,39 +16,49 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  Sankey,
+  Treemap,
 } from 'recharts';
-import { NLChartConfig, NLChartType, NLChartResult } from './types';
+import { NLChartConfig, NLChartType, NLChartResult, TreemapDataItem } from './types';
 import { ChartTypeSelector } from './ChartTypeSelector';
+import { HeatmapChart } from './HeatmapChart';
 
 const PIE_COLORS = ['#FF3C42', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+const WATERFALL_POSITIVE = '#10B981';
+const WATERFALL_NEGATIVE = '#EF4444';
+const WATERFALL_TOTAL = '#3B82F6';
 
 interface NLChartRendererProps {
   result: NLChartResult;
   onChangeChartType: (type: NLChartType) => void;
+  compact?: boolean;
 }
 
 export const NLChartRenderer: React.FC<NLChartRendererProps> = ({
   result,
   onChangeChartType,
+  compact = false,
 }) => {
   const { config, reasoning, alternatives } = result;
 
   return (
     <div className="flex flex-col h-full bg-white" data-testid="nl-chart-renderer">
       {/* Header */}
-      <div className="px-6 pt-5 pb-3 border-b border-gray-100">
-        <h3 className="text-base font-semibold text-gray-900">{config.title}</h3>
-        <p className="text-xs text-gray-500 mt-1">{reasoning}</p>
+      <div className={`px-6 ${compact ? 'pt-3 pb-2' : 'pt-5 pb-3'} border-b border-gray-100`}>
+        <h3 className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-gray-900`}>{config.title}</h3>
+        {!compact && <p className="text-xs text-gray-500 mt-1">{reasoning}</p>}
       </div>
 
       {/* Chart Type Selector */}
-      <div className="px-6 py-2 border-b border-gray-100">
-        <ChartTypeSelector
-          currentType={config.chartType}
-          alternatives={alternatives}
-          onSelect={onChangeChartType}
-        />
-      </div>
+      {!compact && (
+        <div className="px-6 py-2 border-b border-gray-100">
+          <ChartTypeSelector
+            currentType={config.chartType}
+            alternatives={alternatives}
+            onSelect={onChangeChartType}
+          />
+        </div>
+      )}
 
       {/* Chart */}
       <div className="flex-1 px-4 py-4 min-h-0">
@@ -145,10 +155,143 @@ function renderChart(config: NLChartConfig): React.ReactElement {
         </ComposedChart>
       );
 
+    case 'sankey':
+      return renderSankey(config);
+
+    case 'treemap':
+      return renderTreemap(config);
+
+    case 'heatmap':
+      return renderHeatmap(config);
+
+    case 'waterfall':
+      return renderWaterfall(config);
+
     case 'table':
     default:
       return renderTable(config);
   }
+}
+
+function renderSankey(config: NLChartConfig): React.ReactElement {
+  const { sankeyData } = config;
+  if (!sankeyData) return renderTable(config);
+
+  return (
+    <Sankey
+      data={sankeyData}
+      nodeWidth={12}
+      nodePadding={24}
+      linkCurvature={0.5}
+      margin={{ top: 10, right: 40, left: 40, bottom: 10 }}
+      link={{ stroke: '#94A3B8', strokeOpacity: 0.4 }}
+    >
+      <Tooltip />
+    </Sankey>
+  ) as unknown as React.ReactElement;
+}
+
+function renderTreemap(config: NLChartConfig): React.ReactElement {
+  const { treemapData } = config;
+  if (!treemapData) return renderTable(config);
+
+  return (
+    <Treemap
+      data={treemapData}
+      dataKey="size"
+      aspectRatio={4 / 3}
+      stroke="#fff"
+      content={<TreemapContent />}
+    >
+      <Tooltip formatter={(value: number) => `${value.toLocaleString()}억원`} />
+    </Treemap>
+  ) as unknown as React.ReactElement;
+}
+
+interface TreemapContentProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  name?: string;
+  color?: string;
+  depth?: number;
+  root?: TreemapDataItem;
+}
+
+const TreemapContent: React.FC<TreemapContentProps> = ({
+  x = 0, y = 0, width = 0, height = 0, name = '', color, depth = 0,
+}) => {
+  if (width < 30 || height < 20) return null;
+
+  const fill = color || PIE_COLORS[(depth ?? 0) % PIE_COLORS.length];
+
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={fill}
+        stroke="#fff"
+        strokeWidth={2}
+        rx={4}
+        opacity={0.85}
+      />
+      {width > 50 && height > 30 && (
+        <text
+          x={x + width / 2}
+          y={y + height / 2}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#fff"
+          fontSize={Math.min(12, width / 6)}
+          fontWeight={600}
+        >
+          {name}
+        </text>
+      )}
+    </g>
+  );
+};
+
+function renderHeatmap(config: NLChartConfig): React.ReactElement {
+  const { heatmapData, xAxisLabel, yAxisLabel } = config;
+  if (!heatmapData) return renderTable(config);
+
+  return (
+    <HeatmapChart data={heatmapData} xAxisLabel={xAxisLabel} yAxisLabel={yAxisLabel} />
+  ) as unknown as React.ReactElement;
+}
+
+function renderWaterfall(config: NLChartConfig): React.ReactElement {
+  const { data, xAxisKey, xAxisLabel, yAxisLabel } = config;
+
+  return (
+    <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+      <XAxis dataKey={xAxisKey} tick={{ fontSize: 11 }} label={xAxisLabel ? { value: xAxisLabel, position: 'insideBottom', offset: -5 } : undefined} />
+      <YAxis tick={{ fontSize: 12 }} label={yAxisLabel ? { value: yAxisLabel, angle: -90, position: 'insideLeft' } : undefined} />
+      <Tooltip
+        formatter={(value: number, name: string) => {
+          if (name === 'base') return [null, ''];
+          return [`${value > 0 ? '+' : ''}${value.toLocaleString()}억원`, '증감'];
+        }}
+      />
+      <Bar dataKey="base" stackId="waterfall" fill="transparent" />
+      <Bar dataKey="value" stackId="waterfall">
+        {data.map((entry, index) => {
+          const val = entry.value as number;
+          const isFirst = index === 0;
+          const isLast = index === data.length - 1;
+          let fill = val >= 0 ? WATERFALL_POSITIVE : WATERFALL_NEGATIVE;
+          if (isFirst || isLast) fill = WATERFALL_TOTAL;
+          return <Cell key={`cell-${index}`} fill={fill} />;
+        })}
+      </Bar>
+    </BarChart>
+  );
 }
 
 function renderTable(config: NLChartConfig): React.ReactElement {

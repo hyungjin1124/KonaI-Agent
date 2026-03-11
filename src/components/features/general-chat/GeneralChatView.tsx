@@ -19,7 +19,7 @@ import { ChatPanel } from './components/ChatPanel';
 import { LeftSidebar } from './components/LeftSidebar/LeftSidebar';
 import { ChatMessage, ChatSession } from './types';
 import { useBranching } from './hooks/useBranching';
-import { useNLChart, NLChartRenderer } from '../nl-chart';
+import { useNLChart, NLChartRenderer, NLDashboardRenderer, isDashboardQuery } from '../nl-chart';
 import { ModelSwitcher } from '../model-switcher';
 import { DEFAULT_MODEL_ID } from '@/constants/models';
 
@@ -93,8 +93,11 @@ export const GeneralChatView: React.FC = () => {
     'artifacts',
   ]);
 
-  // NL-to-Chart
-  const { chartResult, processQuery, changeChartType, clearChart } = useNLChart();
+  // NL-to-Chart + Dashboard
+  const {
+    chartResult, processQuery, changeChartType, clearChart,
+    dashboardResult, processDashboardQuery, changeWidgetChartType, clearDashboard,
+  } = useNLChart();
   const [isCenterPanelOpen, setIsCenterPanelOpen] = useState(false);
   const artifactPanelRef = useRef<{
     openArtifactTab: (artifact: Artifact, previewType: ArtifactPreviewType) => void;
@@ -149,18 +152,20 @@ export const GeneralChatView: React.FC = () => {
     setInputValue('');
     setAttachedFile(null);
     clearChart();
+    clearDashboard();
     setIsCenterPanelOpen(false);
     setChartArtifacts([]);
-  }, [clearChart, resetBranching]);
+  }, [clearChart, clearDashboard, resetBranching]);
 
   const handleSessionSelect = useCallback((sessionId: string) => {
     setActiveSessionId(sessionId);
     resetBranching();
     setAttachedFile(null);
     clearChart();
+    clearDashboard();
     setIsCenterPanelOpen(false);
     setChartArtifacts([]);
-  }, [clearChart, resetBranching]);
+  }, [clearChart, clearDashboard, resetBranching]);
 
   const handleToggleLeftSidebar = useCallback(() => {
     setIsLeftSidebarCollapsed((prev) => !prev);
@@ -203,11 +208,42 @@ export const GeneralChatView: React.FC = () => {
     setAttachedFile(null);
     setIsLoading(true);
 
-    // Try NL-to-Chart first
+    // Try Dashboard query first, then single chart
+    if (isDashboardQuery(content)) {
+      const dashResult = processDashboardQuery(content);
+      if (dashResult) {
+        const dashArtifact: Artifact = {
+          id: `dashboard-${Date.now()}`,
+          title: dashResult.dashboardConfig.title,
+          type: 'chart',
+          createdAt: new Date(),
+          messageId: userMessage.id,
+        };
+
+        setChartArtifacts((prev) => [...prev, dashArtifact]);
+
+        setTimeout(() => {
+          const assistantMessage: ChatMessage = {
+            id: `msg-${Date.now() + 1}`,
+            type: 'assistant',
+            content: `📊 **${dashResult.dashboardConfig.title}**\n\n${dashResult.reasoning}\n\n대시보드 패널에서 ${dashResult.dashboardConfig.widgets.length}개 위젯을 확인하세요.`,
+            timestamp: new Date(),
+          };
+          addMessage(assistantMessage);
+          setIsLoading(false);
+
+          artifactPanelRef.current?.openArtifactTab(dashArtifact, 'dashboard');
+          setIsCenterPanelOpen(true);
+        }, 1000);
+
+        return;
+      }
+    }
+
+    // Try NL-to-Chart
     const result = processQuery(content);
 
     if (result) {
-      // Chart query detected — generate chart artifact
       const chartArtifact: Artifact = {
         id: `chart-${Date.now()}`,
         title: result.config.title,
@@ -218,7 +254,6 @@ export const GeneralChatView: React.FC = () => {
 
       setChartArtifacts((prev) => [...prev, chartArtifact]);
 
-      // Simulate processing delay
       setTimeout(() => {
         const assistantMessage: ChatMessage = {
           id: `msg-${Date.now() + 1}`,
@@ -229,7 +264,6 @@ export const GeneralChatView: React.FC = () => {
         addMessage(assistantMessage);
         setIsLoading(false);
 
-        // Open chart in artifact panel
         artifactPanelRef.current?.openArtifactTab(chartArtifact, 'chart');
         setIsCenterPanelOpen(true);
       }, 800);
@@ -240,14 +274,14 @@ export const GeneralChatView: React.FC = () => {
           id: `msg-${Date.now() + 1}`,
           type: 'assistant',
           content:
-            '안녕하세요! 질문에 대해 분석을 시작하겠습니다. 잠시만 기다려 주세요.\n\n현재 데모 모드로 실행 중입니다. 실제 AI 응답은 백엔드 연동 후 제공됩니다.\n\n💡 **팁**: "월별 매출 추이 보여줘", "사업부별 비교 차트" 같은 데이터 분석 질문을 입력하면 차트를 자동 생성합니다.',
+            '안녕하세요! 질문에 대해 분석을 시작하겠습니다. 잠시만 기다려 주세요.\n\n현재 데모 모드로 실행 중입니다. 실제 AI 응답은 백엔드 연동 후 제공됩니다.\n\n💡 **팁**: "월별 매출 추이 보여줘", "사업부별 비교 차트" 같은 데이터 분석 질문을 입력하면 차트를 자동 생성합니다.\n\n📋 **대시보드**: "종합 현황 대시보드", "심층 분석 대시보드" 같은 질문으로 멀티 위젯 대시보드를 생성할 수 있습니다.',
           timestamp: new Date(),
         };
         addMessage(assistantMessage);
         setIsLoading(false);
       }, 1500);
     }
-  }, [inputValue, isLoading, attachedFile, processQuery, addMessage]);
+  }, [inputValue, isLoading, attachedFile, processQuery, processDashboardQuery, addMessage]);
 
   const handleInputChange = useCallback((value: string) => {
     setInputValue(value);
@@ -374,17 +408,24 @@ export const GeneralChatView: React.FC = () => {
     </div>
   );
 
-  // Center Panel (Artifact Preview for charts)
+  // Center Panel (Artifact Preview for charts/dashboards)
+  const dashboardComponent = dashboardResult ? (
+    <NLDashboardRenderer
+      dashboardConfig={dashboardResult.dashboardConfig}
+      onChangeWidgetChartType={changeWidgetChartType}
+    />
+  ) : chartResult ? (
+    <NLChartRenderer
+      result={chartResult}
+      onChangeChartType={changeChartType}
+    />
+  ) : undefined;
+
   const centerPanelContent = isCenterPanelOpen ? (
     <ArtifactPreviewPanel
       onClose={handleCloseCenterPanel}
       dashboardRendererProps={{
-        dashboardComponent: chartResult ? (
-          <NLChartRenderer
-            result={chartResult}
-            onChangeChartType={changeChartType}
-          />
-        ) : undefined,
+        dashboardComponent,
       }}
     />
   ) : null;

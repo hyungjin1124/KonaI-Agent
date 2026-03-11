@@ -2,6 +2,7 @@
  * NL-to-Chart — Unit Tests
  *
  * Tests for heuristics, hook, and renderer components.
+ * Phase 1 + Phase 2 (dashboard, advanced chart types).
  * Uses Vitest + React Testing Library with jsdom environment.
  */
 
@@ -12,12 +13,14 @@ import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 
-import { isChartQuery, recommendChartType } from './chartHeuristics';
+import { isChartQuery, isDashboardQuery, recommendChartType } from './chartHeuristics';
 import { findMatchingDataset, MOCK_DATASETS } from './mockChartData';
+import { findMatchingDashboard } from './mockDashboardConfigs';
 import { useNLChart } from './useNLChart';
 import { NLChartRenderer } from './NLChartRenderer';
 import { ChartTypeSelector } from './ChartTypeSelector';
-import type { NLChartResult, DatasetMeta } from './types';
+import { HeatmapChart } from './HeatmapChart';
+import type { NLChartResult, DatasetMeta, HeatmapDataPoint } from './types';
 
 // Mock recharts to avoid rendering issues in jsdom
 vi.mock('recharts', () => {
@@ -31,6 +34,8 @@ vi.mock('recharts', () => {
     PieChart: MockComponent,
     AreaChart: MockComponent,
     ComposedChart: MockComponent,
+    Sankey: (props: Record<string, unknown>) => <div data-testid="recharts-sankey" data-node-count={JSON.stringify(props.data)} />,
+    Treemap: (props: Record<string, unknown>) => <div data-testid="recharts-treemap" data-key={props.dataKey as string} />,
     Bar: () => <div data-testid="bar" />,
     Line: () => <div data-testid="line" />,
     Pie: ({ children }: { children?: React.ReactNode }) => <div data-testid="pie">{children}</div>,
@@ -72,6 +77,39 @@ describe('isChartQuery', () => {
     expect(isChartQuery('매출 데이터를 보여줘')).toBe(true);
     expect(isChartQuery('수익 현황')).toBe(true);
   });
+
+  it('detects Phase 2 advanced chart keywords', () => {
+    expect(isChartQuery('채널 흐름 플로우')).toBe(true);
+    expect(isChartQuery('히트맵 성과 분석')).toBe(true);
+    expect(isChartQuery('워터폴 증감')).toBe(true);
+    expect(isChartQuery('트리맵 항목별')).toBe(true);
+  });
+});
+
+// =============================================
+// isDashboardQuery — 대시보드 쿼리 감지
+// =============================================
+
+describe('isDashboardQuery', () => {
+  it('detects dashboard-related keywords', () => {
+    expect(isDashboardQuery('종합 현황 대시보드 보여줘')).toBe(true);
+    expect(isDashboardQuery('한 화면에 전체 현황')).toBe(true);
+    expect(isDashboardQuery('경영 오버뷰 보여줘')).toBe(true);
+  });
+
+  it('returns false for single-chart queries', () => {
+    expect(isDashboardQuery('월별 매출 추이 보여줘')).toBe(false);
+    expect(isDashboardQuery('사업부별 비교 차트')).toBe(false);
+  });
+
+  it('returns false for non-chart queries', () => {
+    expect(isDashboardQuery('안녕하세요')).toBe(false);
+  });
+
+  it('detects advanced analytics dashboard', () => {
+    expect(isDashboardQuery('심층 분석 대시보드')).toBe(true);
+    expect(isDashboardQuery('고급 분석 화면')).toBe(true);
+  });
 });
 
 // =============================================
@@ -101,7 +139,6 @@ describe('recommendChartType', () => {
 
   it('prefers explicit keyword over data type heuristic', () => {
     const dataset = MOCK_DATASETS.find((d) => d.id === 'monthly_revenue')!;
-    // 데이터는 temporal이지만, "비교" 키워드가 있으면 bar 추천
     const result = recommendChartType('월별 매출 비교', dataset);
     expect(result.recommended).toBe('bar');
   });
@@ -109,7 +146,6 @@ describe('recommendChartType', () => {
   it('falls back to data type when no keyword matched', () => {
     const dataset = MOCK_DATASETS.find((d) => d.id === 'monthly_revenue')!;
     const result = recommendChartType('알려줘', dataset);
-    // temporal → line
     expect(result.recommended).toBe('line');
   });
 
@@ -128,6 +164,37 @@ describe('recommendChartType', () => {
     };
     const result = recommendChartType('확인', multiMetricDataset);
     expect(result.recommended).toBe('composed');
+  });
+
+  // Phase 2: 고급 차트 타입 추천
+  it('recommends sankey for flow data type', () => {
+    const dataset = MOCK_DATASETS.find((d) => d.id === 'revenue_flow')!;
+    const result = recommendChartType('채널 확인', dataset);
+    expect(result.recommended).toBe('sankey');
+  });
+
+  it('recommends treemap for hierarchical data type', () => {
+    const dataset = MOCK_DATASETS.find((d) => d.id === 'budget_hierarchy')!;
+    const result = recommendChartType('예산 확인', dataset);
+    expect(result.recommended).toBe('treemap');
+  });
+
+  it('recommends heatmap for matrix data type', () => {
+    const dataset = MOCK_DATASETS.find((d) => d.id === 'monthly_division_performance')!;
+    const result = recommendChartType('성과 확인', dataset);
+    expect(result.recommended).toBe('heatmap');
+  });
+
+  it('recommends sankey for flow keyword', () => {
+    const dataset = MOCK_DATASETS.find((d) => d.id === 'monthly_revenue')!;
+    const result = recommendChartType('채널 전환 흐름', dataset);
+    expect(result.recommended).toBe('sankey');
+  });
+
+  it('recommends waterfall for waterfall keyword', () => {
+    const dataset = MOCK_DATASETS.find((d) => d.id === 'quarterly_waterfall')!;
+    const result = recommendChartType('증감 요인', dataset);
+    expect(result.recommended).toBe('waterfall');
   });
 });
 
@@ -154,6 +221,65 @@ describe('findMatchingDataset', () => {
   it('falls back to monthly_revenue for unknown queries', () => {
     const dataset = findMatchingDataset('알 수 없는 쿼리');
     expect(dataset.id).toBe('monthly_revenue');
+  });
+
+  // Phase 2: 고급 데이터셋 매칭
+  it('matches sankey flow dataset', () => {
+    const dataset = findMatchingDataset('채널 전환 흐름');
+    expect(dataset.id).toBe('revenue_flow');
+    expect(dataset.sankeyData).toBeDefined();
+    expect(dataset.sankeyData!.nodes.length).toBeGreaterThan(0);
+  });
+
+  it('matches treemap dataset', () => {
+    const dataset = findMatchingDataset('예산 계층 트리맵');
+    expect(dataset.id).toBe('budget_hierarchy');
+    expect(dataset.treemapData).toBeDefined();
+  });
+
+  it('matches heatmap dataset', () => {
+    const dataset = findMatchingDataset('월별 부서별 히트맵 성과');
+    expect(dataset.id).toBe('monthly_division_performance');
+    expect(dataset.heatmapData).toBeDefined();
+  });
+
+  it('matches waterfall dataset', () => {
+    const dataset = findMatchingDataset('분기 매출 증감 워터폴');
+    expect(dataset.id).toBe('quarterly_waterfall');
+  });
+});
+
+// =============================================
+// findMatchingDashboard — 대시보드 매칭
+// =============================================
+
+describe('findMatchingDashboard', () => {
+  it('matches executive overview dashboard', () => {
+    const result = findMatchingDashboard('종합 현황 대시보드');
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe('executive_overview');
+    expect(result!.config.widgets.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('matches advanced analytics dashboard', () => {
+    const result = findMatchingDashboard('고급 심층 분석');
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe('advanced_analytics');
+  });
+
+  it('returns default dashboard for unmatched query', () => {
+    const result = findMatchingDashboard('anything');
+    expect(result).not.toBeNull();
+  });
+
+  it('dashboard config has valid layout', () => {
+    const result = findMatchingDashboard('종합 현황 대시보드');
+    expect(result!.config.layout.length).toBe(result!.config.widgets.length);
+    result!.config.layout.forEach((item) => {
+      expect(item.w).toBeGreaterThan(0);
+      expect(item.w).toBeLessThanOrEqual(12);
+      expect(item.h).toBeGreaterThan(0);
+    });
   });
 });
 
@@ -218,6 +344,92 @@ describe('useNLChart', () => {
 
     expect(result.current.chartResult).toBeNull();
   });
+
+  // Phase 2: Dashboard tests
+  it('processes dashboard query', () => {
+    const { result } = renderHook(() => useNLChart());
+
+    act(() => {
+      result.current.processDashboardQuery('종합 현황 대시보드 보여줘');
+    });
+
+    expect(result.current.dashboardResult).not.toBeNull();
+    expect(result.current.dashboardResult!.dashboardConfig.widgets.length).toBeGreaterThanOrEqual(2);
+    expect(result.current.dashboardResult!.reasoning).toBeTruthy();
+  });
+
+  it('returns null for non-dashboard queries', () => {
+    const { result } = renderHook(() => useNLChart());
+    let processResult: ReturnType<typeof result.current.processDashboardQuery>;
+
+    act(() => {
+      processResult = result.current.processDashboardQuery('월별 매출 추이');
+    });
+
+    expect(processResult!).toBeNull();
+    expect(result.current.dashboardResult).toBeNull();
+  });
+
+  it('supports widget chart type change', () => {
+    const { result } = renderHook(() => useNLChart());
+
+    act(() => {
+      result.current.processDashboardQuery('종합 현황 대시보드');
+    });
+
+    const firstWidgetId = result.current.dashboardResult!.dashboardConfig.widgets[0].id;
+    const originalType = result.current.dashboardResult!.dashboardConfig.widgets[0].config.chartType;
+
+    act(() => {
+      result.current.changeWidgetChartType(firstWidgetId, 'bar');
+    });
+
+    expect(result.current.dashboardResult!.dashboardConfig.widgets[0].config.chartType).toBe('bar');
+    // Other widgets unchanged
+    if (result.current.dashboardResult!.dashboardConfig.widgets.length > 1) {
+      expect(result.current.dashboardResult!.dashboardConfig.widgets[1].config.chartType).not.toBe('bar');
+    }
+  });
+
+  it('clears dashboard result', () => {
+    const { result } = renderHook(() => useNLChart());
+
+    act(() => {
+      result.current.processDashboardQuery('대시보드');
+    });
+
+    expect(result.current.dashboardResult).not.toBeNull();
+
+    act(() => {
+      result.current.clearDashboard();
+    });
+
+    expect(result.current.dashboardResult).toBeNull();
+  });
+
+  it('processes sankey chart query', () => {
+    const { result } = renderHook(() => useNLChart());
+
+    act(() => {
+      result.current.processQuery('채널 전환 흐름 보여줘');
+    });
+
+    expect(result.current.chartResult).not.toBeNull();
+    expect(result.current.chartResult!.config.chartType).toBe('sankey');
+    expect(result.current.chartResult!.config.sankeyData).toBeDefined();
+  });
+
+  it('processes heatmap chart query', () => {
+    const { result } = renderHook(() => useNLChart());
+
+    act(() => {
+      result.current.processQuery('월별 부서별 히트맵 성과 보여줘');
+    });
+
+    expect(result.current.chartResult).not.toBeNull();
+    expect(result.current.chartResult!.config.chartType).toBe('heatmap');
+    expect(result.current.chartResult!.config.heatmapData).toBeDefined();
+  });
 });
 
 // =============================================
@@ -280,6 +492,111 @@ describe('NLChartRenderer', () => {
     render(<NLChartRenderer result={tableResult} onChangeChartType={onChangeChartType} />);
     expect(screen.getByRole('table')).toBeInTheDocument();
   });
+
+  // Phase 2: Advanced chart rendering
+  it('renders sankey chart', () => {
+    const sankeyResult: NLChartResult = {
+      config: {
+        chartType: 'sankey',
+        title: '매출 채널별 흐름',
+        data: [],
+        series: [],
+        xAxisKey: 'name',
+        sankeyData: {
+          nodes: [{ name: 'A' }, { name: 'B' }, { name: 'C' }],
+          links: [{ source: 0, target: 1, value: 100 }, { source: 1, target: 2, value: 80 }],
+        },
+      },
+      reasoning: '흐름 분석',
+      alternatives: ['table'],
+      queryKeywords: ['흐름'],
+    };
+    render(<NLChartRenderer result={sankeyResult} onChangeChartType={onChangeChartType} />);
+    expect(screen.getByTestId('recharts-sankey')).toBeInTheDocument();
+  });
+
+  it('renders treemap chart', () => {
+    const treemapResult: NLChartResult = {
+      config: {
+        chartType: 'treemap',
+        title: '예산 배분',
+        data: [],
+        series: [],
+        xAxisKey: 'name',
+        treemapData: [{ name: '경영지원', children: [{ name: '인건비', size: 180 }] }],
+      },
+      reasoning: '계층 분석',
+      alternatives: ['bar'],
+      queryKeywords: ['계층'],
+    };
+    render(<NLChartRenderer result={treemapResult} onChangeChartType={onChangeChartType} />);
+    expect(screen.getByTestId('recharts-treemap')).toBeInTheDocument();
+  });
+
+  it('renders waterfall chart (via BarChart)', () => {
+    const waterfallResult: NLChartResult = {
+      config: {
+        chartType: 'waterfall',
+        title: '매출 증감 요인',
+        data: [
+          { category: '전기 매출', base: 0, value: 280, total: 280 },
+          { category: '성장', base: 280, value: 45, total: 325 },
+          { category: '비용', base: 325, value: -25, total: 300 },
+        ],
+        series: [{ dataKey: 'value', name: '증감', color: '#10B981' }],
+        xAxisKey: 'category',
+      },
+      reasoning: '증감 분석',
+      alternatives: ['bar'],
+      queryKeywords: ['증감'],
+    };
+    render(<NLChartRenderer result={waterfallResult} onChangeChartType={onChangeChartType} />);
+    // Waterfall renders via BarChart mock
+    expect(screen.getByTestId('nl-chart-renderer')).toBeInTheDocument();
+  });
+
+  it('hides reasoning and selector in compact mode', () => {
+    render(<NLChartRenderer result={mockResult} onChangeChartType={onChangeChartType} compact />);
+    expect(screen.getByText('사업부별 매출 비교')).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    expect(screen.queryByText(/카테고리별 값을 비교/)).not.toBeInTheDocument();
+  });
+});
+
+// =============================================
+// HeatmapChart — 히트맵 렌더링
+// =============================================
+
+describe('HeatmapChart', () => {
+  const mockHeatmapData: HeatmapDataPoint[] = [
+    { x: '1월', y: '카드', value: 78 },
+    { x: '2월', y: '카드', value: 82 },
+    { x: '1월', y: '결제', value: 65 },
+    { x: '2월', y: '결제', value: 72 },
+  ];
+
+  it('renders without error', () => {
+    const { container } = render(<HeatmapChart data={mockHeatmapData} />);
+    expect(container).toBeTruthy();
+  });
+
+  it('renders correct number of cells', () => {
+    render(<HeatmapChart data={mockHeatmapData} />);
+    const testEl = screen.getByTestId('heatmap-chart');
+    const rects = testEl.querySelectorAll('rect');
+    // 2 x-labels * 2 y-labels = 4 data cells + 1 legend rect = 5
+    expect(rects.length).toBe(5);
+  });
+
+  it('displays cell values', () => {
+    render(<HeatmapChart data={mockHeatmapData} />);
+    expect(screen.getByText('78')).toBeInTheDocument();
+    // 82 appears both as cell value and legend max label
+    expect(screen.getAllByText('82').length).toBeGreaterThanOrEqual(1);
+    // 65 appears both as cell value and legend min label
+    expect(screen.getAllByText('65').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('72')).toBeInTheDocument();
+  });
 });
 
 // =============================================
@@ -331,5 +648,62 @@ describe('ChartTypeSelector', () => {
     await user.click(lineButton);
 
     expect(onSelect).toHaveBeenCalledWith('line');
+  });
+
+  it('renders Phase 2 chart types', () => {
+    render(
+      <ChartTypeSelector
+        currentType="sankey"
+        alternatives={['treemap', 'heatmap', 'waterfall']}
+        onSelect={onSelect}
+      />
+    );
+
+    const radios = screen.getAllByRole('radio');
+    expect(radios).toHaveLength(4);
+    expect(screen.getByText('Sankey')).toBeInTheDocument();
+    expect(screen.getByText('트리맵')).toBeInTheDocument();
+    expect(screen.getByText('히트맵')).toBeInTheDocument();
+    expect(screen.getByText('워터폴')).toBeInTheDocument();
+  });
+});
+
+// =============================================
+// Phase 1 Regression — 단일 차트 호환성
+// =============================================
+
+describe('Phase 1 Regression', () => {
+  it('single chart flow still works after Phase 2 changes', () => {
+    const { result } = renderHook(() => useNLChart());
+
+    act(() => {
+      result.current.processQuery('월별 매출 추이 보여줘');
+    });
+
+    expect(result.current.chartResult).not.toBeNull();
+    expect(result.current.chartResult!.config.chartType).toBe('line');
+    expect(result.current.dashboardResult).toBeNull();
+  });
+
+  it('dashboard and chart states are independent', () => {
+    const { result } = renderHook(() => useNLChart());
+
+    act(() => {
+      result.current.processQuery('매출 차트 보여줘');
+    });
+
+    act(() => {
+      result.current.processDashboardQuery('종합 현황 대시보드');
+    });
+
+    expect(result.current.chartResult).not.toBeNull();
+    expect(result.current.dashboardResult).not.toBeNull();
+
+    act(() => {
+      result.current.clearChart();
+    });
+
+    expect(result.current.chartResult).toBeNull();
+    expect(result.current.dashboardResult).not.toBeNull();
   });
 });
