@@ -1,0 +1,1 @@
+export { PromptManagementView } from './PromptManagementView';
