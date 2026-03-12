@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, FileText, Bot, Database, MessageSquare, Sparkles
+  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, FileText, Bot, Database, MessageSquare, Sparkles, Store
 } from './icons';
 import { UsageMonitoringView } from './features/usage-monitoring';
 import { AuditLogView } from './features/audit-log';
@@ -10,6 +10,7 @@ import { AgentConfigView } from './features/agent-config';
 import { KnowledgeBaseView } from './features/knowledge-base';
 import { FeedbackQualityView } from './features/feedback-quality';
 import { PromptManagementView } from './features/prompt-management';
+import { AgentMarketplaceView } from './features/agent-marketplace';
 import { User, UserRole, UserStatus, RoleConfig } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -335,6 +336,9 @@ const AdminView: React.FC = () => {
             <TabsTrigger value="prompts" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <Sparkles size={16} /> 프롬프트 관리
             </TabsTrigger>
+            <TabsTrigger value="marketplace" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <Store size={16} /> 마켓플레이스
+            </TabsTrigger>
           </TabsList>
         </div>
       </div>
@@ -396,6 +400,10 @@ const AdminView: React.FC = () => {
 
             <TabsContent value="prompts" className="mt-0">
                 <PromptManagementView />
+            </TabsContent>
+
+            <TabsContent value="marketplace" className="mt-0">
+                <AgentMarketplaceView />
             </TabsContent>
         </div>
       </div>

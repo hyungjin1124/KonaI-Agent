@@ -956,15 +956,21 @@ categories:
       - id: agent_marketplace
         name: "Agent Marketplace / Store"
         description: "에이전트, 스킬, 플러그인을 탐색하고 설치하는 마켓플레이스"
-        status: not_implemented
+        status: implemented
         priority: medium
         complexity: complex
         contexts: [admin]
-        source_files: []
+        source_files:
+          - "src/components/features/agent-marketplace/agentMarketplaceData.ts"
+          - "src/components/features/agent-marketplace/AgentMarketplaceView.tsx"
+          - "src/components/features/agent-marketplace/index.ts"
+          - "src/components/features/agent-marketplace/AgentMarketplaceView.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/agent-marketplace-ui.md"
         last_researched: "2026-03-12"
-        notes: "Cursor 2.6 Team Marketplaces (Mar 3): Teams/Enterprise 관리자가 프라이빗 플러그인 마켓플레이스 생성·배포·거버넌스. skill_management 확장으로 구현 가능. ChatGPT Skills Beta (Mar 6): 재사용 가능 워크플로우 지침, 워크스페이스 공유, 관리자 역할 제어. skill_management → agent_marketplace 확장 패턴. Cursor 30+ Marketplace Plugins (Mar 11): MCP 기반 3계층(Apps+Servers+거버넌스) 생태계 확립. 30+ 파트너 참여 프로덕션급."
+        metadata:
+          last_updated: "2026-03-12"
+        notes: "Phase 1 구현 완료: MCP-Native + Workspace Skills 하이브리드. 12개 플러그인 카탈로그(카드 그리드), 6개 카테고리 필터, 검색, 설치/제거, 활성화 토글, 플러그인 상세 Sheet(도구 개별 토글, 권한 표시), AdminView 탭 통합. 19/19 테스트 PASS. Phase 2: 팀별 거버넌스 + 감사 로그 연동. Phase 3: MCP Apps 인터랙티브 렌더링."
 
       - id: workflow_builder
         name: "Visual Workflow Builder"
