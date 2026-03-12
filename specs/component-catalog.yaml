@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.3.0"
-  last_updated: "2026-03-12"
+  last_updated: "2026-03-13"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -280,7 +280,7 @@ categories:
         metadata:
           last_updated: "2026-03-11"
           qa_report: "specs/implementation-logs/multi_agent_orchestration_ui/qa-report.md"
-        notes: "5가지 패턴 분류(2026.03 업데이트): Transparent Supervisor, Visible Orchestrator Tree, Visual Graph Editor, Role-Based Crew Builder, Code-First Command Center. Anthropic Agent Teams(2-16 피어-투-피어, Feb 5), OpenAI Codex App(macOS Feb+Windows Mar 4, isolated worktrees, editable diffs, 네이티브 샌드박스), Cursor 2.5(비동기 서브에이전트+Plugins+Automations Mar 5, 내부 PR 35% 자율 에이전트). AG-UI 프로토콜: Microsoft/Google ADK 공식 호환. 72% 엔터프라이즈 채택. QA PASS (2026-03-06, 59/59 테스트). parallel_execution_view를 포괄하는 상위 개념. CopilotKit v1.53.0 (Mar 6): AG-UI + MCP 미들웨어 1등 시민 지원, AI SDK v6 전환. LangGraph 1.1.0 (Mar 10): Type-safe StreamPart discriminated union, GraphOutput 객체, HITL interrupt 타입 안전 처리."
+        notes: "5가지 패턴 분류(2026.03 업데이트): Transparent Supervisor, Visible Orchestrator Tree, Visual Graph Editor, Role-Based Crew Builder, Code-First Command Center. Anthropic Agent Teams(2-16 피어-투-피어, Feb 5), OpenAI Codex App(macOS Feb+Windows Mar 4, isolated worktrees, editable diffs, 네이티브 샌드박스), Cursor 2.5(비동기 서브에이전트+Plugins+Automations Mar 5, 내부 PR 35% 자율 에이전트). AG-UI 프로토콜: Microsoft/Google ADK 공식 호환. 72% 엔터프라이즈 채택. QA PASS (2026-03-06, 59/59 테스트). parallel_execution_view를 포괄하는 상위 개념. CopilotKit v1.53.0 (Mar 6): AG-UI + MCP 미들웨어 1등 시민 지원, AI SDK v6 전환. LangGraph 1.1.0 (Mar 10): Type-safe StreamPart discriminated union, GraphOutput 객체, HITL interrupt 타입 안전 처리. AG-UI PR #1257 (Mar 11): messages-tuple 스트림 모드 추가로 LangGraph Platform 배포 환경 스트리밍 호환성 수정. @ag-ui/langgraph 최신 버전 사용 권장."
 
       - id: error_retry_ui
         name: "Error & Retry UI"
@@ -660,7 +660,7 @@ categories:
         name: "Context Window Indicator"
         description: "현재 대화의 컨텍스트 윈도우 사용량 표시"
         status: not_implemented
-        priority: low
+        priority: medium
         complexity: simple
         contexts: [chat_view]
         source_files: []
@@ -800,15 +800,16 @@ categories:
 
       - id: prompt_management
         name: "Prompt Management"
-        description: "시스템 프롬프트/템플릿 버전 관리, 인라인 편집+테스트, 모델 바인딩"
+        description: "시스템 프롬프트/템플릿 버전 관리, 인라인 편집+테스트, 모델 바인딩, 콘텐츠 모더레이션 감도"
         status: not_implemented
-        priority: medium
+        priority: high
         complexity: moderate
         contexts: [admin]
         source_files: []
         obsidian_sources:
           - "Insights/agent-ui/patterns/prompt-management-ui.md"
-        last_researched: "2026-03-11"
+        last_researched: "2026-03-13"
+        notes: "리서치 브리프 업데이트(2026-03-13, 8제품/12플랫폼). 4패턴 분류(내장형/레지스트리/커뮤니티/API-First). 불변 버전 관리가 사실상 표준(Vertex AI/LangSmith/PromptLayer/OpenAI/Salesforce). MS Copilot Studio: 4범주×4레벨 모더레이션 감도+BYOM(Claude Opus/Sonnet)+Batch Test Hub. OpenAI: Prompt API 프리미티브+Optimize 도구. Salesforce: 불변 스냅샷+Trust Layer+Permission Set RBAC. 권장: 패턴B+D 하이브리드(CRUD+버전+테스트+모델바인딩+모더레이션). Phase 1 AC 13건."
 
       - id: knowledge_base_management
         name: "Knowledge Base Management"
@@ -825,7 +826,13 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/knowledge-base-management-ui.md"
         last_researched: "2026-03-11"
-        notes: "Discovery 2026-03-11 NEW-3. MS Copilot Studio(SharePoint 지식+파일 그룹), Open WebUI(문서 스토어), ChatGPT Enterprise(워크스페이스 파일) 패턴."
+        last_verified: "2026-03-12"
+        qa_cycles: 1
+        qa_verdict: "PASS"
+        metadata:
+          last_updated: "2026-03-12"
+          qa_report: "specs/implementation-logs/knowledge_base_management/qa-report.md"
+        notes: "Discovery 2026-03-11 NEW-3. MS Copilot Studio(SharePoint 지식+파일 그룹), Open WebUI(문서 스토어), ChatGPT Enterprise(워크스페이스 파일) 패턴. QA PASS (2026-03-12, 59/59 테스트). Phase 1 MVP 완료."
 
       - id: feedback_quality_management
         name: "Feedback & Quality Management"
@@ -882,7 +889,7 @@ categories:
         complexity: moderate
         contexts: [admin]
         source_files: []
-        notes: "Discovery 2026-03-11 NEW-7. MS Copilot Studio, Open WebUI, Salesforce 패턴."
+        notes: "Discovery 2026-03-11 NEW-7. MS Copilot Studio, Open WebUI, Salesforce 패턴. Google Agentspace (Mar 11): Google Chat Data Connector + GitHub/SharePoint/Notion/Shopify 액션 Public Preview. 커넥터별 읽기/쓰기(액션) 권한 분리 관리 패턴 참조."
 
       - id: data_retention_privacy
         name: "Data Retention & Privacy"
@@ -963,7 +970,7 @@ categories:
         complexity: complex
         contexts: [admin]
         source_files: []
-        notes: "Cursor 2.6 Team Marketplaces (Mar 3): Teams/Enterprise 관리자가 프라이빗 플러그인 마켓플레이스 생성·배포·거버넌스. skill_management 확장으로 구현 가능. ChatGPT Skills Beta (Mar 6): 재사용 가능 워크플로우 지침, 워크스페이스 공유, 관리자 역할 제어. skill_management → agent_marketplace 확장 패턴."
+        notes: "Cursor 2.6 Team Marketplaces (Mar 3): Teams/Enterprise 관리자가 프라이빗 플러그인 마켓플레이스 생성·배포·거버넌스. skill_management 확장으로 구현 가능. ChatGPT Skills Beta (Mar 6): 재사용 가능 워크플로우 지침, 워크스페이스 공유, 관리자 역할 제어. skill_management → agent_marketplace 확장 패턴. Cursor 30+ Marketplace Plugins (Mar 11): MCP 기반 3계층(Apps+Servers+거버넌스) 생태계 확립. 30+ 파트너 참여 프로덕션급."
 
       - id: workflow_builder
         name: "Visual Workflow Builder"
@@ -1031,7 +1038,7 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/scheduled-agent-tasks.md"
         last_researched: "2026-03-02"
-        notes: "ChatGPT Tasks/Gemini/Claude Cowork 패턴 분석 완료. Hybrid 접근 권장: 자연어 스케줄 생성(채팅) + 사이드바 구조화 관리 + 라이브보드 위젯. 기존 useScenarioOrchestration, NotificationContext, Sidebar 확장으로 구현 가능."
+        notes: "ChatGPT Tasks/Gemini/Claude Cowork 패턴 분석 완료. Hybrid 접근 권장: 자연어 스케줄 생성(채팅) + 사이드바 구조화 관리 + 라이브보드 위젯. 기존 useScenarioOrchestration, NotificationContext, Sidebar 확장으로 구현 가능. Codex 0.114.0 Hooks Engine (Mar 11): SessionStart/Stop 이벤트 기반 자동화. Windsurf (Mar 8): Enterprise 워크플로우 후킹."
 
       - id: dark_mode
         name: "Dark Mode"
