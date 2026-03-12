@@ -210,6 +210,7 @@ export const GeneralChatView: React.FC = () => {
 
     // Try Dashboard query first, then single chart
     if (isDashboardQuery(content)) {
+      clearChart(); // Clear previous chart to prevent state masking
       const dashResult = processDashboardQuery(content);
       if (dashResult) {
         const dashArtifact: Artifact = {
@@ -241,6 +242,7 @@ export const GeneralChatView: React.FC = () => {
     }
 
     // Try NL-to-Chart
+    clearDashboard(); // Clear previous dashboard to prevent state masking
     const result = processQuery(content);
 
     if (result) {
@@ -281,7 +283,7 @@ export const GeneralChatView: React.FC = () => {
         setIsLoading(false);
       }, 1500);
     }
-  }, [inputValue, isLoading, attachedFile, processQuery, processDashboardQuery, addMessage]);
+  }, [inputValue, isLoading, attachedFile, processQuery, processDashboardQuery, clearChart, clearDashboard, addMessage]);
 
   const handleInputChange = useCallback((value: string) => {
     setInputValue(value);
@@ -501,7 +503,8 @@ export const GeneralChatView: React.FC = () => {
       artifacts={chartArtifacts}
       selectedArtifactId={undefined}
       onArtifactSelect={(artifact) => {
-        artifactPanelRef.current?.openArtifactTab(artifact, 'chart');
+        const previewType: ArtifactPreviewType = artifact.id.startsWith('dashboard-') ? 'dashboard' : 'chart';
+        artifactPanelRef.current?.openArtifactTab(artifact, previewType);
         setIsCenterPanelOpen(true);
       }}
       onArtifactDownload={() => {}}
