@@ -806,6 +806,9 @@ categories:
         complexity: moderate
         contexts: [admin]
         source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/prompt-management-ui.md"
+        last_researched: "2026-03-11"
 
       - id: knowledge_base_management
         name: "Knowledge Base Management"
