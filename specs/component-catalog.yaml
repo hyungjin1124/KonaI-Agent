@@ -801,15 +801,19 @@ categories:
       - id: prompt_management
         name: "Prompt Management"
         description: "시스템 프롬프트/템플릿 버전 관리, 인라인 편집+테스트, 모델 바인딩, 콘텐츠 모더레이션 감도"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [admin]
-        source_files: []
+        source_files:
+          - "src/components/features/prompt-management/promptManagementData.ts"
+          - "src/components/features/prompt-management/PromptManagementView.tsx"
+          - "src/components/features/prompt-management/PromptManagementView.test.tsx"
+          - "src/components/features/prompt-management/index.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/prompt-management-ui.md"
         last_researched: "2026-03-13"
-        notes: "리서치 브리프 업데이트(2026-03-13, 8제품/12플랫폼). 4패턴 분류(내장형/레지스트리/커뮤니티/API-First). 불변 버전 관리가 사실상 표준(Vertex AI/LangSmith/PromptLayer/OpenAI/Salesforce). MS Copilot Studio: 4범주×4레벨 모더레이션 감도+BYOM(Claude Opus/Sonnet)+Batch Test Hub. OpenAI: Prompt API 프리미티브+Optimize 도구. Salesforce: 불변 스냅샷+Trust Layer+Permission Set RBAC. 권장: 패턴B+D 하이브리드(CRUD+버전+테스트+모델바인딩+모더레이션). Phase 1 AC 13건."
+        notes: "Phase 1 구현 완료(2026-03-13). 패턴B+D 하이브리드. CRUD+불변스냅샷버전+인라인테스트+모델바인딩+모더레이션감도. AC 13/13 PASS. 37 tests."
 
       - id: knowledge_base_management
         name: "Knowledge Base Management"
