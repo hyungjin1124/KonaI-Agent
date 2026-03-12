@@ -138,19 +138,19 @@ export function FeedbackQualityView() {
   const kpi = QUALITY_KPI;
   const dailyData = useMemo(() => getDailyQualityByPeriod(period), [period]);
   const filteredFeedback = useMemo(
-    () => filterFeedback(MOCK_FEEDBACK, feedbackFilter, searchQuery),
-    [feedbackFilter, searchQuery],
+    () => filterFeedback(MOCK_FEEDBACK, feedbackFilter, searchQuery, period),
+    [feedbackFilter, searchQuery, period],
   );
 
   return (
     <div className="space-y-6" data-testid="feedback-quality-view">
       {/* Header + Period Filter */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold text-gray-900">피드백 & 품질 관리</h3>
           <p className="text-sm text-gray-500 mt-0.5">에이전트 응답 품질과 사용자 피드백을 모니터링합니다.</p>
         </div>
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg" role="group" aria-label="기간 선택" data-testid="period-filter">
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg self-start sm:self-auto" role="group" aria-label="기간 선택" data-testid="period-filter">
           {PERIOD_OPTIONS.map(opt => (
             <button
               key={opt.value}
@@ -169,7 +169,7 @@ export function FeedbackQualityView() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-4" data-testid="kpi-cards">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="kpi-cards">
         <KPICard
           title="전체 만족도"
           value={`${kpi.satisfactionRate}%`}

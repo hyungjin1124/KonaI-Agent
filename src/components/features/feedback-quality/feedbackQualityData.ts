@@ -46,8 +46,11 @@ export function filterFeedback(
   items: FeedbackItem[],
   feedbackFilter: FeedbackFilter,
   search: string,
+  period?: PeriodFilter,
 ): FeedbackItem[] {
+  const cutoff = period ? getPeriodCutoffDate(period) : null;
   return items.filter(item => {
+    if (cutoff && item.date < cutoff) return false;
     const matchesType = feedbackFilter === 'all' || item.feedbackType === feedbackFilter;
     const matchesSearch = !search ||
       item.userName.toLowerCase().includes(search.toLowerCase()) ||
@@ -55,6 +58,13 @@ export function filterFeedback(
       (item.comment && item.comment.toLowerCase().includes(search.toLowerCase()));
     return matchesType && matchesSearch;
   });
+}
+
+function getPeriodCutoffDate(period: PeriodFilter): string {
+  const now = new Date();
+  const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  return cutoff.toISOString().slice(0, 10);
 }
 
 // --- Constants ---
