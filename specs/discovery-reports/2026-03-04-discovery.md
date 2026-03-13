@@ -1,51 +1,57 @@
 # Discovery Report — 2026-03-04
 
 ## 스캔 설정
+
+
 - **모드**: broad
 - **시간 범위**: 2026-03-03 ~ 2026-03-04 (1일간)
 - **이전 리포트**: 2026-03-03-discovery.md
 
 ## 확인한 소스
 
-| # | 소스 | URL | 상태 |
-|---|------|-----|------|
-| 1 | ChatGPT (Fallback) | releasebot.io/updates/openai/chatgpt | 확인 완료 — 변경 없음 (최근: Feb 25) |
-| 2 | Claude blog | claude.ai/blog | 접근 실패 (403) |
-| 3 | Claude (Fallback) | releasebot.io/updates/anthropic/claude | 미확인 (Primary 접근 실패) |
-| 4 | Cursor changelog | cursor.com/changelog | 확인 완료 — 변경 없음 (최근: Feb 26, Bugbot Autofix) |
-| 5 | Gemini release notes | gemini.google/release-notes | 접근 실패 (타임아웃) |
-| 6 | Windsurf changelog | windsurf.com/changelog | 확인 완료 — 변경 없음 (최근: Feb 26, v1.9566.11) |
-| 7 | Bolt.new | support.bolt.new/release-notes | 접근 실패 (sibling error) |
-| 8 | v0 changelog | v0.dev/changelog | 접근 실패 (타임아웃) |
-| 9 | GitHub Copilot | github.com/features/copilot/whats-new | 접근 실패 (sibling error) |
-| 10 | Salesforce Agentforce | salesforce.com/agentforce | 미확인 |
-| 11 | MS Copilot Studio | techcommunity.microsoft.com | 확인 완료 — 이전 보고 항목(Agent Dashboard GA) 지속 |
-| 12 | Google Agentspace | cloud.google.com/agentspace | 미확인 |
-| 13 | ThoughtSpot | thoughtspot.com/blog | 미확인 |
-| 14 | Power BI | powerbi.microsoft.com/blog | 미확인 |
-| 15 | Hex | hex.tech/blog | 미확인 |
-| 16 | AG-UI | github.com/ag-ui-protocol/ag-ui/releases | 확인 완료 — 릴리스 없음 (태그 없음) |
-| 17 | MCP TypeScript SDK | github.com/modelcontextprotocol/typescript-sdk/releases | 확인 완료 — 변경 없음 (최근: v1.27.1, Feb 24) |
-| 18 | MCP Spec | spec.modelcontextprotocol.io | 접근 실패 (인증서 오류, 2회 연속) |
-| 19 | CopilotKit | github.com/CopilotKit/CopilotKit/releases | 확인 완료 — 변경 없음 (최근: v1.52.1, Feb 27) |
-| 20 | LangGraph | github.com/langchain-ai/langgraph/releases | 확인 완료 — 변경 없음 (최근: v1.0.10, Feb 27) |
-| 21 | LangChain blog | blog.langchain.com | 확인 완료 — 리다이렉트 확인, 날짜 미표시 |
-| 22 | CrewAI | github.com/crewAIInc/crewAI/releases | 확인 완료 — 변경 없음 (최근: v1.10.1a1, Feb 27) |
-| 23 | Vercel AI SDK | github.com/vercel/ai/releases | 확인 완료 — 변경 없음 |
-| 24 | Open WebUI | github.com/open-webui/open-webui/releases | 확인 완료 — 변경 없음 (최근: v0.8.7, Mar 2) |
-| 25 | LobeChat | github.com/lobehub/lobe-chat/releases | 확인 완료 — 변경 없음 (최근: v2.1.34, Feb 28) |
-| 26 | Chainlit | github.com/Chainlit/chainlit/releases | 확인 완료 — 변경 없음 (최근: v2.9.6, Jan 20) |
-| 27 | NNGroup | nngroup.com/articles (AI 태그) | 확인 완료 — 변경 없음 |
+
+| #   | 소스                    | URL                                                     | 상태                                         |
+| --- | --------------------- | ------------------------------------------------------- | ------------------------------------------ |
+| 1   | ChatGPT (Fallback)    | releasebot.io/updates/openai/chatgpt                    | 확인 완료 — 변경 없음 (최근: Feb 25)                 |
+| 2   | Claude blog           | claude.ai/blog                                          | 접근 실패 (403)                                |
+| 3   | Claude (Fallback)     | releasebot.io/updates/anthropic/claude                  | 미확인 (Primary 접근 실패)                        |
+| 4   | Cursor changelog      | cursor.com/changelog                                    | 확인 완료 — 변경 없음 (최근: Feb 26, Bugbot Autofix) |
+| 5   | Gemini release notes  | gemini.google/release-notes                             | 접근 실패 (타임아웃)                               |
+| 6   | Windsurf changelog    | windsurf.com/changelog                                  | 확인 완료 — 변경 없음 (최근: Feb 26, v1.9566.11)     |
+| 7   | Bolt.new              | support.bolt.new/release-notes                          | 접근 실패 (sibling error)                      |
+| 8   | v0 changelog          | v0.dev/changelog                                        | 접근 실패 (타임아웃)                               |
+| 9   | GitHub Copilot        | github.com/features/copilot/whats-new                   | 접근 실패 (sibling error)                      |
+| 10  | Salesforce Agentforce | salesforce.com/agentforce                               | 미확인                                        |
+| 11  | MS Copilot Studio     | techcommunity.microsoft.com                             | 확인 완료 — 이전 보고 항목(Agent Dashboard GA) 지속    |
+| 12  | Google Agentspace     | cloud.google.com/agentspace                             | 미확인                                        |
+| 13  | ThoughtSpot           | thoughtspot.com/blog                                    | 미확인                                        |
+| 14  | Power BI              | powerbi.microsoft.com/blog                              | 미확인                                        |
+| 15  | Hex                   | hex.tech/blog                                           | 미확인                                        |
+| 16  | AG-UI                 | github.com/ag-ui-protocol/ag-ui/releases                | 확인 완료 — 릴리스 없음 (태그 없음)                     |
+| 17  | MCP TypeScript SDK    | github.com/modelcontextprotocol/typescript-sdk/releases | 확인 완료 — 변경 없음 (최근: v1.27.1, Feb 24)        |
+| 18  | MCP Spec              | spec.modelcontextprotocol.io                            | 접근 실패 (인증서 오류, 2회 연속)                      |
+| 19  | CopilotKit            | github.com/CopilotKit/CopilotKit/releases               | 확인 완료 — 변경 없음 (최근: v1.52.1, Feb 27)        |
+| 20  | LangGraph             | github.com/langchain-ai/langgraph/releases              | 확인 완료 — 변경 없음 (최근: v1.0.10, Feb 27)        |
+| 21  | LangChain blog        | blog.langchain.com                                      | 확인 완료 — 리다이렉트 확인, 날짜 미표시                   |
+| 22  | CrewAI                | github.com/crewAIInc/crewAI/releases                    | 확인 완료 — 변경 없음 (최근: v1.10.1a1, Feb 27)      |
+| 23  | Vercel AI SDK         | github.com/vercel/ai/releases                           | 확인 완료 — 변경 없음                              |
+| 24  | Open WebUI            | github.com/open-webui/open-webui/releases               | 확인 완료 — 변경 없음 (최근: v0.8.7, Mar 2)          |
+| 25  | LobeChat              | github.com/lobehub/lobe-chat/releases                   | 확인 완료 — 변경 없음 (최근: v2.1.34, Feb 28)        |
+| 26  | Chainlit              | github.com/Chainlit/chainlit/releases                   | 확인 완료 — 변경 없음 (최근: v2.9.6, Jan 20)         |
+| 27  | NNGroup               | nngroup.com/articles (AI 태그)                            | 확인 완료 — 변경 없음                              |
+
 
 ## 보충 검색 쿼리
 
-| # | 쿼리 | 결과 수 |
-|---|------|--------|
-| 1 | "AI agent UI" OR "agentic interface" new feature March 2026 | 10건 |
-| 2 | "human-in-the-loop" OR "AI approval" UI pattern March 2026 | 10건 |
-| 3 | "conversational AI" OR "chat UI" framework release March 2026 | 10건 |
-| 4 | "enterprise AI dashboard" OR "AI copilot admin" March 2026 | 10건 |
-| 5 | "AI data visualization" OR "natural language query" dashboard March 2026 | 10건 |
+
+| #   | 쿼리                                                                       | 결과 수 |
+| --- | ------------------------------------------------------------------------ | ---- |
+| 1   | "AI agent UI" OR "agentic interface" new feature March 2026              | 10건  |
+| 2   | "human-in-the-loop" OR "AI approval" UI pattern March 2026               | 10건  |
+| 3   | "conversational AI" OR "chat UI" framework release March 2026            | 10건  |
+| 4   | "enterprise AI dashboard" OR "AI copilot admin" March 2026               | 10건  |
+| 5   | "AI data visualization" OR "natural language query" dashboard March 2026 | 10건  |
+
 
 ---
 
@@ -64,9 +70,11 @@
 
 ## 신규 패턴 (NEW)
 
-| # | 패턴명 | 설명 | 발견 출처 | 관련 카테고리 | 권장 priority | 권장 complexity | confidence |
-|---|--------|------|----------|-------------|--------------|----------------|------------|
-| 1 | OpenAI AgentKit | 비주얼 멀티에이전트 워크플로우 빌더(Agent Builder) + 채팅 임베딩 툴킷(ChatKit) + 커넥터 레지스트리의 통합 에이전트 개발 플랫폼 | OpenAI 공식 발표 | generative_emerging, agent_action_patterns | high | complex | high |
+
+| #   | 패턴명             | 설명                                                                                  | 발견 출처        | 관련 카테고리                                    | 권장 priority | 권장 complexity | confidence |
+| --- | --------------- | ----------------------------------------------------------------------------------- | ------------ | ------------------------------------------ | ----------- | ------------- | ---------- |
+| 1   | OpenAI AgentKit | 비주얼 멀티에이전트 워크플로우 빌더(Agent Builder) + 채팅 임베딩 툴킷(ChatKit) + 커넥터 레지스트리의 통합 에이전트 개발 플랫폼 | OpenAI 공식 발표 | generative_emerging, agent_action_patterns | high        | complex       | high       |
+
 
 ### 상세
 
@@ -89,9 +97,11 @@
 
 ## 개선 필요 (UPDATE)
 
-| # | component_id | 현재 상태 | 발견 내용 | 출처 |
-|---|-------------|----------|----------|------|
-| 1 | approval_rejection | implemented | Microsoft HITL with AG-UI 공식 문서 공개 — ApprovalRequiredAIFunction을 AG-UI "client tool calls"로 변환하는 패턴. 기존 구현에 AG-UI 이벤트 기반 승인 프로토콜 추가 검토 필요. | learn.microsoft.com |
+
+| #   | component_id       | 현재 상태       | 발견 내용                                                                                                                                      | 출처                  |
+| --- | ------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| 1   | approval_rejection | implemented | Microsoft HITL with AG-UI 공식 문서 공개 — ApprovalRequiredAIFunction을 AG-UI "client tool calls"로 변환하는 패턴. 기존 구현에 AG-UI 이벤트 기반 승인 프로토콜 추가 검토 필요. | learn.microsoft.com |
+
 
 ### 상세
 
@@ -112,12 +122,14 @@
 
 ## 중복 필터링 상세 (이전 리포트와 겹침 또는 보고 기준 미달)
 
-| # | 항목 | 이전 리포트 매핑 | 비고 |
-|---|------|-----------------|------|
-| 1 | Google A2UI Protocol (Feb 26) | 2026-03-03 NEW-1 | 이미 보고됨, 추가 진전 없음 |
-| 2 | MS Copilot Agent Dashboard GA (Mar 2026) | 2026-03-03 UPDATE-1 | 이미 보고됨, 추가 진전 없음 |
-| 3 | GitHub Copilot Metrics GA (Feb 27) | 2026-03-03 UPDATE-1 | 이미 보고됨, 추가 진전 없음 |
-| 4 | ChatSpark Conversational AI Platform (Mar 3) | — | 엔터프라이즈 고객서비스 플랫폼. AI Agent + CoPilot 통합이나, KonaI-Agent 카탈로그 범위(에이전트 대시보드 UI 패턴)와 직접 관련 낮음. 보고 기준 미달 |
+
+| #   | 항목                                           | 이전 리포트 매핑           | 비고                                                                                                  |
+| --- | -------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------- |
+| 1   | Google A2UI Protocol (Feb 26)                | 2026-03-03 NEW-1    | 이미 보고됨, 추가 진전 없음                                                                                    |
+| 2   | MS Copilot Agent Dashboard GA (Mar 2026)     | 2026-03-03 UPDATE-1 | 이미 보고됨, 추가 진전 없음                                                                                    |
+| 3   | GitHub Copilot Metrics GA (Feb 27)           | 2026-03-03 UPDATE-1 | 이미 보고됨, 추가 진전 없음                                                                                    |
+| 4   | ChatSpark Conversational AI Platform (Mar 3) | —                   | 엔터프라이즈 고객서비스 플랫폼. AI Agent + CoPilot 통합이나, KonaI-Agent 카탈로그 범위(에이전트 대시보드 UI 패턴)와 직접 관련 낮음. 보고 기준 미달 |
+
 
 ---
 
@@ -143,19 +155,23 @@
 
 우선순위순으로 정렬:
 
-| # | 액션 | 대상 | 이유 | priority |
-|---|------|------|------|----------|
-| 1 | `/research generative_ui` | NEW-1 + 기존 research_needed | OpenAI AgentKit(Agent Builder + ChatKit) + Google A2UI + AG-UI + MCP 프로토콜 스택 — 3대 프로토콜 레이어 모두 활발. **9회 연속 권장. 최우선 실행 필수.** | **high** |
-| 2 | `/research workflow_builder` | NEW-1 관련 | OpenAI Agent Builder의 비주얼 멀티에이전트 워크플로우 캔버스 패턴. 기존 ReactFlow 기반 DataManagementView 확장 가능. | **medium** |
-| 3 | `/research usage_monitoring` | 이전 누적 | MS Agent Dashboard GA + GitHub Copilot Metrics GA. Phase 2 기획. **2회 연속 권장** | **high** |
-| 4 | `/implement multi_agent_orchestration_ui` | 이전 누적 | 리서치 완료(2026-03-02), 구현 단계로 전환 권장. **2회 연속 권장** | **medium** |
+
+| #   | 액션                                        | 대상                         | 이유                                                                                                                         | priority   |
+| --- | ----------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | `/research generative_ui`                 | NEW-1 + 기존 research_needed | OpenAI AgentKit(Agent Builder + ChatKit) + Google A2UI + AG-UI + MCP 프로토콜 스택 — 3대 프로토콜 레이어 모두 활발. **9회 연속 권장. 최우선 실행 필수.** | **high**   |
+| 2   | `/research workflow_builder`              | NEW-1 관련                   | OpenAI Agent Builder의 비주얼 멀티에이전트 워크플로우 캔버스 패턴. 기존 ReactFlow 기반 DataManagementView 확장 가능.                                   | **medium** |
+| 3   | `/research usage_monitoring`              | 이전 누적                      | MS Agent Dashboard GA + GitHub Copilot Metrics GA. Phase 2 기획. **2회 연속 권장**                                                | **high**   |
+| 4   | `/implement multi_agent_orchestration_ui` | 이전 누적                      | 리서치 완료(2026-03-02), 구현 단계로 전환 권장. **2회 연속 권장**                                                                             | **medium** |
+
 
 카탈로그 직접 수정 제안:
 
-| # | component_id | 필드 | 현재 | 제안 |
-|---|-------------|------|------|------|
-| 1 | workflow_builder | notes | "DataManagementView의 ReactFlow 기반을 확장하여 구현 가능." | 추가: "OpenAI AgentKit Agent Builder: 비주얼 캔버스에서 멀티에이전트 워크플로우 생성/버전관리. Connector Registry로 외부 서비스 중앙 관리." |
-| 2 | generative_ui | notes | (기존) | 추가: "OpenAI AgentKit ChatKit: 드롭인 채팅 에이전트 임베딩 툴킷. Agent Builder + ChatKit + Connector Registry 통합 플랫폼." |
+
+| #   | component_id     | 필드    | 현재                                              | 제안                                                                                                      |
+| --- | ---------------- | ----- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 1   | workflow_builder | notes | "DataManagementView의 ReactFlow 기반을 확장하여 구현 가능." | 추가: "OpenAI AgentKit Agent Builder: 비주얼 캔버스에서 멀티에이전트 워크플로우 생성/버전관리. Connector Registry로 외부 서비스 중앙 관리."  |
+| 2   | generative_ui    | notes | (기존)                                            | 추가: "OpenAI AgentKit ChatKit: 드롭인 채팅 에이전트 임베딩 툴킷. Agent Builder + ChatKit + Connector Registry 통합 플랫폼." |
+
 
 ---
 
@@ -163,17 +179,21 @@
 
 ### 이전 리포트 (2026-03-03) 권장 액션 실행 여부:
 
-| 리포트 | 액션 | 상태 | 비고 |
-|--------|------|------|------|
-| 2026-03-03 | `/research generative_ui` | **미실행** | last_researched: 2026-03-03 (리서치 실행됨). 단, NEW-1(A2UI) 통합 리서치 필요 |
-| 2026-03-03 | `/research usage_monitoring` | **미실행** | last_researched: 2026-03-01. Phase 2 기획 미착수 |
-| 2026-03-03 | `/research scheduled_agent_tasks` | **실행 완료** | last_researched: 2026-03-03, 카탈로그 갱신 확인 |
-| 2026-03-03 | `/research multi_agent_orchestration_ui` | **실행 완료** (이전 리포트 기준) | last_researched: 2026-03-02. 구현 단계 전환 권장 |
-| 2026-03-03 | catalog: generative_ui.notes 추가 | **적용 완료** | A2UI + AG-UI + MCP Apps 내용 반영됨 |
-| 2026-03-03 | catalog: usage_monitoring.notes 추가 | **적용 완료** | MS Agent Dashboard + GitHub Copilot Metrics 내용 반영됨 |
+
+| 리포트        | 액션                                       | 상태                    | 비고                                                              |
+| ---------- | ---------------------------------------- | --------------------- | --------------------------------------------------------------- |
+| 2026-03-03 | `/research generative_ui`                | **미실행**               | last_researched: 2026-03-03 (리서치 실행됨). 단, NEW-1(A2UI) 통합 리서치 필요 |
+| 2026-03-03 | `/research usage_monitoring`             | **미실행**               | last_researched: 2026-03-01. Phase 2 기획 미착수                     |
+| 2026-03-03 | `/research scheduled_agent_tasks`        | **실행 완료**             | last_researched: 2026-03-03, 카탈로그 갱신 확인                         |
+| 2026-03-03 | `/research multi_agent_orchestration_ui` | **실행 완료** (이전 리포트 기준) | last_researched: 2026-03-02. 구현 단계 전환 권장                        |
+| 2026-03-03 | catalog: generative_ui.notes 추가          | **적용 완료**             | A2UI + AG-UI + MCP Apps 내용 반영됨                                  |
+| 2026-03-03 | catalog: usage_monitoring.notes 추가       | **적용 완료**             | MS Agent Dashboard + GitHub Copilot Metrics 내용 반영됨              |
+
 
 ### 누적 미실행 (3회 이상 연속 권장):
 
-| 리포트 | 액션 | 연속 권장 횟수 | 비고 |
-|--------|------|------------|------|
-| 2026-02-21~03-04 | `/research generative_ui` | **9회** | OpenAI AgentKit 추가. 최우선 실행 권장 |
+
+| 리포트              | 액션                        | 연속 권장 횟수 | 비고                            |
+| ---------------- | ------------------------- | -------- | ----------------------------- |
+| 2026-02-21~03-04 | `/research generative_ui` | **9회**   | OpenAI AgentKit 추가. 최우선 실행 권장 |
+

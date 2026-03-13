@@ -1,7 +1,7 @@
 import React from 'react';
 
 // View Types
-export type ViewType = 'chat' | 'dashboard' | 'data' | 'skills' | 'admin' | 'history' | 'general-chat';
+export type ViewType = 'chat' | 'dashboard' | 'data' | 'skills' | 'admin' | 'history' | 'general-chat' | 'agent-config' | 'prompt-management';
 
 // Sidebar Types
 export interface SidebarItem {

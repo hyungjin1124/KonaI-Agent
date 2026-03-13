@@ -74,7 +74,7 @@ run_claude() {
     local args="${2:-}"
     log "Running: claude -p '/${command} ${args}'"
 
-    if claude -p "/${command} ${args}" --dangerously-skip-permissions --disallowedTools "EnterPlanMode,ExitPlanMode" 2>&1 | tee -a "$LOG_FILE"; then
+    if caffeinate -i claude -p "/${command} ${args}" --dangerously-skip-permissions --disallowedTools "EnterPlanMode,ExitPlanMode,AskUserQuestion" 2>&1 | tee -a "$LOG_FILE"; then
         return 0
     else
         return 1

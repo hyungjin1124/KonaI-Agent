@@ -7,6 +7,8 @@ import { PPTRenderer, PPTRendererProps } from './renderers/PPTRenderer';
 import { DashboardRenderer, DashboardRendererProps } from './renderers/DashboardRenderer';
 import { MarkdownRenderer } from './renderers/MarkdownRenderer';
 import { SlideOutlineRenderer, SlideOutlineRendererProps } from './renderers/SlideOutlineRenderer';
+import { GenerativeUIRendererAdapter } from './renderers/GenerativeUIRendererAdapter';
+import type { GenerativeUISpec } from '../../../generative-ui';
 
 interface ArtifactPreviewPanelProps {
   onClose: () => void;
@@ -20,6 +22,8 @@ interface ArtifactPreviewPanelProps {
   // Markdown handlers
   onMarkdownModeChange?: (mode: 'read' | 'edit') => void;
   onMarkdownContentChange?: (content: string) => void;
+  // Generative UI specs (탭 ID → spec 매핑)
+  generativeUISpecs?: Record<string, GenerativeUISpec>;
 }
 
 export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
@@ -30,6 +34,7 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
   slideOutlineRendererProps,
   onMarkdownModeChange,
   onMarkdownContentChange,
+  generativeUISpecs,
 }) => {
   const {
     tabs,
@@ -102,6 +107,14 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
           );
         }
         return <PPTRenderer {...pptRendererProps} onClose={handleClosePanel} />;
+
+      case 'generative-ui':
+        return (
+          <GenerativeUIRendererAdapter
+            spec={generativeUISpecs?.[activeTab.id]}
+            onClose={handleClosePanel}
+          />
+        );
 
       case 'dashboard':
       case 'chart':

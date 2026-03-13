@@ -1,30 +1,33 @@
-# Select: Natural Language to Chart
+# Select: Natural Language to Chart (Phase 2)
 
 - **ID**: nl_to_chart
-- **Status**: not_implemented
+- **Status**: needs_update (Phase 1 implemented + QA PASS, Phase 2 리서치 완료)
 - **Priority**: high
 - **Complexity**: complex
 - **Contexts**: [chat_view, liveboard]
-- **Dependencies**: 없음 (명시적 의존성 없음)
+- **Dependencies**: 없음
 - **Obsidian Sources**: Insights/agent-ui/patterns/nl-to-chart-pipeline.md
-- **Existing Source Files**: 없음 (신규)
-- **Last Researched**: 2026-02-25
+- **Existing Source Files**:
+  - src/components/features/nl-chart/types.ts
+  - src/components/features/nl-chart/chartHeuristics.ts
+  - src/components/features/nl-chart/mockChartData.ts
+  - src/components/features/nl-chart/useNLChart.ts
+  - src/components/features/nl-chart/NLChartRenderer.tsx
+  - src/components/features/nl-chart/ChartTypeSelector.tsx
+  - src/components/features/nl-chart/index.ts
+  - src/components/features/nl-chart/nl-chart.test.tsx
+- **Last Researched**: 2026-03-12
 
-## 기존 인프라 활용 가능성
+## Phase 2 구현 범위
 
-| 기존 자산 | 상태 | 활용 방법 |
-|----------|------|----------|
-| `ArtifactType: 'chart'` | 정의됨 | 차트 아티팩트 타입으로 사용 |
-| `ArtifactPreviewPanel` → 'chart' 라우팅 | 구현됨 | DashboardRenderer로 연결 |
-| `DashboardRenderer` | 구현됨 | dashboardComponent prop으로 차트 전달 |
-| `visualization_generation` ToolType | 정의됨 | 시나리오 메타데이터 활용 |
-| `LazyCharts.tsx` | 구현됨 | Recharts lazy loading 재사용 |
-| `ChartWidgets.tsx` (Recharts) | 구현됨 | 차트 렌더링 패턴 참조 |
-| `ArtifactPanelContext` | 구현됨 | openArtifactTab()으로 탭 등록 |
-| `chart.types.ts` | 구현됨 | 도메인 차트 타입 참조 |
+Phase 1(단일 차트 생성)에서 Phase 2(멀티 위젯 대시보드 생성)로 확장:
+
+1. **멀티 위젯 대시보드 생성**: DashboardConfig JSON + react-grid-layout
+2. **고급 차트 4종 추가**: Sankey, Treemap, Heatmap, Waterfall (총 10종)
+3. **대화형 대시보드 분석**: 위젯 클릭 → 후속 질문
 
 ## 선정 사유
 
-Review Decision(2026-02-25)에서 APPROVE-1로 선정. 5회 연속 discovery 리포트에서 권장.
-Databricks, Power BI, ThoughtSpot 3개 주요 제품에서 NL→시각화 패턴 동시 강화 중.
-KonaI-Agent 핵심 시나리오(에이전트 기반 데이터 분석)와 직결.
+- Review Decision 2026-03-12 Batch 1 APPROVED
+- NL→대시보드 생성이 Google Gemini, Databricks AI-BI, Power BI에서 동시 채택 — 업계 표준 진화
+- "단일 차트"에서 "멀티 차트+필터+레이아웃 전체 대시보드"로 패러다임 전환 확인

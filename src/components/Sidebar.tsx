@@ -10,7 +10,9 @@ import {
   History,
   Bell,
   Cpu,
-  MessageSquare
+  MessageSquare,
+  Bot,
+  Sparkles
 } from './icons';
 import { ViewType } from '../types';
 import { useNotification, Anomaly } from '../context/NotificationContext';
@@ -38,6 +40,8 @@ const VIEW_TO_PATH: Record<string, string> = {
   admin: '/admin',
   history: '/history',
   skills: '/settings/skills',
+  'agent-config': '/settings/agent-config',
+  'prompt-management': '/settings/prompt-management',
 };
 
 // pathname → ViewType mapping for active state
@@ -47,6 +51,8 @@ function pathnameToViewType(pathname: string): ViewType {
   if (pathname === '/data') return 'data';
   if (pathname === '/admin') return 'admin';
   if (pathname === '/history') return 'history';
+  if (pathname === '/settings/agent-config') return 'agent-config';
+  if (pathname === '/settings/prompt-management') return 'prompt-management';
   if (pathname.startsWith('/settings')) return 'skills';
   if (pathname.startsWith('/agent')) return 'chat';
   return 'dashboard';
@@ -121,7 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
                 } else if (item.id === 'history') {
                    isActive = currentView === 'history';
                 } else if (item.id === 'settings') {
-                   isActive = currentView === 'skills';
+                   isActive = currentView === 'skills' || currentView === 'agent-config' || currentView === 'prompt-management';
                 }
 
                 // Settings → DropdownMenu (click-based, replaces hover dropdown)
@@ -145,6 +151,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
                                 <DropdownMenuItem onClick={() => navigate('skills')}>
                                     <Cpu size={16} />
                                     Skill 관리
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate('agent-config')}>
+                                    <Bot size={16} />
+                                    에이전트 설정
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate('prompt-management')}>
+                                    <Sparkles size={16} />
+                                    프롬프트 관리
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

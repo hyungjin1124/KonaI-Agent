@@ -55,6 +55,8 @@ export const NAV_ITEMS: NavItem[] = [
     hasDropdown: true,
     dropdownItems: [
       { id: 'skills', label: 'Skill 관리', iconName: 'Cpu', viewType: 'skills' },
+      { id: 'agent-config', label: '에이전트 설정', iconName: 'Bot', viewType: 'agent-config' },
+      { id: 'prompt-management', label: '프롬프트 관리', iconName: 'Sparkles', viewType: 'prompt-management' },
     ],
   },
 ];

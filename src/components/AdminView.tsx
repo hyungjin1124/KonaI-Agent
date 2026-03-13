@@ -2,10 +2,13 @@
 import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, Clock
+  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, Clock, FileText, MessageSquare, Sparkles
 } from './icons';
 import { UsageMonitoringView } from './features/usage-monitoring';
 import { ScheduledTasksView } from './features/scheduled-tasks';
+import { AuditLogView } from './features/audit-log';
+import { FeedbackQualityView } from './features/feedback-quality';
+import { PromptManagementView } from './features/prompt-management';
 import { User, UserRole, UserStatus, RoleConfig } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -319,6 +322,15 @@ const AdminView: React.FC = () => {
             <TabsTrigger value="scheduled" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <Clock size={16} /> 예약 작업
             </TabsTrigger>
+            <TabsTrigger value="audit" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <FileText size={16} /> 감사 로그
+            </TabsTrigger>
+            <TabsTrigger value="prompt-management" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <Sparkles size={16} /> 시스템 프롬프트
+            </TabsTrigger>
+            <TabsTrigger value="feedback-quality" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <MessageSquare size={16} /> 피드백 품질
+            </TabsTrigger>
           </TabsList>
         </div>
       </div>
@@ -364,6 +376,18 @@ const AdminView: React.FC = () => {
 
             <TabsContent value="scheduled" className="mt-0">
                 <ScheduledTasksView />
+            </TabsContent>
+
+            <TabsContent value="audit" className="mt-0">
+                <AuditLogView />
+            </TabsContent>
+
+            <TabsContent value="prompt-management" className="mt-0">
+                <PromptManagementView mode="admin" />
+            </TabsContent>
+
+            <TabsContent value="feedback-quality" className="mt-0">
+                <FeedbackQualityView />
             </TabsContent>
         </div>
       </div>

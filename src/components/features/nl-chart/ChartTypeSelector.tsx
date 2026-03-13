@@ -8,6 +8,10 @@ const CHART_TYPE_LABELS: Record<NLChartType, string> = {
   area: '영역',
   composed: '복합',
   table: '표',
+  sankey: 'Sankey',
+  treemap: '트리맵',
+  heatmap: '히트맵',
+  waterfall: '워터폴',
 };
 
 const CHART_TYPE_ICONS: Record<NLChartType, string> = {
@@ -17,6 +21,10 @@ const CHART_TYPE_ICONS: Record<NLChartType, string> = {
   area: '📉',
   composed: '📊',
   table: '📋',
+  sankey: '🔀',
+  treemap: '🗂️',
+  heatmap: '🟥',
+  waterfall: '⬆️',
 };
 
 interface ChartTypeSelectorProps {

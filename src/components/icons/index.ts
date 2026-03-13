@@ -14,7 +14,7 @@ export { Activity, AlertCircle, AlertTriangle, ArrowDownRight, ArrowLeft, ArrowR
 export { Banknote, BarChart2, Bell, Bot, Box, Briefcase } from 'lucide-react';
 
 // C
-export { Calendar, CalendarDays, Check, CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Clock, Code, Cpu, CreditCard } from 'lucide-react';
+export { Calendar, CalendarDays, Check, CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Code, Cpu, CreditCard } from 'lucide-react';
 
 // D
 export { Database, Download } from 'lucide-react';
@@ -26,7 +26,7 @@ export { Edit2, ExternalLink, Eye, EyeOff } from 'lucide-react';
 export { Factory, FileArchive, FileDown, FileImage, FileOutput, FileText, Filter, Flame, FolderOpen } from 'lucide-react';
 
 // G
-export { Globe, GripVertical } from 'lucide-react';
+export { GitBranch, Globe, GripVertical } from 'lucide-react';
 
 // H
 export { History } from 'lucide-react';
@@ -50,7 +50,7 @@ export { RotateCcw } from 'lucide-react';
 export { Save, Search, Send, Settings, Shield, ShieldCheck, Smartphone, Sparkles, Spline, Square, Share2 } from 'lucide-react';
 
 // T
-export { Table, Target, Trash2, TrendingDown, TrendingUp, Type } from 'lucide-react';
+export { Table, Target, ThumbsDown, ThumbsUp, Trash2, TrendingDown, TrendingUp, Type } from 'lucide-react';
 
 // U
 export { Upload, User, UserCog, Users } from 'lucide-react';
