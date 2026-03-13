@@ -2,13 +2,14 @@
 import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, Clock, FileText, MessageSquare, Sparkles
+  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, Clock, FileText, MessageSquare, Sparkles, Store
 } from './icons';
 import { UsageMonitoringView } from './features/usage-monitoring';
 import { ScheduledTasksView } from './features/scheduled-tasks';
 import { AuditLogView } from './features/audit-log';
 import { FeedbackQualityView } from './features/feedback-quality';
 import { PromptManagementView } from './features/prompt-management';
+import { AgentMarketplaceView } from './features/agent-marketplace';
 import { User, UserRole, UserStatus, RoleConfig } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -331,6 +332,9 @@ const AdminView: React.FC = () => {
             <TabsTrigger value="feedback-quality" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <MessageSquare size={16} /> 피드백 품질
             </TabsTrigger>
+            <TabsTrigger value="marketplace" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
+                <Store size={16} /> 마켓플레이스
+            </TabsTrigger>
           </TabsList>
         </div>
       </div>
@@ -388,6 +392,10 @@ const AdminView: React.FC = () => {
 
             <TabsContent value="feedback-quality" className="mt-0">
                 <FeedbackQualityView />
+            </TabsContent>
+
+            <TabsContent value="marketplace" className="mt-0">
+                <AgentMarketplaceView />
             </TabsContent>
         </div>
       </div>

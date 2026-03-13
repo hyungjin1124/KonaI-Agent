@@ -47,7 +47,7 @@ export { Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen
 export { RotateCcw } from 'lucide-react';
 
 // S
-export { Save, Search, Send, Settings, Shield, ShieldCheck, Smartphone, Sparkles, Spline, Square, Share2 } from 'lucide-react';
+export { Save, Search, Send, Settings, Shield, ShieldCheck, Smartphone, Sparkles, Spline, Square, Star, Store, Share2 } from 'lucide-react';
 
 // T
 export { Table, Target, ThumbsDown, ThumbsUp, Trash2, TrendingDown, TrendingUp, Type } from 'lucide-react';
