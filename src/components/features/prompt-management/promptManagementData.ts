@@ -13,6 +13,10 @@ export type PromptStatus = 'draft' | 'active' | 'archived';
 export type ModerationLevel = 'low' | 'medium' | 'high';
 export type PromptCategory = 'system' | 'task' | 'safety' | 'persona' | 'custom';
 
+export type PromptManagementMode = 'admin' | 'user';
+export const ADMIN_CATEGORIES: PromptCategory[] = ['system', 'safety'];
+export const USER_CATEGORIES: PromptCategory[] = ['task', 'persona', 'custom'];
+
 export interface PromptVersion {
   version: number;
   content: string;
@@ -83,15 +87,17 @@ export function filterTemplates(
   search: string,
   categoryFilter: string,
   statusFilter: string,
+  allowedCategories?: PromptCategory[],
 ): PromptTemplate[] {
   return templates.filter(t => {
+    const matchesAllowed = !allowedCategories || allowedCategories.includes(t.category);
     const matchesSearch =
       !search ||
       t.name.toLowerCase().includes(search.toLowerCase()) ||
       t.content.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
     const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesAllowed && matchesSearch && matchesCategory && matchesStatus;
   });
 }
 

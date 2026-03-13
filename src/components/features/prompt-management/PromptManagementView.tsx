@@ -55,8 +55,11 @@ import {
   type PromptStatus,
   type ModerationLevel,
   type PromptCategory,
+  type PromptManagementMode,
   MOCK_TEMPLATES,
   CATEGORY_OPTIONS,
+  ADMIN_CATEGORIES,
+  USER_CATEGORIES,
   STATUS_OPTIONS,
   MODERATION_OPTIONS,
   MODEL_OPTIONS,
@@ -123,7 +126,17 @@ function VariableHighlight({ content }: { content: string }) {
 
 // --- Main View ---
 
-export function PromptManagementView() {
+interface PromptManagementViewProps {
+  mode?: PromptManagementMode;
+}
+
+export function PromptManagementView({ mode }: PromptManagementViewProps) {
+  // Mode-based category filtering
+  const allowedCategories = mode === 'admin' ? ADMIN_CATEGORIES : mode === 'user' ? USER_CATEGORIES : undefined;
+  const visibleCategoryOptions = allowedCategories
+    ? CATEGORY_OPTIONS.filter(opt => allowedCategories.includes(opt.value))
+    : CATEGORY_OPTIONS;
+
   // State
   const [templates, setTemplates] = useState<PromptTemplate[]>(MOCK_TEMPLATES);
   const [searchQuery, setSearchQuery] = useState('');
@@ -151,8 +164,8 @@ export function PromptManagementView() {
 
   // Derived
   const filteredTemplates = useMemo(
-    () => filterTemplates(templates, searchQuery, categoryFilter, statusFilter),
-    [templates, searchQuery, categoryFilter, statusFilter],
+    () => filterTemplates(templates, searchQuery, categoryFilter, statusFilter, allowedCategories),
+    [templates, searchQuery, categoryFilter, statusFilter, allowedCategories],
   );
 
   const editVariables = useMemo(() => extractVariables(editContent), [editContent]);
@@ -161,7 +174,7 @@ export function PromptManagementView() {
   const openCreateEditor = useCallback(() => {
     setEditorMode('create');
     setEditName('');
-    setEditCategory('system');
+    setEditCategory(allowedCategories?.[0] ?? 'system');
     setEditContent('');
     setEditModelId(MODEL_OPTIONS[0]?.value ?? '');
     setEditModeration('medium');
@@ -171,7 +184,7 @@ export function PromptManagementView() {
     setTestResult(null);
     setTestVariables({});
     setIsEditorOpen(true);
-  }, []);
+  }, [allowedCategories]);
 
   const openEditEditor = useCallback((template: PromptTemplate) => {
     setEditorMode('edit');
@@ -304,7 +317,7 @@ export function PromptManagementView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">전체</SelectItem>
-              {CATEGORY_OPTIONS.map(opt => (
+              {visibleCategoryOptions.map(opt => (
                 <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
               ))}
             </SelectContent>
@@ -461,7 +474,7 @@ export function PromptManagementView() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORY_OPTIONS.map(opt => (
+                        {visibleCategoryOptions.map(opt => (
                           <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                         ))}
                       </SelectContent>
