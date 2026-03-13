@@ -941,7 +941,7 @@ categories:
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/GenerativeUIRendererAdapter.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/generative-ui-implementation.md"
-        last_researched: "2026-03-03"
+        last_researched: "2026-03-13"
         last_verified: "2026-03-04"
         qa_cycles: 1
         qa_verdict: "PASS"
@@ -953,9 +953,12 @@ categories:
           parseGenerativeUI(JSON 검증+코드펜스 추출), GenerativeUIFallback(에러 UI),
           ArtifactPreviewPanel 통합('generative-ui' previewType), AgentChatView 통합(키워드 감지→자동 렌더링).
           82개 테스트 PASS (Dev 27 + QA 55). Minor 이슈 6건 기록.
-          Phase 2: A2UI 호환 Declarative 렌더러. Phase 3: MCP Apps 통합.
+          Phase 2 리서치 완료 (2026-03-13): 인라인 임시 시각화(Inline Ephemeral Visualization) + 동적 업데이트 + A2UI 호환 Declarative.
+          Claude Inline Visuals(Mar 12, HTML/SVG+Chart.js, Ephemeral→Artifact 저장) + ChatGPT Dynamic Visuals(Mar 10, 70+ STEM 모듈, MCP Apps iframe)
+          동시 출시로 Ephemeral vs Persistent 2축 패턴 확립. KonaI-Agent Phase 2: MessageBubble 내 인라인 렌더링, Artifact 전환 경로, 후속 대화 기반 동적 수정.
+          Phase 3: MCP Apps 통합 (527+ 클라이언트, Power Apps, Zapier).
           OpenAI AgentKit ChatKit (Mar 4): 드롭인 채팅 에이전트 임베딩 툴킷. Agent Builder + ChatKit + Connector Registry 통합 플랫폼.
-          Cursor 2.6 MCP Apps (Mar 3): MCP 서버 기반 인터랙티브 UI를 에이전트 채팅 내 네이티브 렌더링. Phase 3 MCP Apps 통합 설계의 실제 구현 사례.
+          Cursor 2.6 MCP Apps (Mar 3): MCP 서버 기반 인터랙티브 UI를 에이전트 채팅 내 네이티브 렌더링.
 
       - id: ambient_agent
         name: "Ambient Agent UI"
