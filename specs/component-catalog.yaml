@@ -805,26 +805,31 @@ categories:
           - "src/components/features/generative-ui/parseGenerativeUI.ts"
           - "src/components/features/generative-ui/GenerativeUIRenderer.tsx"
           - "src/components/features/generative-ui/GenerativeUIFallback.tsx"
+          - "src/components/features/generative-ui/InlineGenerativeUI.tsx"
+          - "src/components/features/generative-ui/useInlineGenerativeUI.ts"
+          - "src/components/features/generative-ui/a2uiCatalog.ts"
           - "src/components/features/generative-ui/index.ts"
           - "src/components/features/generative-ui/GenerativeUIRenderer.test.tsx"
+          - "src/components/features/generative-ui/InlineGenerativeUI.test.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/GenerativeUIRendererAdapter.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/generative-ui-implementation.md"
-        last_researched: "2026-03-03"
+        last_researched: "2026-03-13"
         last_verified: "2026-03-04"
         qa_cycles: 1
         qa_verdict: "PASS"
         metadata:
-          last_updated: "2026-03-04"
+          last_updated: "2026-03-13"
           qa_report: "specs/implementation-logs/generative_ui/qa-report.md"
         notes: >
           Phase 1 (Static MVP) 구현 완료 (✅ QA PASS 2026-03-04): GenerativeUIRenderer(8종 컴포넌트 type dispatch),
           parseGenerativeUI(JSON 검증+코드펜스 추출), GenerativeUIFallback(에러 UI),
           ArtifactPreviewPanel 통합('generative-ui' previewType), AgentChatView 통합(키워드 감지→자동 렌더링).
-          82개 테스트 PASS (Dev 27 + QA 55). Minor 이슈 6건 기록.
-          Phase 2: A2UI 호환 Declarative 렌더러. Phase 3: MCP Apps 통합.
+          Phase 2 구현 완료 (2026-03-13): InlineGenerativeUI(인라인 임시 시각화), useInlineGenerativeUI(동적 업데이트 Hook),
+          a2uiCatalog(A2UI 호환 카탈로그 8종), compact 모드, Artifact로 저장 전환 경로, ChatPanel 인라인 통합.
+          104개 테스트 PASS (Phase 1: 82 + Phase 2: 22). Phase 3: MCP Apps 통합.
           OpenAI AgentKit ChatKit (Mar 4): 드롭인 채팅 에이전트 임베딩 툴킷. Agent Builder + ChatKit + Connector Registry 통합 플랫폼.
-          Cursor 2.6 MCP Apps (Mar 3): MCP 서버 기반 인터랙티브 UI를 에이전트 채팅 내 네이티브 렌더링. Phase 3 MCP Apps 통합 설계의 실제 구현 사례.
+          Cursor 2.6 MCP Apps (Mar 3): MCP 서버 기반 인터랙티브 UI를 에이전트 채팅 내 네이티브 렌더링.
 
       - id: ambient_agent
         name: "Ambient Agent UI"

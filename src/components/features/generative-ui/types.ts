@@ -1,5 +1,6 @@
-// Generative UI — Phase 1: Static Component Selection MVP
-// 에이전트가 사전정의된 컴포넌트 카탈로그에서 type을 선택하여 UI를 생성하는 패턴
+// Generative UI — Phase 1 + Phase 2
+// Phase 1: Static Component Selection MVP (에이전트가 카탈로그에서 type 선택)
+// Phase 2: Inline Ephemeral Visualization + Dynamic Update + A2UI Catalog
 
 export type GenerativeComponentType =
   | 'bar-chart'
@@ -60,6 +61,8 @@ export interface GenerativeUIRendererProps {
   spec: GenerativeUISpec;
   onError?: (error: string) => void;
   className?: string;
+  /** Phase 2: 인라인 모드 시 축소 렌더링 (padding/header 축소, 차트 높이 제한) */
+  compact?: boolean;
 }
 
 export interface CatalogEntry {
@@ -72,3 +75,41 @@ export interface CatalogEntry {
 export type GenerativeUIParseResult =
   | { success: true; spec: GenerativeUISpec }
   | { success: false; error: string; rawData?: unknown };
+
+// ─── Phase 2: Inline Ephemeral Visualization ────────────────────
+
+export interface InlineGenerativeUIProps {
+  /** 에이전트 메시지 콘텐츠 (generative-ui 코드펜스 포함 가능) */
+  messageContent: string;
+  /** 메시지 ID (동적 업데이트 참조용) */
+  messageId: string;
+  /** Artifact 패널로 전환 콜백 */
+  onSaveToArtifact?: (spec: GenerativeUISpec) => void;
+  className?: string;
+}
+
+/** 동적 업데이트 Spec (기존 시각화 참조 + 데이터 교체) */
+export interface GenerativeUIUpdateSpec {
+  targetMessageId: string;
+  update: Partial<GenerativeUISpec>;
+}
+
+// ─── Phase 2: A2UI Compatible Catalog ───────────────────────────
+
+export interface A2UICatalogEntry {
+  type: GenerativeComponentType;
+  displayName: string;
+  description: string;
+  category: 'chart' | 'metric' | 'data';
+  schema: {
+    dataType: string;
+    requiredFields: string[];
+    optionalFields?: string[];
+  };
+}
+
+export interface A2UICatalog {
+  version: string;
+  vendor: string;
+  components: A2UICatalogEntry[];
+}

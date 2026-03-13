@@ -35,6 +35,7 @@ export const GenerativeUIRenderer: React.FC<GenerativeUIRendererProps> = ({
   spec,
   onError,
   className = '',
+  compact = false,
 }) => {
   // Re-validate spec at render time
   const result = parseGenerativeUISpec(spec);
@@ -47,11 +48,11 @@ export const GenerativeUIRenderer: React.FC<GenerativeUIRendererProps> = ({
 
   return (
     <div className={`flex flex-col h-full bg-white ${className}`} data-testid="generative-ui-renderer">
-      {/* Header */}
+      {/* Header — compact 모드에서 축소 */}
       {(validSpec.title || validSpec.description) && (
-        <div className="px-6 pt-5 pb-3 border-b border-gray-100">
+        <div className={compact ? 'px-4 pt-3 pb-2 border-b border-gray-100' : 'px-6 pt-5 pb-3 border-b border-gray-100'}>
           {validSpec.title && (
-            <h3 className="text-base font-semibold text-gray-900">{validSpec.title}</h3>
+            <h3 className={compact ? 'text-sm font-semibold text-gray-900' : 'text-base font-semibold text-gray-900'}>{validSpec.title}</h3>
           )}
           {validSpec.description && (
             <p className="text-xs text-gray-500 mt-1">{validSpec.description}</p>
@@ -59,8 +60,8 @@ export const GenerativeUIRenderer: React.FC<GenerativeUIRendererProps> = ({
         </div>
       )}
 
-      {/* Content */}
-      <div className="flex-1 min-h-0 p-4">
+      {/* Content — compact 모드에서 padding 축소 */}
+      <div className={`flex-1 min-h-0 ${compact ? 'p-3' : 'p-4'}`}>
         {renderComponent(validSpec)}
       </div>
     </div>
