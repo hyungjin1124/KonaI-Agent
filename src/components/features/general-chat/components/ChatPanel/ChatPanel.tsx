@@ -6,6 +6,7 @@ import { MarkdownRenderer } from '@/components/shared/markdown';
 import { UnifiedChatInput } from '../UnifiedChatInput';
 import type { AttachedFile } from '../../../agent-chat/types';
 import { BranchIndicator } from '../BranchIndicator';
+import { InlineGenerativeUI } from '../../../generative-ui/InlineGenerativeUI';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -134,6 +135,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   {message.type === 'assistant' ? (
                     <>
                       <MarkdownRenderer content={message.content} compact />
+                      <InlineGenerativeUI
+                        messageContent={message.content}
+                        messageId={message.id}
+                      />
                       {message.citations && message.citations.length > 0 && (
                         <CitationSourceLink citations={message.citations} />
                       )}
