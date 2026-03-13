@@ -35,6 +35,7 @@ export type AppViewMode =
   | 'landing'
   | 'scenario_ppt'
   | 'scenario_analysis'
+  | 'scenario_multi_agent'
   | 'data_management'
   | 'skills_management'
   | 'admin_management'

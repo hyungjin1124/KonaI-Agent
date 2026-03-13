@@ -4,7 +4,7 @@ import Dashboard from '../dashboard/Dashboard';
 import { SampleInterfaceContext, PPTConfig } from '../../../types';
 import { SlideItem, Artifact, ArtifactPreviewType, RightPanelType, ProgressTask, ContextItem, SidebarSection, ArtifactPreviewState, CenterPanelState, AttachedFile, Citation } from './types';
 import { useCaptureStateInjection, StateInjectionHandlers, useScrollToBottomButton, useSlideOutlineHITL } from '../../../hooks';
-import { AnomalyResponse, DefaultResponse, PPTDoneResponse, SalesAnalysisDoneResponse } from './components/AgentResponse';
+import { AnomalyResponse, DefaultResponse, PPTDoneResponse, SalesAnalysisDoneResponse, MultiAgentDoneResponse } from './components/AgentResponse';
 import PPTScenarioRenderer, { ActiveHitl } from './components/PPTScenarioRenderer';
 import { SLIDE_OUTLINE_CONTENTS, type SlideFile, CONSOLIDATED_SLIDE_FILE, CONSOLIDATED_SLIDE_OUTLINE_CONTENT, SLIDE_OUTLINE_SECTION_COUNT } from './components/ToolCall/constants';
 import SalesAnalysisScenarioRenderer from './components/SalesAnalysisScenarioRenderer';
@@ -56,6 +56,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   // 시나리오 완료 상태 추적
   const [salesAnalysisComplete, setSalesAnalysisComplete] = useState(false);
   const [anomalyDetectionComplete, setAnomalyDetectionComplete] = useState(false);
+  const [multiAgentComplete, setMultiAgentComplete] = useState(false);
 
   // 대화 히스토리 상태
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -1177,6 +1178,7 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     // 시나리오 전환 시 이전 완료 상태 리셋
     setSalesAnalysisComplete(false);
     setAnomalyDetectionComplete(false);
+    setMultiAgentComplete(false);
     // 시각화 완료 상태 리셋 (Skeleton UI가 제대로 표시되도록)
     setIsVisualizationComplete(false);
     // 수정 1: 우측 사이드바 기본값 열림 유지 (PPT 시나리오 시작 시에도 닫지 않음)
@@ -1322,6 +1324,11 @@ setArtifacts([]); // Clear artifacts
   // 이상 탐지 완료 핸들러
   const handleAnomalyDetectionComplete = useCallback(() => {
     setAnomalyDetectionComplete(true);
+  }, []);
+
+  // 멀티 에이전트 오케스트레이션 완료 핸들러
+  const handleMultiAgentComplete = useCallback(() => {
+    setMultiAgentComplete(true);
   }, []);
 
   // Auto-scroll to bottom only if user is already at bottom
@@ -1697,11 +1704,20 @@ setArtifacts([]); // Clear artifacts
 
     // 4. Multi-Agent Orchestration Scenario
     if (msgDashboardScenario === 'multi_agent') {
-      return (
-        <MultiAgentScenarioRenderer
-          scenarioId="sales_analysis"
-        />
-      );
+      if (isLatest) {
+        return (
+          <MultiAgentScenarioRenderer
+            scenarioId="sales_analysis"
+            onComplete={handleMultiAgentComplete}
+          />
+        );
+      } else {
+        return (
+          <MultiAgentDoneResponse
+            onRequestPPT={handleRequestPPT}
+          />
+        );
+      }
     }
 
     // Default Fallback

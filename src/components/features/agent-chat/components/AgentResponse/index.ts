@@ -4,3 +4,4 @@ export { DefaultResponse } from './DefaultResponse';
 export { default as SalesAnalysisResponse } from './SalesAnalysisResponse';
 export { PPTDoneResponse } from './PPTDoneResponse';
 export { SalesAnalysisDoneResponse } from './SalesAnalysisDoneResponse';
+export { MultiAgentDoneResponse } from './MultiAgentDoneResponse';

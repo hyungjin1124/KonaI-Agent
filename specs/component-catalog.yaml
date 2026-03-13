@@ -281,7 +281,19 @@ categories:
         contexts: [chat_view, agent_scenario, monitoring]
         dependencies: [tool_call_display, multi_step_progress]
         source_files:
-          - "src/components/features/multi-agent/"
+          - "src/components/features/multi-agent/types.ts"
+          - "src/components/features/multi-agent/constants.ts"
+          - "src/components/features/multi-agent/useMultiAgentOrchestration.ts"
+          - "src/components/features/multi-agent/AgentTaskCard.tsx"
+          - "src/components/features/multi-agent/AgentTaskList.tsx"
+          - "src/components/features/multi-agent/AgentDetailView.tsx"
+          - "src/components/features/multi-agent/OrchestrationSummaryBanner.tsx"
+          - "src/components/features/multi-agent/HandoffIndicator.tsx"
+          - "src/components/features/multi-agent/AgentResultsSummary.tsx"
+          - "src/components/features/multi-agent/MultiAgentScenarioRenderer.tsx"
+          - "src/components/features/multi-agent/index.ts"
+          - "src/components/features/agent-chat/components/AgentResponse/MultiAgentDoneResponse.tsx"
+          - "src/app/agent/orchestration/page.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/multi-agent-orchestration-ui.md"
         last_researched: "2026-03-06"
@@ -291,7 +303,7 @@ categories:
         metadata:
           last_updated: "2026-03-11"
           qa_report: "specs/implementation-logs/multi_agent_orchestration_ui/qa-report.md"
-        notes: "5가지 패턴 분류(2026.03 업데이트): Transparent Supervisor, Visible Orchestrator Tree, Visual Graph Editor, Role-Based Crew Builder, Code-First Command Center. Anthropic Agent Teams(2-16 피어-투-피어, Feb 5), OpenAI Codex App(macOS Feb+Windows Mar 4, isolated worktrees, editable diffs, 네이티브 샌드박스), Cursor 2.5(비동기 서브에이전트+Plugins+Automations Mar 5, 내부 PR 35% 자율 에이전트). AG-UI 프로토콜: Microsoft/Google ADK 공식 호환. 72% 엔터프라이즈 채택. QA PASS (2026-03-06, 59/59 테스트). parallel_execution_view를 포괄하는 상위 개념. CopilotKit v1.53.0 (Mar 6): AG-UI + MCP 미들웨어 1등 시민 지원, AI SDK v6 전환. LangGraph 1.1.0 (Mar 10): Type-safe StreamPart discriminated union, GraphOutput 객체, HITL interrupt 타입 안전 처리. AG-UI PR #1257 (Mar 11): messages-tuple 스트림 모드 추가로 LangGraph Platform 배포 환경 스트리밍 호환성 수정. @ag-ui/langgraph 최신 버전 사용 권장."
+        notes: "5가지 패턴 분류(2026.03 업데이트): Transparent Supervisor, Visible Orchestrator Tree, Visual Graph Editor, Role-Based Crew Builder, Code-First Command Center. Anthropic Agent Teams(2-16 피어-투-피어, Feb 5), OpenAI Codex App(macOS Feb+Windows Mar 4, isolated worktrees, editable diffs, 네이티브 샌드박스), Cursor 2.5(비동기 서브에이전트+Plugins+Automations Mar 5, 내부 PR 35% 자율 에이전트). AG-UI 프로토콜: Microsoft/Google ADK 공식 호환. 72% 엔터프라이즈 채택. QA PASS (2026-03-06, 59/59 테스트). parallel_execution_view를 포괄하는 상위 개념. CopilotKit v1.53.0 (Mar 6): AG-UI + MCP 미들웨어 1등 시민 지원, AI SDK v6 전환. LangGraph 1.1.0 (Mar 10): Type-safe StreamPart discriminated union, GraphOutput 객체, HITL interrupt 타입 안전 처리. AG-UI PR #1257 (Mar 11): messages-tuple 스트림 모드 추가로 LangGraph Platform 배포 환경 스트리밍 호환성 수정. @ag-ui/langgraph 최신 버전 사용 권장. Phase 1 구현 완료. Visible Orchestrator + Sidebar Task List 하이브리드 패턴. 12개 파일, 59 tests (Dev 23 + QA 36). QA Minor 이슈 5건 수정: DOM nesting(button→div[role=button]), progressbar ARIA, live region, HandoffIndicator aria-label, 배너 아바타 aria-label. Phase 2: Multi-Pane 모드, Phase 3: ReactFlow DAG + AG-UI 프로토콜."
 
       - id: error_retry_ui
         name: "Error & Retry UI"

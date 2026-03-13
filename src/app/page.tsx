@@ -15,6 +15,10 @@ export default function DashboardPage() {
         triggerScenario('scenario_ppt');
         router.push('/agent/ppt');
       }}
+      onMultiAgentTrigger={() => {
+        triggerScenario('scenario_multi_agent');
+        router.push('/agent/orchestration');
+      }}
       onAskAgent={(data) => {
         triggerScenario('scenario_analysis', data);
         router.push('/agent/analysis');

@@ -13,10 +13,11 @@ interface ScenarioTriggerData {
 
 interface ChatInterfaceProps {
   onScenarioTrigger?: () => void;
+  onMultiAgentTrigger?: () => void;
   onAskAgent?: (data: ScenarioTriggerData) => void;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ onScenarioTrigger, onAskAgent }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ onScenarioTrigger, onMultiAgentTrigger, onAskAgent }) => {
   const [inputValue, setInputValue] = useState('');
   const [activeContext, setActiveContext] = useState<AgentContextData | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -37,6 +38,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onScenarioTrigger, onAskA
       // Matches: "Q4 2025... PPT...", "PPT 생성", "보고서 PPT 만들어줘" etc.
       if (trimmedInput.includes("PPT") && (trimmedInput.includes("보고서") || trimmedInput.includes("생성") || trimmedInput.includes("Q4") || trimmedInput.includes("만들어"))) {
           onScenarioTrigger?.();
+          return;
+      }
+
+      // 1-b. Multi-Agent Orchestration Trigger
+      if (trimmedInput.includes("멀티 에이전트") || trimmedInput.includes("에이전트 팀") || trimmedInput.includes("종합 보고서")) {
+          onMultiAgentTrigger?.();
           return;
       }
 
