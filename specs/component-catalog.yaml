@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.3.0"
-  last_updated: "2026-03-13"
+  last_updated: "2026-03-16"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -380,7 +380,7 @@ categories:
         last_researched: "2026-02-21"
         metadata:
           last_updated: "2026-02-21"
-        notes: "범용 ApprovalGate 컴포넌트 구현 완료. 3-tier risk-based rendering (toast/inline/modal), MCP Elicitation schema form, multi-item approval, session permission. Phase 1: standalone 컴포넌트 (기존 hooks 미수정). OpenAI Codex 0.113.0 (Mar 10): request_permissions 빌트인 도구 + 런타임 승인 UI + 사용자 패턴 기억. Salesforce Agentforce Contact Center (Mar 10): AI-to-human seamless 핸드오프, 컨텍스트 보존 전달."
+        notes: "범용 ApprovalGate 컴포넌트 구현 완료. 3-tier risk-based rendering (toast/inline/modal), MCP Elicitation schema form, multi-item approval, session permission. Phase 1: standalone 컴포넌트 (기존 hooks 미수정). OpenAI Codex 0.113.0 (Mar 10): request_permissions 빌트인 도구 + 런타임 승인 UI + 사용자 패턴 기억. Salesforce Agentforce Contact Center (Mar 10): AI-to-human seamless 핸드오프, 컨텍스트 보존 전달. GitHub Copilot (Mar 13): repo 설정으로 코딩 에이전트 워크플로우 승인 바이패스 가능. trust-level 기반 구성 가능한 승인 게이트 패턴."
 
       - id: inline_selection
         name: "Inline Selection (Radio/Checkbox/Choice)"
@@ -717,7 +717,7 @@ categories:
         last_verified: "2026-02-26"
         qa_cycles: 2
         qa_verdict: "PASS"
-        notes: "Phase 1 MVP complete (✅ QA PASS 2026-02-26). Radix Select with inline metadata (context window, speed badges), localStorage persistence with graceful error handling, keyboard navigation, DEFAULT_MODEL_ID initialization. All 7 Acceptance Criteria verified. 3 Critical issues fixed in Cycle 1 (localStorage error handling, visibility bug). Backend integration deferred to Phase 2. Phase 2 (grouping+pinning) and Phase 3 (Auto mode) ready for future enhancement."
+        notes: "Phase 1 MVP complete (✅ QA PASS 2026-02-26). Radix Select with inline metadata (context window, speed badges), localStorage persistence with graceful error handling, keyboard navigation, DEFAULT_MODEL_ID initialization. All 7 Acceptance Criteria verified. 3 Critical issues fixed in Cycle 1 (localStorage error handling, visibility bug). Backend integration deferred to Phase 2. Phase 2 (grouping+pinning) and Phase 3 (Auto mode) ready for future enhancement. GitHub Copilot (Mar 13): JetBrains에서 자동 모델 선택 GA. 작업 유형별 동적 모델 라우팅. 수동→자동 전환 트렌드."
         metadata:
           last_updated: "2026-02-26"
           qa_report: "specs/implementation-logs/model_agent_switcher/qa-report-cycle-2.md"
@@ -804,13 +804,13 @@ categories:
           - "src/components/features/usage-monitoring/UsageMonitoringView.test.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/usage-monitoring-dashboard.md"
-        last_researched: "2026-03-01"
+        last_researched: "2026-03-16"
         last_verified: "2026-03-01"
         qa_cycles: 2
         qa_verdict: "PASS"
-        notes: "Phase 1 구현 완료: KPI 4종(토큰/비용/활성사용자/에이전트 실행) + 일별 트렌드(ComposedChart) + 에이전트별 분포(BarChart) + 모델별 비용(PieChart). Admin 탭 통합. CSS Grid 반응형 레이아웃. Phase 2: react-grid-layout 드래그/리사이즈, 사용자별 분석 테이블, 비용 이상치 알림. Phase 2 참조: MS Copilot Agent Dashboard (Mar 2026 GA) — 에이전트 채택/사용량/크레딧 추적. GitHub Copilot Metrics (Feb 27 GA) — 조직/엔터프라이즈 수준 세분화."
+        notes: "Phase 1 구현 완료(QA PASS). Phase 2 리서치 완료(2026-03-16): 에이전트별 비용 분해 테이블(MS Agent Dashboard 패턴) + 팀/코스트센터 예산 할당 + 3단계 알림(GitHub 75/90/100%) + Health Status Strip(Salesforce) + 사용자별 사용량 테이블. cost_budget_controls, system_health_dashboard와 통합 설계."
         metadata:
-          last_updated: "2026-03-01"
+          last_updated: "2026-03-16"
           qa_report: "specs/implementation-logs/usage_monitoring/qa-report.md"
 
       - id: agent_config
@@ -844,6 +844,8 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/prompt-management-ui.md"
         last_researched: "2026-03-13"
+        qa_verdict: "PASS"
+        qa_cycles: 1
         notes: "Phase 1 구현 완료(2026-03-13). 패턴B+D 하이브리드. CRUD+불변스냅샷버전+인라인테스트+모델바인딩+모더레이션감도. AC 13/13 PASS. 37 tests."
 
       - id: knowledge_base_management
@@ -900,21 +902,27 @@ categories:
         name: "Cost & Budget Controls"
         description: "팀/역할별 예산 할당 + 사용 한도 + 비용 알림"
         status: not_implemented
-        priority: medium
+        priority: high
         complexity: moderate
         contexts: [admin]
         source_files: []
-        notes: "Discovery 2026-03-11 NEW-5. usage_monitoring Phase 2와 병합 후보. ChatGPT Enterprise, MS Copilot Studio, GitHub Copilot 패턴."
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/usage-monitoring-dashboard.md"
+        last_researched: "2026-03-16"
+        notes: "Discovery 2026-03-11 NEW-5. usage_monitoring Phase 2와 통합 구현 확정. GitHub Copilot cost center 75/90/100% 예산 알림 + LiteLLM 5단계 계층 예산 + MS Copilot Studio 빌링 플랜(환경 그룹=코스트센터) 패턴. Admin > Usage 탭 내 Budget & Quotas 서브섹션으로 구현."
 
       - id: system_health_dashboard
         name: "System Health Dashboard"
         description: "모델 가용성 + 응답 지연 + 서비스 상태 실시간 모니터링"
         status: not_implemented
-        priority: medium
+        priority: high
         complexity: moderate
         contexts: [admin, monitoring]
         source_files: []
-        notes: "Discovery 2026-03-11 NEW-6. 엔터프라이즈 AI 플랫폼 공통 패턴."
+        obsidian_sources:
+          - "Insights/agent-ui/patterns/usage-monitoring-dashboard.md"
+        last_researched: "2026-03-16"
+        notes: "Discovery 2026-03-11 NEW-6. usage_monitoring Phase 2와 통합 구현 확정. Salesforce Agentforce Health Monitoring(Spring 2026 GA): 가동 시간/레이턴시/에러율 trust signal 레이어. Admin > Usage 탭 상단 Health Status Strip으로 최소 구현."
 
       - id: integration_management
         name: "Integration Management"
@@ -1021,6 +1029,8 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/agent-marketplace-ui.md"
         last_researched: "2026-03-12"
+        qa_verdict: "PASS"
+        qa_cycles: 1
         metadata:
           last_updated: "2026-03-12"
         notes: "Phase 1 구현 완료: MCP-Native + Workspace Skills 하이브리드. 12개 플러그인 카탈로그(카드 그리드), 6개 카테고리 필터, 검색, 설치/제거, 활성화 토글, 플러그인 상세 Sheet(도구 개별 토글, 권한 표시), AdminView 탭 통합. 19/19 테스트 PASS. Phase 2: 팀별 거버넌스 + 감사 로그 연동. Phase 3: MCP Apps 인터랙티브 렌더링. Cursor 2.6 Team Marketplaces (Mar 3): Teams/Enterprise 관리자가 프라이빗 플러그인 마켓플레이스 생성·배포·거버넌스. ChatGPT Skills Beta (Mar 6): 재사용 가능 워크플로우 지침. Cursor 30+ Marketplace Plugins (Mar 11): MCP 기반 3계층 생태계."
