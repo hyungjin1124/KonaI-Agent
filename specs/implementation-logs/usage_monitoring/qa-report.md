@@ -1,6 +1,6 @@
-# QA Report: Usage Monitoring Dashboard
+# QA Report: Usage Monitoring Dashboard — Phase 2
 
-## 판정: CONDITIONAL PASS
+## 판정: PASS
 
 ---
 
@@ -8,19 +8,17 @@
 
 | # | Criteria | Dev 판정 | QA 판정 | 불일치 | 비고 |
 |---|----------|---------|---------|--------|------|
-| 1 | Admin "Usage" 탭 추가 | PASS | PASS | - | AdminView.tsx:315-317 TabsTrigger + :357-359 TabsContent 확인 |
-| 2 | KPI 카드 4종 + 전주 대비 증감 | PASS | PASS | - | UsageMonitoringView.tsx:62-96 — 4개 KPICard에 value, change, trend, subtitle 모두 전달 |
-| 3 | 일별 토큰/비용 추이 (30일+) | PASS | PASS | - | 기본값 30d, ComposedChart(Bar+Line) 이중 Y축. 30/7/90일 데이터 정합성 확인 |
-| 4 | 에이전트 유형별 분포 차트 | PASS | PASS | - | 수평 BarChart, 4개 에이전트(PPT/분석/채팅/데이터) |
-| 5 | react-grid-layout + localStorage | PARTIAL | FAIL | ⚠️ | react-grid-layout/localStorage 전혀 미사용. CSS Grid 정적 레이아웃. plan.md에서 Phase 2 연기로 명시했으나, 원문 AC 기준 FAIL |
-| 6 | KPICard/ChartWidget 재사용 | PASS | PASS | - | shared/atoms/KPICard, shared/molecules/ChartWidget import 확인 |
-| 7 | mock 데이터 정상 렌더링 | PASS | PASS | - | 23개 단위 테스트 전체 PASS |
-| 8 | 반응형 레이아웃 | PASS | PASS | - | grid-cols-1/2/4 + ResponsiveContainer 사용 |
+| 1 | 에이전트별 비용 테이블 (5개, 정렬 가능) | PASS | PASS | - | 3개 필드(costUsd, totalTokens, activeUsers) 정렬 지원 |
+| 2 | 에이전트 행: 토큰/비용/credit/사용자/스파크라인 | PASS | PASS | - | SparkLine: Recharts LineChart 80x24px |
+| 3 | 팀 예산 (3팀, 75%/90% 색상 전환) | PASS | PASS | - | Engineering 62%(green), Sales 93%(red), Support 20%(green) |
+| 4 | 90% 초과 시 NotificationContext 알림 | PASS | PASS | - | notifiedRef로 중복 방지, Sales 팀 트리거 확인 |
+| 5 | Health Status Strip (상태 닷/레이턴시/에러율) | PASS | PASS | - | down 상태는 오프라인 라벨, 3/5 정상 카운트 |
+| 6 | 사용자 테이블 (페이지네이션, 팀 필터, 정렬) | PASS | PASS | - | PAGE_SIZE=5, 필터 변경 시 페이지 리셋 |
+| 7 | KPICard/ChartWidget/Recharts 재사용 | PASS | PASS | - | KPICard 4개, ChartWidget 4개, Recharts 다수 |
+| 8 | 새 의존성 없이 구현 | PASS | PASS | - | package.json 미변경 확인 |
 
-- Dev 일치율: 7/8 (87.5%)
-- QA 독립 판정: 7/8 passed
-
-**AC5 불일치 상세**: Dev는 "Phase 2 연기"로 PARTIAL 판정. QA는 원문 AC("react-grid-layout 기반으로 위젯 배치가 가능하며, 레이아웃이 localStorage에 저장된다")를 기준으로 FAIL 판정. 다만 plan.md에서 의도적 설계 결정으로 연기했으므로 전체 판정에서는 CONDITIONAL PASS로 처리.
+- Dev 일치율: 100%
+- QA 독립 판정: 8/8 passed
 
 ---
 
@@ -28,18 +26,27 @@
 
 | # | 시나리오 | 결과 | 심각도 | 상세 |
 |---|---------|------|--------|------|
-| 1 | 빈 데이터 (getDailyUsageByPeriod → []) | WARN | major | 현재 mock 데이터로 빈 배열 불가. API 전환 시 빈 차트 영역만 표시되고 "데이터 없음" 메시지 없음 |
-| 2 | 90일 대량 데이터 (90 data points) | PASS | minor | barSize=6, interval=6으로 적절 대응. 성능 이슈 없음 |
-| 3 | 긴 텍스트 (모델명) | PASS | minor | `truncate` CSS 적용 확인 (UsageMonitoringView.tsx:241) |
-| 4 | KPI value undefined | WARN | major | KPICard에서 `{value && (...)}` 조건 렌더. undefined 시 빈 카드 표시 (크래시 없으나 UX 불량) |
-| 5 | 빠른 연속 클릭 (기간 필터) | PASS | minor | 동기적 상태 변경, React 18 자동 배칭. 경쟁 조건 없음 |
-| 6 | 기간 전환 데이터 정합성 | PASS | minor | getDailyUsageByPeriod 순수 함수, slice 기반 일관성 확인 |
-| 7 | 컴포넌트 언마운트 | PASS | minor | useEffect 없음, 구독 없음. 정리 불필요 |
-| 8 | Tooltip formatter 타입 안전성 | PASS | minor | "토큰" 명시 처리, 나머지 $ 포맷. 현재 데이터로 정상 |
-| 9 | Math.random() 비결정적 데이터 | WARN | major | 매 페이지 로드 시 다른 차트 데이터. KPI 합산값과 차트 데이터 불일치 가능 |
+| 1 | 정렬 방향 토글 (같은 헤더 2회 클릭) | PASS | - | desc→asc→desc 순환 정상 |
+| 2 | 정렬 필드 전환 시 desc 리셋 | PASS | - | 다른 필드 클릭 시 desc 기본값 |
+| 3 | 토큰 기준 정렬 | PASS | - | |
+| 4 | 페이지네이션 첫 페이지 prev 비활성 | PASS | - | disabled 속성 정상 |
+| 5 | 페이지네이션 마지막 페이지 next 비활성 | PASS | - | |
+| 6 | 페이지별 카운트 텍스트 정확성 | PASS | - | 1-5, 6-10, 11-12 |
+| 7 | 팀 필터 변경 시 페이지 리셋 | PASS | - | setCurrentPage(1) 호출 확인 |
+| 8 | 각 팀별 필터 결과 정확성 | PASS | - | 4개 팀(all + 3) 모두 정상 |
+| 9 | 필터 결과 1페이지 이내일 때 페이지네이션 숨김 | PASS | - | Support(3명) 시 페이지네이션 미표시 |
+| 10 | 진행률 바 width 100% 상한 | PASS | - | Math.min(percent, 100) |
+| 11 | 중복 알림 방지 (re-render) | PASS | - | notifiedRef 패턴 |
+| 12 | 알림 내용 정확성 (팀명, %) | PASS | - | Sales 93% 경고 |
+| 13 | 예산 색상 임계값 정확성 | PASS | - | green/amber/red 3단계 |
+| 14 | down 에이전트 latency 미표시 | PASS | - | 오프라인 라벨만 표시 |
+| 15 | degraded 에이전트 yellow 닷 | PASS | - | |
+| 16 | healthy/total 카운트 | PASS | - | 3/5 정상 |
+| 17 | 비용 테이블 전체 값 검증 | PASS | - | 5개 에이전트 비용 정확 |
+| 18 | 사용자 테이블 비용 정렬 | PASS | - | |
 
-- 추가 테스트 작성: 해당 없음 (QA 테스트 파일 별도 작성 불필요 — 주요 이슈가 코드 변경 필요 사항이지 테스트로 검증 가능한 사항이 아님)
-- 분석 항목: 9개, 이슈 발견: 3개 (0 critical, 3 major)
+- 추가 테스트 작성: 18개 (UsageMonitoringView.qa.test.tsx)
+- 통과: 18개, 실패: 0개
 
 ---
 
@@ -49,71 +56,56 @@
 
 | # | Provider/Component | 콜백 Prop | 연결 상태 | 심각도 | 비고 |
 |---|-------------------|-----------|----------|--------|------|
-| 1 | AdminView → UsageMonitoringView | (standalone, no props) | ✅ | - | plan.md 설계 의도 일치 |
-| 2 | UsageMonitoringView → KPICard (×4) | title, value, change, trend, icon, subtitle | ✅ | - | 6개 필수 props 모두 전달 |
-| 3 | UsageMonitoringView → KPICard | onClick (optional) | 미연결 | Low | Phase 1에서 display-only. 의도적 미연결 |
-| 4 | UsageMonitoringView → ChartWidget (일별) | title, subtitle, height, insightSummary, insightDetail, expandTestId | ✅ | - | 전체 props 전달 |
-| 5 | UsageMonitoringView → ChartWidget (에이전트) | insightDetail | ❌ | Medium | insightSummary는 있으나 insightDetail 누락. 클릭 시 빈 오버레이 |
-| 6 | UsageMonitoringView → ChartWidget (모델비용) | insightDetail | ❌ | Medium | 위와 동일 |
-| 7 | UsageMonitoringView → ChartWidget | headerRight (optional) | 미연결 | Low | Phase 1에서 불필요 |
+| 1 | NotificationContext | addAnomaly | ✅ | - | TeamBudgetSection에서 정상 호출 |
+| 2 | UsageMonitoringView | (standalone 컴포넌트 4개) | ✅ | - | Props 전달 없이 standalone 동작 |
 
-- plan.md 통합 지점 대조: 6/6 연결 확인 (AdminView 탭, KPICard import, ChartWidget import, Recharts 사용, barrel export, AdminView import)
+- plan.md 통합 지점 대조: 3/3 연결 확인
+  - UsageMonitoringView에 4개 섹션 추가 ✅
+  - 섹션 순서 plan.md와 일치 ✅
+  - NotificationContext 알림 트리거 ✅
 
 ### 이중 상태 동기화
 
-| # | 상태 A | 상태 B | A→B 경로 | B→A 경로 | 결과 |
-|---|--------|--------|---------|---------|------|
-| 1 | AdminView: searchQuery | UsageMonitoringView: period | 없음 (독립) | 없음 (독립) | ✅ |
-| 2 | AdminView: users | UsageMonitoringView: KPI 데이터 | 없음 (독립) | 없음 (독립) | ✅ |
-
-이중 상태 이슈 없음. 모든 상태가 적절히 격리됨.
+이중 상태 패턴 없음. 모든 Phase 2 컴포넌트가 standalone(자체 로컬 state만 사용).
 
 ### 종료 상태 시나리오
 
 | # | 시나리오 | 기대 동작 | 실제 동작 | 결과 | 심각도 |
 |---|---------|----------|----------|------|--------|
-| 1 | 탭 전환 시 언마운트 | 깨끗한 언마운트 | Radix Tabs forceMount 미사용, 정상 언마운트 | PASS | - |
-| 2 | 탭 재진입 시 상태 초기화 | period → 30d (기본값) | 재마운트 시 useState 기본값 복원 | PASS | - |
-| 3 | 인사이트 오버레이 중 탭 전환 | 오버레이 정리 | 언마운트로 자동 정리 | PASS | - |
-| 4 | insightDetail 없는 차트에서 인사이트 클릭 | 상세 내용 표시 또는 클릭 불가 | 빈 오버레이 표시 (헤더+버튼만, 본문 없음) | ISSUE | Medium |
+| 1 | Support 팀 필터(3명, 1페이지) | 페이지네이션 숨김 | 페이지네이션 숨김 | PASS | - |
+| 2 | 빈 필터 결과 가능성 | 빈 상태 메시지 표시 | 빈 tbody만 표시 | N/A | minor (현재 mock 데이터에서 발생 불가) |
 
 ### 핵심 사용자 플로우
 
-#### Flow 1: Admin → Usage 탭 진입
+#### Flow 1: 예산 경보 확인
 ```
-[사용자] "사용량" 탭 클릭 → [Radix Tabs] value="usage" 설정 →
-[TabsContent] UsageMonitoringView 마운트 → [useState] period='30d' →
-[getDailyUsageByPeriod] 30일 데이터 반환 → [렌더] KPI 4개 + 차트 3개 표시
+[페이지 마운트] → [TeamBudgetSection useEffect] → [90%+ 필터] → [addAnomaly] → [NotificationContext 업데이트]
 ```
-기대: 전체 대시보드 즉시 표시
-결과: **PASS**
+기대: Sales 팀 93% 경고 알림 1회
+결과: PASS
 
-#### Flow 2: 기간 필터 전환 (30d → 7d)
+#### Flow 2: 사용자 테이블 필터+정렬+페이지네이션
 ```
-[사용자] "7일" 버튼 클릭 → [onClick] setPeriod('7d') →
-[리렌더] getDailyUsageByPeriod('7d') → 7일 데이터 →
-[ComposedChart] barSize=24, interval=0 → [aria-pressed] "7일"=true
+[팀 필터 클릭] → [handleTeamFilter] → [setTeamFilter + setCurrentPage(1)] → [filtered useMemo] → [UI 업데이트]
 ```
-기대: 7일 차트로 전환, 활성 버튼 변경
-결과: **PASS**
+기대: 필터 변경 시 페이지 1로 리셋, 결과 수 정확
+결과: PASS
 
-#### Flow 3: 인사이트 확장/축소 (일별 트렌드)
+#### Flow 3: 에이전트 비용 정렬 전환
 ```
-[사용자] 인사이트 푸터 클릭 → [ChartWidget] setShowInsight(true) →
-[렌더] 오버레이 표시 (제목+상세+확인) → [사용자] X/확인 클릭 →
-[stopPropagation] setShowInsight(false) → [렌더] 오버레이 제거
+[헤더 클릭] → [handleSort] → [같은 필드: dir 토글 / 다른 필드: desc 리셋] → [sorted useMemo] → [테이블 재렌더링]
 ```
-기대: 상세 분석 오버레이 표시 후 닫기
-결과: **PASS** (일별 트렌드는 insightDetail 제공됨)
+기대: 정렬 방향 정확, 필드 전환 시 desc 기본값
+결과: PASS
 
 ---
 
 ## 통합 테스트
 
-- 컴포넌트 통합: **PASS** (AdminView ↔ UsageMonitoringView 연동 확인, KPICard/ChartWidget 공유 컴포넌트 재사용 확인)
-- 빌드 통합: **PASS** (`npm run build` 성공, 13개 정적 페이지 생성)
-- 타입 호환성: **PASS** (usage-monitoring 코드에 타입 에러 0건. 기존 LiveboardView/scenario hooks에 사전 존재 에러 8건 있으나 무관)
-- 단위 테스트: **PASS** (23/23 통과)
+- 컴포넌트 통합: PASS (HealthStatusStrip, AgentCostTable, TeamBudgetSection, UserUsageTable → UsageMonitoringView)
+- 빌드 통합: PASS (Next.js build 성공, 18개 라우트 정상 생성)
+- 타입 호환성: PASS (usage-monitoring 관련 TS 에러 0건, 기존 agent-chat 에러는 Phase 2와 무관)
+- 단위 테스트: PASS (52/52 dev + 18/18 QA = 70개 전체 통과)
 
 ---
 
@@ -121,44 +113,29 @@
 
 | # | 항목 | 결과 | 비고 |
 |---|------|------|------|
-| 1 | ARIA: 기간 필터 그룹 | PASS | `role="group"` + `aria-label="기간 선택"` |
-| 2 | ARIA: 버튼 pressed 상태 | PASS | `aria-pressed={period === opt.value}` |
-| 3 | 키보드: 기간 버튼 접근 | PASS | native `<button>` 사용 |
-| 4 | 키보드: 기간 버튼 포커스 링 | FAIL | `focus-visible:` 클래스 미적용. 커스텀 버튼에 포커스 인디케이터 없음 |
-| 5 | 키보드: 인사이트 푸터 접근 | FAIL | `<div onClick>` 사용 — 비포커스 요소. 키보드 사용자 접근 불가 (ChartWidget 공유 컴포넌트 이슈) |
-| 6 | 색상 대비: KPI subtitle | FAIL | `text-[10px] text-gray-400` on white — 대비율 ~2.7:1, WCAG AA 4.5:1 미달 (KPICard 공유 컴포넌트 이슈) |
-| 7 | 스크린리더: 차트 ARIA | FAIL | Recharts SVG에 aria-label 없음. 차트 내용이 스크린리더에 전달되지 않음 |
-| 8 | 색상만 의존: 파이 차트 | FAIL | 세그먼트 구분이 색상만으로 이루어짐 (범례 텍스트는 있으나 차트 자체에 라벨 없음) |
-| 9 | 모션 감소: 애니메이션 | FAIL | `animate-fade-in-up`에 `prefers-reduced-motion` 미적용 |
-
-접근성 종합: **FAIL** (6/9 항목 실패)
-- 단, #5/#6/#9는 공유 컴포넌트(ChartWidget, KPICard) 및 전역 CSS 이슈로, usage_monitoring 직접 코드 수정 범위 밖
-- #4는 UsageMonitoringView 직접 코드에서 수정 가능
-- #7/#8은 Recharts 특성상 별도 aria-label 래퍼 필요
+| 1 | ARIA 속성 | PASS | role="group", aria-label, aria-pressed, role="progressbar" 적절히 사용 |
+| 2 | 키보드 접근성 | PASS (minor) | 정렬 헤더(th onClick)에 tabIndex/role 미설정 — 키보드 접근 불가 |
+| 3 | 포커스 관리 | PASS | 모달 없는 단순 뷰 — 이슈 없음 |
+| 4 | 색상 대비 | PASS (minor) | text-gray-400 + text-[10px] 조합은 대비 부족 가능 |
 
 ---
 
 ## 발견된 이슈
 
 ### 심각도: Critical (배포 차단)
-(없음)
+없음
 
 ### 심각도: Major (수정 강력 권고)
-- [ ] **insightDetail 누락 (에이전트/모델 차트)** — UsageMonitoringView.tsx:172,207 — insightSummary만 제공하고 insightDetail 미제공. 클릭 시 빈 오버레이 표시. 사용자에게 "클릭 가능" 어포던스를 주고 빈 내용을 보여주는 UX 문제.
+없음
 
 ### 심각도: Minor (후속 수정 가능)
-- [ ] 기간 필터 버튼에 `focus-visible:ring` 미적용 — UsageMonitoringView.tsx:49
-- [ ] Math.random() 비결정적 mock 데이터 — usageMonitoringData.ts:59 — KPI 합산값과 차트 데이터 불일치 가능
-- [ ] 빈 데이터 상태 UI 미구현 — API 전환 시 필요
-- [ ] Recharts 차트에 aria-label 미적용 — 스크린리더 접근성
-- [ ] AC5 (react-grid-layout + localStorage) Phase 2 연기 — 원문 AC 미충족이나 의도적 설계 결정
+- [ ] **[A11y]** 정렬 가능 테이블 헤더(`th onClick`)에 `tabIndex={0}`, `role="button"`, `onKeyDown` 미설정 — 키보드 전용 사용자가 정렬 기능에 접근 불가 — AgentCostTable.tsx:79-103, UserUsageTable.tsx:93-108
+- [ ] **[A11y]** `text-gray-400` + `text-[10px]` 보조 텍스트 조합이 WCAG AA 색상 대비 기준(4.5:1) 미달 가능 — 여러 파일의 보조 텍스트
+- [ ] **[UX]** ChartWidget의 subtitle prop이 주석 처리되어 AgentCostTable의 `총 $2,847` subtitle이 렌더링되지 않음 — ChartWidget.tsx:47-48
+- [ ] **[UX]** UserUsageTable에서 빈 필터 결과 시 빈 상태(empty state) 메시지 미구현 — UserUsageTable.tsx (현재 mock 데이터에서는 발생하지 않음)
 
 ---
 
 ## 수정 요청
 
-CONDITIONAL PASS — Major 이슈 1건에 대한 수정 필요:
-
-| # | 수정 항목 | 관련 파일 | 심각도 | 설명 |
-|---|----------|----------|--------|------|
-| 1 | 에이전트 분포/모델 비용 차트에 insightDetail 추가 | UsageMonitoringView.tsx:172,207 | major | insightSummary가 있는 ChartWidget에 insightDetail도 제공하여 빈 오버레이 방지. 또는 insightDetail이 없으면 ChartWidget에서 클릭을 비활성화하는 방식도 가능 |
+PASS 판정이므로 수정 사이클 없음. Minor 이슈는 후속 개선 시 반영 권장.

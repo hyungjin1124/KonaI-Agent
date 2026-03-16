@@ -2,15 +2,14 @@
 import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Check, X, Lock, Users, Briefcase, Mail, Power, BarChart2, Clock, FileText, MessageSquare, Sparkles, Store
+  Shield, Users, Briefcase, Mail, Power, BarChart2, FileText, MessageSquare, Sparkles
 } from './icons';
 import { UsageMonitoringView } from './features/usage-monitoring';
-import { ScheduledTasksView } from './features/scheduled-tasks';
 import { AuditLogView } from './features/audit-log';
 import { FeedbackQualityView } from './features/feedback-quality';
 import { PromptManagementView } from './features/prompt-management';
-import { AgentMarketplaceView } from './features/agent-marketplace';
-import { User, UserRole, UserStatus, RoleConfig } from '../types';
+import { PermissionSettingsView } from './features/permission-settings';
+import { User, UserRole, UserStatus } from '../types';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -53,38 +52,6 @@ const MOCK_USERS: User[] = [
   { id: '5', name: '최지은', email: 'je.choi@konai.com', department: '재무팀', role: 'Data Manager', status: 'Pending', lastLogin: '-', avatarColor: '#8B5CF6' },
 ];
 
-const MOCK_ROLES: RoleConfig[] = [
-  {
-    role: 'Super Admin',
-    description: '시스템의 모든 기능과 데이터에 대한 완전한 접근 권한',
-    dataScope: 'All',
-    permissions: [
-      { id: 'p1', resource: 'Dashboard', canView: true, canEdit: true, canDelete: true },
-      { id: 'p2', resource: 'Data Management', canView: true, canEdit: true, canDelete: true },
-      { id: 'p3', resource: 'User Management', canView: true, canEdit: true, canDelete: true },
-    ]
-  },
-  {
-    role: 'Data Manager',
-    description: '데이터 관리 및 분석 기능에 대한 편집 권한',
-    dataScope: 'Department',
-    permissions: [
-      { id: 'p1', resource: 'Dashboard', canView: true, canEdit: true, canDelete: false },
-      { id: 'p2', resource: 'Data Management', canView: true, canEdit: true, canDelete: false },
-      { id: 'p3', resource: 'User Management', canView: false, canEdit: false, canDelete: false },
-    ]
-  },
-  {
-    role: 'Viewer',
-    description: '할당된 대시보드 및 리포트 조회 권한',
-    dataScope: 'Self',
-    permissions: [
-      { id: 'p1', resource: 'Dashboard', canView: true, canEdit: false, canDelete: false },
-      { id: 'p2', resource: 'Data Management', canView: true, canEdit: false, canDelete: false },
-      { id: 'p3', resource: 'User Management', canView: false, canEdit: false, canDelete: false },
-    ]
-  },
-];
 
 // --- Sub-Components ---
 
@@ -120,7 +87,6 @@ const RoleBadge: React.FC<{ role: UserRole }> = ({ role }) => {
 const AdminView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
-  const [roles] = useState<RoleConfig[]>(MOCK_ROLES);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -246,61 +212,6 @@ const AdminView: React.FC = () => {
     </div>
   );
 
-  const renderPermissionMatrix = () => (
-    <div className="space-y-6">
-        {roles.map((roleConfig) => (
-            <div key={roleConfig.role} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-                <div className="flex justify-between items-start mb-6">
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-lg font-bold text-gray-900">{roleConfig.role}</h3>
-                            <RoleBadge role={roleConfig.role} />
-                        </div>
-                        <p className="text-sm text-gray-500">{roleConfig.description}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                         <div className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-600 flex items-center gap-1.5">
-                             <Lock size={12} /> Data Scope: {roleConfig.dataScope}
-                         </div>
-                         <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-black">
-                             <Edit2 size={16} />
-                         </Button>
-                    </div>
-                </div>
-
-                <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-gray-50 hover:bg-gray-50">
-                                <TableHead className="px-4 py-2 font-bold text-gray-500 w-1/3">Resource / Menu</TableHead>
-                                <TableHead className="px-4 py-2 font-bold text-gray-500 text-center">View</TableHead>
-                                <TableHead className="px-4 py-2 font-bold text-gray-500 text-center">Edit</TableHead>
-                                <TableHead className="px-4 py-2 font-bold text-gray-500 text-center">Delete</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {roleConfig.permissions.map((perm) => (
-                                <TableRow key={perm.id}>
-                                    <TableCell className="px-4 py-3 font-medium text-gray-700">{perm.resource}</TableCell>
-                                    <TableCell className="px-4 py-3 text-center">
-                                        {perm.canView ? <Check size={16} className="text-green-500 mx-auto" /> : <X size={16} className="text-gray-300 mx-auto" />}
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 text-center">
-                                        {perm.canEdit ? <Check size={16} className="text-green-500 mx-auto" /> : <X size={16} className="text-gray-300 mx-auto" />}
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 text-center">
-                                        {perm.canDelete ? <Check size={16} className="text-green-500 mx-auto" /> : <X size={16} className="text-gray-300 mx-auto" />}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
-        ))}
-    </div>
-  );
-
   return (
     <Tabs defaultValue="users" data-testid="admin-view" className="h-full flex flex-col bg-[#F7F9FB] animate-fade-in-up overflow-hidden">
       {/* Header */}
@@ -308,7 +219,7 @@ const AdminView: React.FC = () => {
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">관리자 대시보드</h2>
-            <p className="text-sm text-gray-500 mt-1">사용자 관리, 권한 설정, AI 사용량 모니터링, 예약 작업을 관리합니다.</p>
+            <p className="text-sm text-gray-500 mt-1">사용자 관리, 권한 설정, AI 사용량 모니터링을 관리합니다.</p>
           </div>
           <TabsList className="bg-gray-100 p-1 rounded-lg h-auto">
             <TabsTrigger value="users" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
@@ -320,9 +231,6 @@ const AdminView: React.FC = () => {
             <TabsTrigger value="usage" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <BarChart2 size={16} /> 사용량
             </TabsTrigger>
-            <TabsTrigger value="scheduled" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
-                <Clock size={16} /> 예약 작업
-            </TabsTrigger>
             <TabsTrigger value="audit" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <FileText size={16} /> 감사 로그
             </TabsTrigger>
@@ -331,9 +239,6 @@ const AdminView: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="feedback-quality" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
                 <MessageSquare size={16} /> 피드백 품질
-            </TabsTrigger>
-            <TabsTrigger value="marketplace" className="px-4 py-2 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-2">
-                <Store size={16} /> 마켓플레이스
             </TabsTrigger>
           </TabsList>
         </div>
@@ -371,15 +276,11 @@ const AdminView: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="permissions" className="mt-0">
-                {renderPermissionMatrix()}
+                <PermissionSettingsView />
             </TabsContent>
 
             <TabsContent value="usage" className="mt-0">
                 <UsageMonitoringView />
-            </TabsContent>
-
-            <TabsContent value="scheduled" className="mt-0">
-                <ScheduledTasksView />
             </TabsContent>
 
             <TabsContent value="audit" className="mt-0">
@@ -394,9 +295,6 @@ const AdminView: React.FC = () => {
                 <FeedbackQualityView />
             </TabsContent>
 
-            <TabsContent value="marketplace" className="mt-0">
-                <AgentMarketplaceView />
-            </TabsContent>
         </div>
       </div>
 

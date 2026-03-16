@@ -12,7 +12,9 @@ import {
   Cpu,
   MessageSquare,
   Bot,
-  Sparkles
+  Sparkles,
+  Clock,
+  Store
 } from './icons';
 import { ViewType } from '../types';
 import { useNotification, Anomaly } from '../context/NotificationContext';
@@ -42,6 +44,8 @@ const VIEW_TO_PATH: Record<string, string> = {
   skills: '/settings/skills',
   'agent-config': '/settings/agent-config',
   'prompt-management': '/settings/prompt-management',
+  'scheduled-tasks': '/settings/scheduled-tasks',
+  marketplace: '/settings/marketplace',
 };
 
 // pathname → ViewType mapping for active state
@@ -53,6 +57,8 @@ function pathnameToViewType(pathname: string): ViewType {
   if (pathname === '/history') return 'history';
   if (pathname === '/settings/agent-config') return 'agent-config';
   if (pathname === '/settings/prompt-management') return 'prompt-management';
+  if (pathname === '/settings/scheduled-tasks') return 'scheduled-tasks';
+  if (pathname === '/settings/marketplace') return 'marketplace';
   if (pathname.startsWith('/settings')) return 'skills';
   if (pathname.startsWith('/agent')) return 'chat';
   return 'dashboard';
@@ -127,7 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
                 } else if (item.id === 'history') {
                    isActive = currentView === 'history';
                 } else if (item.id === 'settings') {
-                   isActive = currentView === 'skills' || currentView === 'agent-config' || currentView === 'prompt-management';
+                   isActive = currentView === 'skills' || currentView === 'agent-config' || currentView === 'prompt-management' || currentView === 'scheduled-tasks' || currentView === 'marketplace';
                 }
 
                 // Settings → DropdownMenu (click-based, replaces hover dropdown)
@@ -159,6 +165,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
                                 <DropdownMenuItem onClick={() => navigate('prompt-management')}>
                                     <Sparkles size={16} />
                                     프롬프트 관리
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate('scheduled-tasks')}>
+                                    <Clock size={16} />
+                                    예약 작업
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate('marketplace')}>
+                                    <Store size={16} />
+                                    마켓플레이스
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
