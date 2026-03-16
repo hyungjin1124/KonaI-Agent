@@ -792,23 +792,27 @@ categories:
 
       - id: usage_monitoring
         name: "Usage Monitoring Dashboard"
-        description: "API 사용량, 토큰 소비, 비용, 에이전트 성능 모니터링"
+        description: "API 사용량, 토큰 소비, 비용, 에이전트 성능 모니터링 — Phase 2: 에이전트별 비용 분해, 팀 예산 할당, Health Status, 사용자별 사용량"
         status: implemented
         priority: high
         complexity: complex
-        contexts: [monitoring]
+        contexts: [monitoring, admin]
         source_files:
           - "src/components/features/usage-monitoring/UsageMonitoringView.tsx"
           - "src/components/features/usage-monitoring/usageMonitoringData.ts"
           - "src/components/features/usage-monitoring/index.ts"
           - "src/components/features/usage-monitoring/UsageMonitoringView.test.tsx"
+          - "src/components/features/usage-monitoring/components/HealthStatusStrip.tsx"
+          - "src/components/features/usage-monitoring/components/AgentCostTable.tsx"
+          - "src/components/features/usage-monitoring/components/TeamBudgetSection.tsx"
+          - "src/components/features/usage-monitoring/components/UserUsageTable.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/usage-monitoring-dashboard.md"
         last_researched: "2026-03-16"
-        last_verified: "2026-03-01"
+        last_verified: "2026-03-16"
         qa_cycles: 2
         qa_verdict: "PASS"
-        notes: "Phase 1 구현 완료(QA PASS). Phase 2 리서치 완료(2026-03-16): 에이전트별 비용 분해 테이블(MS Agent Dashboard 패턴) + 팀/코스트센터 예산 할당 + 3단계 알림(GitHub 75/90/100%) + Health Status Strip(Salesforce) + 사용자별 사용량 테이블. cost_budget_controls, system_health_dashboard와 통합 설계."
+        notes: "Phase 1+2 구현 완료. Phase 2(2026-03-16): 에이전트별 비용 분해 테이블(MS Agent Dashboard 패턴) + 팀/코스트센터 예산 할당(GitHub 75/90/100% 알림) + Health Status Strip(Salesforce) + 사용자별 사용량 테이블. cost_budget_controls, system_health_dashboard를 통합 구현."
         metadata:
           last_updated: "2026-03-16"
           qa_report: "specs/implementation-logs/usage_monitoring/qa-report.md"
@@ -901,28 +905,34 @@ categories:
       - id: cost_budget_controls
         name: "Cost & Budget Controls"
         description: "팀/역할별 예산 할당 + 사용 한도 + 비용 알림"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [admin]
-        source_files: []
+        source_files:
+          - "src/components/features/usage-monitoring/components/TeamBudgetSection.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/usage-monitoring-dashboard.md"
         last_researched: "2026-03-16"
-        notes: "Discovery 2026-03-11 NEW-5. usage_monitoring Phase 2와 통합 구현 확정. GitHub Copilot cost center 75/90/100% 예산 알림 + LiteLLM 5단계 계층 예산 + MS Copilot Studio 빌링 플랜(환경 그룹=코스트센터) 패턴. Admin > Usage 탭 내 Budget & Quotas 서브섹션으로 구현."
+        notes: "usage_monitoring Phase 2 내 TeamBudgetSection으로 통합 구현(2026-03-16). GitHub Copilot cost center 75/90/100% 예산 알림 + 3단계 진행률 바(green/amber/red) + NotificationContext 알림 연동."
+        metadata:
+          last_updated: "2026-03-16"
 
       - id: system_health_dashboard
         name: "System Health Dashboard"
         description: "모델 가용성 + 응답 지연 + 서비스 상태 실시간 모니터링"
-        status: not_implemented
+        status: implemented
         priority: high
         complexity: moderate
         contexts: [admin, monitoring]
-        source_files: []
+        source_files:
+          - "src/components/features/usage-monitoring/components/HealthStatusStrip.tsx"
         obsidian_sources:
           - "Insights/agent-ui/patterns/usage-monitoring-dashboard.md"
         last_researched: "2026-03-16"
-        notes: "Discovery 2026-03-11 NEW-6. usage_monitoring Phase 2와 통합 구현 확정. Salesforce Agentforce Health Monitoring(Spring 2026 GA): 가동 시간/레이턴시/에러율 trust signal 레이어. Admin > Usage 탭 상단 Health Status Strip으로 최소 구현."
+        notes: "usage_monitoring Phase 2 내 HealthStatusStrip으로 통합 구현(2026-03-16). Salesforce Agentforce Health Monitoring 패턴: 상태 닷(green/yellow/red) + 레이턴시(ms) + 에러율(%). Phase 3에서 독립 페이지로 확장 가능."
+        metadata:
+          last_updated: "2026-03-16"
 
       - id: integration_management
         name: "Integration Management"

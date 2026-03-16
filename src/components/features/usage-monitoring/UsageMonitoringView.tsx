@@ -15,6 +15,10 @@ import {
   getDailyUsageByPeriod,
 } from './usageMonitoringData';
 import type { PeriodFilter } from './usageMonitoringData';
+import { HealthStatusStrip } from './components/HealthStatusStrip';
+import { AgentCostTable } from './components/AgentCostTable';
+import { TeamBudgetSection } from './components/TeamBudgetSection';
+import { UserUsageTable } from './components/UserUsageTable';
 
 const TOOLTIP_STYLE = {
   borderRadius: '8px',
@@ -35,6 +39,9 @@ export const UsageMonitoringView: React.FC = () => {
 
   return (
     <div className="space-y-6" data-testid="usage-monitoring-view">
+      {/* Health Status Strip */}
+      <HealthStatusStrip />
+
       {/* Period Filter */}
       <div className="flex items-center justify-between">
         <div>
@@ -263,6 +270,15 @@ export const UsageMonitoringView: React.FC = () => {
             </div>
           </div>
         </ChartWidget>
+      </div>
+
+      {/* Phase 2: Agent Cost Breakdown Table */}
+      <AgentCostTable />
+
+      {/* Phase 2: Team Budget & User Usage */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TeamBudgetSection />
+        <UserUsageTable />
       </div>
     </div>
   );
