@@ -1,147 +1,220 @@
 import type {
-  ErpViewTable,
-  TableAccessPolicy,
-  OrgUnit,
-  RowFilterRule,
-  ColumnMaskPolicy,
+  DomainRole,
+  DomainRowFilterRule,
+  DomainColumnMaskPolicy,
+  SensitiveColumnCategory,
+  AccessLevel,
+  DataScopeType,
   MaskingType,
+  ResolvedEffectivePolicy,
 } from '../../../types';
 
-// --- Layer 1: ERP View Tables ---
+// ============================================================================
+// RLS — Row-Level Security Policies (시트 ⑤)
+// ============================================================================
 
-export const ERP_VIEW_TABLES: ErpViewTable[] = [
-  // 재무
-  { id: 'vt-001', name: 'V_FIN_INCOME_STMT',  displayName: '손익계산서 뷰',   category: '재무', description: '월별 손익 집계 뷰' },
-  { id: 'vt-002', name: 'V_FIN_BALANCE_SHEET', displayName: '대차대조표 뷰',   category: '재무', description: '기간별 재무상태표' },
-  { id: 'vt-003', name: 'V_FIN_CASHFLOW',      displayName: '현금흐름 뷰',     category: '재무', description: '현금흐름 집계' },
-  // 영업
-  { id: 'vt-004', name: 'V_SALES_SUMMARY',     displayName: '매출 요약 뷰',    category: '영업', description: '기간별 매출 집계' },
-  { id: 'vt-005', name: 'V_SALES_ORDER',       displayName: '수주 현황 뷰',    category: '영업', description: '수주 오더 현황' },
-  { id: 'vt-006', name: 'V_CUSTOMER_MASTER',   displayName: '고객 마스터 뷰',  category: '영업', description: '고객 기본정보' },
-  // 인사
-  { id: 'vt-007', name: 'V_HR_HEADCOUNT',      displayName: '인력 현황 뷰',    category: '인사', description: '부서별 인원 현황' },
-  { id: 'vt-008', name: 'V_HR_PAYROLL',        displayName: '급여 집계 뷰',    category: '인사', description: '급여 집계 (민감)' },
-  // 구매
-  { id: 'vt-009', name: 'V_PUR_ORDER',         displayName: '구매발주 뷰',     category: '구매', description: '구매 오더 현황' },
-  { id: 'vt-010', name: 'V_PUR_VENDOR',        displayName: '공급업체 뷰',     category: '구매', description: '공급업체 마스터' },
+export const DOMAIN_ROW_FILTER_RULES: DomainRowFilterRule[] = [
+  {
+    id: 'rls-01',
+    role: 'ROLE_FIN_USER',
+    filterBase: 'dept_code',
+    filterColumn: 'dept_code',
+    sqlWherePattern: 'WHERE dept_code IN (SELECT dept FROM user_dept_map WHERE user_id = :current_user)',
+    targetViewGroups: 'AC 전표, 비용, 예산, 자금 관련 전체',
+    example: '재무팀 담당자 → dept_code=재무팀 데이터만',
+    note: '매핑 테이블 기반',
+  },
+  {
+    id: 'rls-02',
+    role: 'ROLE_SALES_USER',
+    filterBase: 'sales_dept_code',
+    filterColumn: 'sales_dept',
+    sqlWherePattern: 'WHERE sales_dept IN (SELECT dept FROM user_dept_map WHERE user_id = :current_user)',
+    targetViewGroups: 'SL 영업, EIS 영업분석',
+    example: '영업1팀 → 영업1팀 매출만 조회',
+  },
+  {
+    id: 'rls-03',
+    role: 'ROLE_SALES_MGR',
+    filterBase: 'division_code',
+    filterColumn: 'division_code',
+    sqlWherePattern: 'WHERE division_code IN (SELECT div FROM user_div_map WHERE user_id = :current_user)',
+    targetViewGroups: 'SL 전체, ABC 수익성',
+    example: 'DID사업부 실장 → DID사업부 전체 매출',
+    note: '사업부 단위',
+  },
+  {
+    id: 'rls-04',
+    role: 'ROLE_PURCH_USER',
+    filterBase: 'dept_code',
+    filterColumn: 'dept_code',
+    sqlWherePattern: 'WHERE dept_code = :user_dept',
+    targetViewGroups: 'PU 구매, AP 매입 관련',
+    example: 'SCM팀 → SCM팀 발주만',
+  },
+  {
+    id: 'rls-05',
+    role: 'ROLE_PROD_MGR',
+    filterBase: 'plant_code',
+    filterColumn: 'plant_code',
+    sqlWherePattern: 'WHERE plant_code IN (SELECT plant FROM user_plant_map WHERE user_id = :current_user)',
+    targetViewGroups: 'PD 생산, LG 물류, ESM 원가',
+    example: '생산Group장 → 제조공장 데이터만',
+    note: '공장 단위',
+  },
+  {
+    id: 'rls-06',
+    role: 'ROLE_PROD_USER',
+    filterBase: 'plant_line_code',
+    filterColumn: 'plant_code, line_code',
+    sqlWherePattern: 'WHERE plant_code = :user_plant AND line_code = :user_line',
+    targetViewGroups: 'PD 작업지시/실적',
+    example: '생산담당 → 본사공장 A라인만',
+    note: '라인 단위',
+  },
+  {
+    id: 'rls-07',
+    role: 'ROLE_LOG_USER',
+    filterBase: 'wh_code',
+    filterColumn: 'wh_code',
+    sqlWherePattern: 'WHERE wh_code IN (SELECT wh FROM user_wh_map WHERE user_id = :current_user)',
+    targetViewGroups: 'LG 재고/입출고',
+    example: '재고담당 → 담당 창고 재고만',
+    note: '창고 단위',
+  },
+  {
+    id: 'rls-08',
+    role: 'ROLE_PJT_MGR',
+    filterBase: 'project_code',
+    filterColumn: 'project_code',
+    sqlWherePattern: 'WHERE project_code IN (SELECT pjt FROM user_pjt_map WHERE user_id = :current_user)',
+    targetViewGroups: 'PJ 프로젝트 전체',
+    example: '개발그룹장 → 담당 프로젝트만',
+    note: '프로젝트 단위',
+  },
+  {
+    id: 'rls-09',
+    role: 'ROLE_HR_USER',
+    filterBase: 'dept_code',
+    filterColumn: 'dept_code',
+    sqlWherePattern: 'WHERE dept_code IN (SELECT dept FROM hr_dept_map WHERE user_id = :current_user)',
+    targetViewGroups: 'HR 인사/발령',
+    example: 'HR담당 → 관할부서 인사정보만',
+  },
+  {
+    id: 'rls-10',
+    role: 'ROLE_DEPT_MGR',
+    filterBase: 'dept_code',
+    filterColumn: 'dept_code',
+    sqlWherePattern: 'WHERE dept_code = :user_dept',
+    targetViewGroups: 'AC 비용/예산, SL 실적, EIS 일부',
+    example: '경영기획실 팀원 → 경영기획실 데이터만',
+    note: '소속부서',
+  },
+  {
+    id: 'rls-11',
+    role: 'ROLE_EXEC',
+    filterBase: 'none',
+    filterColumn: '(필터 없음)',
+    sqlWherePattern: '-- 필터 적용 안 함 → 전체 조직 데이터 조회 가능',
+    targetViewGroups: 'EIS 경영정보, 재무제표 요약',
+    example: 'CEO/부문장 → 전체 경영지표',
+    note: '상세 전표 미접근',
+  },
+  {
+    id: 'rls-12',
+    role: 'ROLE_VIEWER',
+    filterBase: 'user_id',
+    filterColumn: 'created_by / assigned_to',
+    sqlWherePattern: 'WHERE created_by = :current_user OR assigned_to = :current_user',
+    targetViewGroups: '기준정보 (환율 등)',
+    example: '일반직원 → 본인 생성/할당 데이터만',
+    note: '최소 범위',
+  },
 ];
 
-export const TABLE_CATEGORIES = ['재무', '영업', '인사', '구매'] as const;
+// ============================================================================
+// Column Masking Policies (시트 ⑥)
+// ============================================================================
 
-// --- Layer 1: Initial Access Policies ---
-
-export const INITIAL_TABLE_ACCESS: TableAccessPolicy[] = [
+export const DOMAIN_COLUMN_MASK_POLICIES: DomainColumnMaskPolicy[] = [
   {
-    role: 'Super Admin',
-    allowedTableIds: ERP_VIEW_TABLES.map(t => t.id),
+    id: 'cls-01',
+    category: 'salary_bonus',
+    categoryName: '급여/상여 금액',
+    targetViews: 'view_pr_pay_result, view_payroll_monthly',
+    maskingRule: '금액 → NULL 또는 "***"',
+    exposedRoles: ['ROLE_HR_ADMIN'],
+    maskedRoles: 'ROLE_HR_USER, ROLE_DEPT_MGR 외 전체',
+    resultExample: '기본급: *** / 총액: ***',
   },
   {
-    role: 'Data Manager',
-    allowedTableIds: ['vt-004', 'vt-005', 'vt-006', 'vt-009', 'vt-010'],
+    id: 'cls-02',
+    category: 'ssn',
+    categoryName: '주민등록번호',
+    targetViews: 'view_employee_status, view_hr_emp_current',
+    maskingRule: '뒷자리 마스킹',
+    exposedRoles: ['ROLE_HR_ADMIN'],
+    maskedRoles: 'ROLE_HR_USER, 기타 전체',
+    resultExample: '900101-*******',
   },
   {
-    role: 'Viewer',
-    allowedTableIds: ['vt-004', 'vt-007'],
-  },
-];
-
-// --- Layer 2: Org Units ---
-
-export const ORG_UNITS: OrgUnit[] = [
-  { id: 'ou-001', code: 'D001', name: '전략기획실',   type: '부서코드' },
-  { id: 'ou-002', code: 'D002', name: 'DID사업부',    type: '부서코드' },
-  { id: 'ou-003', code: 'D003', name: '플랫폼개발팀', type: '부서코드' },
-  { id: 'ou-004', code: 'D004', name: '영업본부',     type: '부서코드' },
-  { id: 'ou-005', code: 'D005', name: '재무팀',       type: '부서코드' },
-  { id: 'ou-010', code: 'BU01', name: 'B2B사업',      type: '사업영역' },
-  { id: 'ou-011', code: 'BU02', name: 'B2C사업',      type: '사업영역' },
-  { id: 'ou-020', code: 'CC01', name: '한국법인',     type: '법인코드' },
-  { id: 'ou-021', code: 'CC02', name: '미국법인',     type: '법인코드' },
-];
-
-export const ORG_ATTRIBUTE_TYPES = ['부서코드', '사업영역', '법인코드'] as const;
-
-// --- Layer 2: Row Filter Rules ---
-
-export const ROW_FILTER_RULES: RowFilterRule[] = [
-  // Super Admin — 모든 조직 속성에 전체 접근
-  { id: 'rfr-001', role: 'Super Admin', attributeType: '부서코드', allowedOrgUnitIds: ['ou-001', 'ou-002', 'ou-003', 'ou-004', 'ou-005'], description: '모든 부서 접근' },
-  { id: 'rfr-002', role: 'Super Admin', attributeType: '사업영역', allowedOrgUnitIds: ['ou-010', 'ou-011'], description: '모든 사업영역 접근' },
-  { id: 'rfr-003', role: 'Super Admin', attributeType: '법인코드', allowedOrgUnitIds: ['ou-020', 'ou-021'], description: '모든 법인 접근' },
-  // Data Manager — 담당 부서 + 사업영역만
-  { id: 'rfr-004', role: 'Data Manager', attributeType: '부서코드', allowedOrgUnitIds: ['ou-002', 'ou-003'], description: '담당 부서 행만 조회' },
-  { id: 'rfr-005', role: 'Data Manager', attributeType: '사업영역', allowedOrgUnitIds: ['ou-010'], description: 'B2B사업 영역만 조회' },
-  { id: 'rfr-006', role: 'Data Manager', attributeType: '법인코드', allowedOrgUnitIds: ['ou-020'], description: '한국법인만 조회' },
-  // Viewer — 소속 기준
-  { id: 'rfr-007', role: 'Viewer', attributeType: '부서코드', allowedOrgUnitIds: [], description: '소속 부서 자동 적용' },
-  { id: 'rfr-008', role: 'Viewer', attributeType: '사업영역', allowedOrgUnitIds: [], description: '소속 사업영역 자동 적용' },
-  { id: 'rfr-009', role: 'Viewer', attributeType: '법인코드', allowedOrgUnitIds: ['ou-020'], description: '한국법인만 조회' },
-];
-
-// --- Layer 3: Column Mask Policies ---
-
-export const COLUMN_MASK_POLICIES: ColumnMaskPolicy[] = [
-  {
-    id: 'cmp-001',
-    tableId: 'vt-008',
-    columnName: 'SALARY_AMT',
-    columnDisplayName: '급여액',
-    sensitivity: 'high',
-    maskingRules: [
-      { role: 'Super Admin', maskingType: 'full',    maskingExample: '3,500,000' },
-      { role: 'Data Manager', maskingType: 'partial', maskingExample: '***0,000' },
-      { role: 'Viewer',       maskingType: 'hidden',  maskingExample: '●●●●●●●' },
-    ],
+    id: 'cls-03',
+    category: 'bank_account',
+    categoryName: '계좌번호',
+    targetViews: 'view_ap_cash_bank_acc, view_bank_account_balance',
+    maskingRule: '중간 자리 마스킹',
+    exposedRoles: ['ROLE_FIN_ADMIN', 'ROLE_SYS_ADMIN'],
+    maskedRoles: 'ROLE_FIN_USER 포함 기타',
+    resultExample: '110-***-***890',
   },
   {
-    id: 'cmp-002',
-    tableId: 'vt-008',
-    columnName: 'BONUS_AMT',
-    columnDisplayName: '상여금',
-    sensitivity: 'high',
-    maskingRules: [
-      { role: 'Super Admin', maskingType: 'full',    maskingExample: '1,200,000' },
-      { role: 'Data Manager', maskingType: 'hidden',  maskingExample: '●●●●●●●' },
-      { role: 'Viewer',       maskingType: 'hidden',  maskingExample: '●●●●●●●' },
-    ],
+    id: 'cls-04',
+    category: 'unit_cost',
+    categoryName: '단가/원가',
+    targetViews: 'view_purchase_order_summary, view_product_cost_monthly',
+    maskingRule: '금액 → 은닉',
+    exposedRoles: ['ROLE_FIN_ADMIN', 'ROLE_PROD_MGR', 'ROLE_PURCH_USER'],
+    maskedRoles: 'ROLE_SALES_USER, ROLE_VIEWER',
+    resultExample: '단가: [비공개]',
   },
   {
-    id: 'cmp-003',
-    tableId: 'vt-009',
-    columnName: 'UNIT_PRICE',
-    columnDisplayName: '단가',
-    sensitivity: 'medium',
-    maskingRules: [
-      { role: 'Super Admin', maskingType: 'full',    maskingExample: '125,000' },
-      { role: 'Data Manager', maskingType: 'full',    maskingExample: '125,000' },
-      { role: 'Viewer',       maskingType: 'partial', maskingExample: '***,000' },
-    ],
+    id: 'cls-05',
+    category: 'vendor_contact',
+    categoryName: '거래처 연락처',
+    targetViews: 'view_ap_cust_pay_master, view_sl_cust_sales_emp',
+    maskingRule: '전화번호 뒷자리 마스킹',
+    exposedRoles: ['ROLE_SALES_MGR', 'ROLE_FIN_ADMIN'],
+    maskedRoles: 'ROLE_VIEWER, ROLE_DEPT_MGR',
+    resultExample: '010-****-5678',
   },
   {
-    id: 'cmp-004',
-    tableId: 'vt-006',
-    columnName: 'CONTACT_NO',
-    columnDisplayName: '연락처',
-    sensitivity: 'medium',
-    maskingRules: [
-      { role: 'Super Admin', maskingType: 'full',    maskingExample: '010-1234-5678' },
-      { role: 'Data Manager', maskingType: 'partial', maskingExample: '010-****-5678' },
-      { role: 'Viewer',       maskingType: 'hidden',  maskingExample: '●●●●●●●●●●●●' },
-    ],
+    id: 'cls-06',
+    category: 'employee_pii',
+    categoryName: '사원 개인정보',
+    targetViews: 'view_hr_admin_order_emp',
+    maskingRule: '주소/연락처/가족 은닉',
+    exposedRoles: ['ROLE_HR_ADMIN'],
+    maskedRoles: '기타 전체',
+    resultExample: '주소: [비공개]',
   },
 ];
 
-// --- Helpers ---
+// ============================================================================
+// Masking Helpers (유지)
+// ============================================================================
 
 const MASKING_EXAMPLES: Record<string, Record<MaskingType, string>> = {
-  SALARY_AMT:  { full: '3,500,000',       partial: '***0,000',       hidden: '●●●●●●●' },
-  BONUS_AMT:   { full: '1,200,000',       partial: '***0,000',       hidden: '●●●●●●●' },
-  UNIT_PRICE:  { full: '125,000',         partial: '***,000',        hidden: '●●●●●●●' },
-  CONTACT_NO:  { full: '010-1234-5678',   partial: '010-****-5678',  hidden: '●●●●●●●●●●●●' },
+  salary_bonus:   { full: '3,500,000',       partial: '***0,000',       hidden: '●●●●●●●' },
+  ssn:            { full: '900101-1234567',   partial: '900101-*******', hidden: '●●●●●●●●●●●●●●' },
+  bank_account:   { full: '110-234-567890',   partial: '110-***-***890', hidden: '●●●●●●●●●●●●●' },
+  unit_cost:      { full: '125,000',          partial: '[비공개]',       hidden: '●●●●●●●' },
+  vendor_contact: { full: '010-1234-5678',    partial: '010-****-5678',  hidden: '●●●●●●●●●●●●' },
+  employee_pii:   { full: '서울시 강남구...', partial: '[일부 비공개]',   hidden: '[비공개]' },
 };
 
-export function getMaskingExample(columnName: string, maskingType: MaskingType): string {
-  return MASKING_EXAMPLES[columnName]?.[maskingType] ?? (maskingType === 'hidden' ? '●●●●●●●' : '***');
+export function getMaskingExample(category: string, maskingType: MaskingType): string {
+  return MASKING_EXAMPLES[category]?.[maskingType] ?? (maskingType === 'hidden' ? '●●●●●●●' : '***');
 }
 
 export const MASKING_TYPE_LABELS: Record<MaskingType, string> = {
@@ -149,3 +222,120 @@ export const MASKING_TYPE_LABELS: Record<MaskingType, string> = {
   partial: '부분 마스킹',
   hidden: '완전 숨김',
 };
+
+export const SENSITIVE_CATEGORY_LABELS: Record<SensitiveColumnCategory, string> = {
+  salary_bonus: '급여/상여 금액',
+  ssn: '주민등록번호',
+  bank_account: '계좌번호',
+  unit_cost: '단가/원가',
+  vendor_contact: '거래처 연락처',
+  employee_pii: '사원 개인정보',
+};
+
+// ============================================================================
+// Conflict Resolution Engine (시트 ⑦)
+// ============================================================================
+
+const ACCESS_PRIORITY: Record<AccessLevel, number> = {
+  full: 4,
+  dept_restricted: 3,
+  summary_only: 2,
+  column_masked: 1,
+  no_access: 0,
+};
+
+const SCOPE_PRIORITY: Record<DataScopeType, number> = {
+  All: 7,
+  Division: 6,
+  Plant: 5,
+  'Plant+Line': 4,
+  Warehouse: 3,
+  Project: 3,
+  Department: 2,
+  Self: 1,
+};
+
+export function resolveEffectivePolicy(
+  roles: DomainRole[],
+  accessMatrix: Record<DomainRole, Record<string, AccessLevel>>,
+  rlsRules: DomainRowFilterRule[],
+  maskPolicies: DomainColumnMaskPolicy[],
+): ResolvedEffectivePolicy {
+  // 1. Subcategory access: union — highest access wins
+  const subcategoryAccess: Record<string, AccessLevel> = {};
+  for (const role of roles) {
+    const roleAccess = accessMatrix[role];
+    if (!roleAccess) continue;
+    for (const [subcatId, level] of Object.entries(roleAccess)) {
+      const current = subcategoryAccess[subcatId];
+      if (!current || ACCESS_PRIORITY[level] > ACCESS_PRIORITY[current]) {
+        subcategoryAccess[subcatId] = level;
+      }
+    }
+  }
+
+  // 2. RLS: wider scope wins + filter OR-union
+  let rowScope: DataScopeType = 'Self';
+  const rowFilters: string[] = [];
+  for (const role of roles) {
+    const rule = rlsRules.find(r => r.role === role);
+    if (!rule) continue;
+
+    // Find role scope from definition
+    const roleDef = getRoleScopeMap()[role];
+    if (roleDef && SCOPE_PRIORITY[roleDef] > SCOPE_PRIORITY[rowScope]) {
+      rowScope = roleDef;
+    }
+
+    if (rule.filterBase !== 'none' && rule.sqlWherePattern.startsWith('WHERE')) {
+      rowFilters.push(rule.sqlWherePattern);
+    }
+  }
+
+  // 3. Column masking: expose wins over masked
+  const columnMasking: Record<SensitiveColumnCategory, MaskingType> = {
+    salary_bonus: 'hidden',
+    ssn: 'hidden',
+    bank_account: 'hidden',
+    unit_cost: 'hidden',
+    vendor_contact: 'hidden',
+    employee_pii: 'hidden',
+  };
+
+  for (const policy of maskPolicies) {
+    const hasExposedRole = roles.some(r => policy.exposedRoles.includes(r));
+    if (hasExposedRole) {
+      columnMasking[policy.category] = 'full';
+    } else {
+      // Keep as hidden (default)
+      columnMasking[policy.category] = 'hidden';
+    }
+  }
+
+  // 4. Audit warning: HR_ADMIN + non-HR role
+  const hasHrAdmin = roles.includes('ROLE_HR_ADMIN');
+  const hasNonHrRole = roles.some(r => r !== 'ROLE_HR_ADMIN' && r !== 'ROLE_HR_USER');
+  const auditWarning = hasHrAdmin && hasNonHrRole;
+
+  return { subcategoryAccess, rowScope, rowFilters, columnMasking, auditWarning };
+}
+
+function getRoleScopeMap(): Record<DomainRole, DataScopeType> {
+  return {
+    ROLE_SYS_ADMIN: 'All',
+    ROLE_FIN_ADMIN: 'All',
+    ROLE_FIN_USER: 'Department',
+    ROLE_SALES_MGR: 'Division',
+    ROLE_SALES_USER: 'Department',
+    ROLE_PURCH_USER: 'Department',
+    ROLE_PROD_MGR: 'Plant',
+    ROLE_PROD_USER: 'Plant+Line',
+    ROLE_LOG_USER: 'Warehouse',
+    ROLE_PJT_MGR: 'Project',
+    ROLE_HR_ADMIN: 'All',
+    ROLE_HR_USER: 'Department',
+    ROLE_EXEC: 'All',
+    ROLE_DEPT_MGR: 'Department',
+    ROLE_VIEWER: 'Self',
+  };
+}

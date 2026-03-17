@@ -1,226 +1,440 @@
-import React, { useState, useMemo } from 'react';
-import { Filter, Plus, X, Code } from '../../../icons';
-import { Badge } from '../../../ui/badge';
+import { useState, useMemo, useCallback } from 'react';
+import { Edit2, Plus, Search, Trash2 } from '../../../icons';
 import { Button } from '../../../ui/button';
-import { Checkbox } from '../../../ui/checkbox';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '../../../ui/popover';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../../ui/table';
-import type { OrgUnit, RowFilterRule, UserRole, OrgAttributeType } from '../../../../types';
-import { ORG_ATTRIBUTE_TYPES } from '../permissionSettingsData';
+import { Input } from '../../../ui/input';
+import { Label } from '../../../ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../ui/dialog';
+import type { DomainRowFilterRule, DomainRole, RlsFilterBase } from '../../../../types';
+import { DOMAIN_ROLES } from '../../../../types';
+import { ROLE_LABEL_MAP } from '../data/viewTableData';
 
-interface RowSecurityLayerProps {
-  orgUnits: OrgUnit[];
-  rules: RowFilterRule[];
-  onUpdateRule: (role: UserRole, attributeType: OrgAttributeType, orgUnitIds: string[]) => void;
-}
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
-const ROLES: UserRole[] = ['Super Admin', 'Data Manager', 'Viewer'];
+const RLS_FILTER_BASE_OPTIONS: RlsFilterBase[] = [
+  'dept_code', 'division_code', 'sales_dept_code', 'plant_code',
+  'plant_line_code', 'wh_code', 'project_code', 'user_id', 'none',
+];
 
-const ATTR_COLUMN_MAP: Record<OrgAttributeType, string> = {
-  '부서코드': 'DEPT_CD',
-  '사업영역': 'BIZ_AREA',
-  '법인코드': 'COMP_CD',
+const FILTER_BASE_STYLES: Record<RlsFilterBase, { bg: string; text: string; border: string; label: string }> = {
+  dept_code:       { bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-200',   label: 'dept_code' },
+  division_code:   { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', label: 'division_code' },
+  sales_dept_code: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', label: 'sales_dept_code' },
+  plant_code:      { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', label: 'plant_code' },
+  plant_line_code: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', label: 'plant_line_code' },
+  wh_code:         { bg: 'bg-teal-50',   text: 'text-teal-700',   border: 'border-teal-200',   label: 'wh_code' },
+  project_code:    { bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200',  label: 'project_code' },
+  user_id:         { bg: 'bg-gray-100',  text: 'text-gray-700',   border: 'border-gray-300',   label: 'user_id' },
+  none:            { bg: 'bg-gray-50',   text: 'text-gray-500',   border: 'border-gray-200',   label: 'none' },
 };
 
-function OrgUnitCell({
-  role,
-  attributeType,
-  rule,
-  orgUnits,
-  onUpdate,
-}: {
-  role: UserRole;
-  attributeType: OrgAttributeType;
-  rule: RowFilterRule | undefined;
-  orgUnits: OrgUnit[];
-  onUpdate: (orgUnitIds: string[]) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const availableUnits = orgUnits.filter(u => u.type === attributeType);
-  const selectedIds = rule?.allowedOrgUnitIds ?? [];
-  const selectedUnits = availableUnits.filter(u => selectedIds.includes(u.id));
+// ---------------------------------------------------------------------------
+// Form state
+// ---------------------------------------------------------------------------
 
-  const isAllSelected = selectedIds.length === availableUnits.length && availableUnits.length > 0;
-  const isViewerAutoApply = role === 'Viewer' && selectedIds.length === 0;
+interface EditFormState {
+  role: DomainRole | '';
+  filterBase: RlsFilterBase | '';
+  filterColumn: string;
+  targetViewGroups: string;
+  sqlWherePattern: string;
+  example: string;
+  note: string;
+}
 
-  const handleToggle = (unitId: string) => {
-    const newIds = selectedIds.includes(unitId)
-      ? selectedIds.filter(id => id !== unitId)
-      : [...selectedIds, unitId];
-    onUpdate(newIds);
-  };
+const EMPTY_FORM: EditFormState = {
+  role: '',
+  filterBase: '',
+  filterColumn: '',
+  targetViewGroups: '',
+  sqlWherePattern: '',
+  example: '',
+  note: '',
+};
 
-  const handleSelectAll = () => {
-    if (isAllSelected) {
-      onUpdate([]);
-    } else {
-      onUpdate(availableUnits.map(u => u.id));
-    }
-  };
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
-  // WHERE 절 미리보기
-  const columnName = ATTR_COLUMN_MAP[attributeType];
-  const whereClause = selectedIds.length > 0
-    ? `WHERE ${columnName} IN (${selectedUnits.map(u => `'${u.code}'`).join(', ')})`
-    : null;
+interface RowSecurityLayerProps {
+  rules: DomainRowFilterRule[];
+  onRulesChange: (rules: DomainRowFilterRule[]) => void;
+  roleLabelMap: Record<string, string>;
+}
 
+// ---------------------------------------------------------------------------
+// FilterBaseBadge
+// ---------------------------------------------------------------------------
+
+function FilterBaseBadge({ filterBase }: { filterBase: RlsFilterBase }) {
+  const style = FILTER_BASE_STYLES[filterBase];
   return (
-    <TableCell className="px-4 py-3">
-      <div className="flex flex-wrap items-center gap-1.5">
-        {isAllSelected && (
-          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-            전체 허용
-          </Badge>
-        )}
-
-        {isViewerAutoApply && (
-          <span className="text-xs text-gray-400 italic">소속 기준 자동</span>
-        )}
-
-        {!isAllSelected && selectedUnits.map(unit => (
-          <Badge key={unit.id} variant="outline" className="text-xs font-medium">
-            {unit.name}
-          </Badge>
-        ))}
-
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-gray-400 hover:text-blue-600"
-            >
-              <Plus size={14} />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
-            <div className="p-3 border-b border-gray-100">
-              <p className="text-xs font-bold text-gray-500 uppercase">
-                {attributeType} 선택
-              </p>
-            </div>
-            <div className="p-2 space-y-1">
-              {/* 전체 선택 */}
-              <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
-                <Checkbox
-                  checked={isAllSelected}
-                  onCheckedChange={handleSelectAll}
-                />
-                <span className="text-sm font-medium text-gray-700">전체 선택</span>
-              </label>
-              <div className="border-t border-gray-100 my-1" />
-              {availableUnits.map(unit => (
-                <label
-                  key={unit.id}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer"
-                >
-                  <Checkbox
-                    checked={selectedIds.includes(unit.id)}
-                    onCheckedChange={() => handleToggle(unit.id)}
-                  />
-                  <div className="flex-1">
-                    <span className="text-sm text-gray-700">{unit.name}</span>
-                    <span className="text-xs text-gray-400 ml-1.5">{unit.code}</span>
-                  </div>
-                </label>
-              ))}
-            </div>
-
-            {/* WHERE 절 미리보기 */}
-            {whereClause && (
-              <div className="p-3 border-t border-gray-100 bg-gray-50">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Code size={12} className="text-gray-400" />
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Generated Filter</span>
-                </div>
-                <code className="text-[11px] text-blue-700 font-mono break-all leading-relaxed">
-                  {whereClause}
-                </code>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
-      </div>
-    </TableCell>
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium border ${style.bg} ${style.text} ${style.border}`}
+    >
+      {style.label}
+    </span>
   );
 }
 
-export function RowSecurityLayer({ orgUnits, rules, onUpdateRule }: RowSecurityLayerProps) {
-  const ruleMap = useMemo(() => {
-    const map: Record<string, RowFilterRule> = {};
-    for (const rule of rules) {
-      map[`${rule.role}__${rule.attributeType}`] = rule;
-    }
-    return map;
-  }, [rules]);
+// ---------------------------------------------------------------------------
+// SqlPreview — collapsible SQL block
+// ---------------------------------------------------------------------------
+
+function SqlPreview({ pattern }: { pattern: string }) {
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2 mb-1">
-          <Filter size={16} className="text-gray-400" />
-          <span className="text-sm font-bold text-gray-900">행 수준 보안 규칙</span>
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setExpanded(prev => !prev)}
+        className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+      >
+        <span className="font-medium">{expanded ? '접기' : 'SQL 조건 보기'}</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`transition-transform duration-150 ${expanded ? 'rotate-180' : ''}`}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {expanded && (
+        <pre className="mt-2 bg-gray-900 text-green-400 p-3 rounded font-mono text-xs overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
+          {pattern}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// RuleCard — single RLS rule card with edit/delete buttons
+// ---------------------------------------------------------------------------
+
+interface RuleCardProps {
+  rule: DomainRowFilterRule;
+  roleLabelMap: Record<string, string>;
+  onEdit: (rule: DomainRowFilterRule) => void;
+  onDelete: (id: string) => void;
+}
+
+function RuleCard({ rule, roleLabelMap, onEdit, onDelete }: RuleCardProps) {
+  const roleLabel = roleLabelMap[rule.role] ?? rule.role;
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-4 shadow-sm bg-white">
+      {/* Card header */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm font-semibold text-gray-900 truncate">{roleLabel}</span>
+          <FilterBaseBadge filterBase={rule.filterBase} />
         </div>
-        <p className="text-xs text-gray-500">
-          SAP 파생 역할 + Snowflake 매핑 테이블 패턴: 역할별 조직 속성(부서/사업영역/법인) 기반 WHERE 조건 자동 삽입
-        </p>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => onEdit(rule)}
+            className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+            title="편집"
+          >
+            <Edit2 size={13} />
+          </button>
+          <button
+            onClick={() => onDelete(rule.id)}
+            className="text-gray-400 hover:text-red-600 transition-colors p-1"
+            title="삭제"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-gray-50 hover:bg-gray-50">
-            <TableHead className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider w-40">
-              역할
-            </TableHead>
-            {ORG_ATTRIBUTE_TYPES.map(attr => (
-              <TableHead key={attr} className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <div>
-                  {attr}
-                  <span className="block text-[10px] font-mono text-gray-400 font-normal mt-0.5">
-                    {ATTR_COLUMN_MAP[attr]}
-                  </span>
-                </div>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {ROLES.map(role => (
-            <TableRow key={role}>
-              <TableCell className="px-4 py-3 font-medium text-gray-900 text-sm">
-                {role}
-              </TableCell>
-              {ORG_ATTRIBUTE_TYPES.map(attr => (
-                <OrgUnitCell
-                  key={`${role}__${attr}`}
-                  role={role}
-                  attributeType={attr}
-                  rule={ruleMap[`${role}__${attr}`]}
-                  orgUnits={orgUnits}
-                  onUpdate={(ids) => onUpdateRule(role, attr, ids)}
-                />
-              ))}
-            </TableRow>
+      {/* Card body */}
+      <dl className="space-y-1.5 text-xs">
+        <div className="flex gap-2">
+          <dt className="w-20 shrink-0 text-gray-500 font-medium">필터 컬럼</dt>
+          <dd className="text-gray-800 font-mono">{rule.filterColumn}</dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="w-20 shrink-0 text-gray-500 font-medium">적용 대상</dt>
+          <dd className="text-gray-800">{rule.targetViewGroups}</dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="w-20 shrink-0 text-gray-500 font-medium">예시</dt>
+          <dd className="text-gray-800">{rule.example}</dd>
+        </div>
+        {rule.note && (
+          <div className="flex gap-2">
+            <dt className="w-20 shrink-0 text-gray-500 font-medium">비고</dt>
+            <dd className="text-gray-600 italic">{rule.note}</dd>
+          </div>
+        )}
+      </dl>
+
+      {/* SQL collapsible */}
+      <SqlPreview pattern={rule.sqlWherePattern} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Public component
+// ---------------------------------------------------------------------------
+
+export function RowSecurityLayer({ rules, onRulesChange, roleLabelMap }: RowSecurityLayerProps) {
+  const [searchText, setSearchText] = useState('');
+  const [editTarget, setEditTarget] = useState<EditFormState | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null); // null = create mode
+
+  // Filtered list
+  const filtered = useMemo(() => {
+    if (!searchText.trim()) return rules;
+    const q = searchText.toLowerCase();
+    return rules.filter(r =>
+      (roleLabelMap[r.role] ?? r.role).toLowerCase().includes(q) ||
+      r.filterBase.toLowerCase().includes(q) ||
+      r.filterColumn.toLowerCase().includes(q) ||
+      r.targetViewGroups.toLowerCase().includes(q),
+    );
+  }, [rules, searchText, roleLabelMap]);
+
+  const openCreate = useCallback(() => {
+    setEditTarget(structuredClone(EMPTY_FORM));
+    setEditingId(null);
+  }, []);
+
+  const openEdit = useCallback((rule: DomainRowFilterRule) => {
+    setEditTarget({
+      role: rule.role,
+      filterBase: rule.filterBase,
+      filterColumn: rule.filterColumn,
+      targetViewGroups: rule.targetViewGroups,
+      sqlWherePattern: rule.sqlWherePattern,
+      example: rule.example,
+      note: rule.note ?? '',
+    });
+    setEditingId(rule.id);
+  }, []);
+
+  const closeDialog = useCallback(() => {
+    setEditTarget(null);
+    setEditingId(null);
+  }, []);
+
+  const updateField = useCallback(
+    <K extends keyof EditFormState>(field: K, value: EditFormState[K]) => {
+      setEditTarget(prev => (prev ? { ...prev, [field]: value } : prev));
+    },
+    [],
+  );
+
+  const handleSave = useCallback(() => {
+    if (!editTarget || !editTarget.role || !editTarget.filterBase) return;
+
+    const built: DomainRowFilterRule = {
+      id: editingId ?? `RLS-${String(Date.now()).slice(-4)}`,
+      role: editTarget.role as DomainRole,
+      filterBase: editTarget.filterBase as RlsFilterBase,
+      filterColumn: editTarget.filterColumn,
+      targetViewGroups: editTarget.targetViewGroups,
+      sqlWherePattern: editTarget.sqlWherePattern,
+      example: editTarget.example,
+      ...(editTarget.note ? { note: editTarget.note } : {}),
+    };
+
+    if (editingId === null) {
+      onRulesChange([...rules, built]);
+    } else {
+      onRulesChange(rules.map(r => (r.id === editingId ? built : r)));
+    }
+    closeDialog();
+  }, [editTarget, editingId, rules, onRulesChange, closeDialog]);
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      const rule = rules.find(r => r.id === id);
+      if (!rule) return;
+      const label = roleLabelMap[rule.role] ?? rule.role;
+      if (!confirm(`"${label}" 규칙을 삭제하시겠습니까?`)) return;
+      onRulesChange(rules.filter(r => r.id !== id));
+    },
+    [rules, roleLabelMap, onRulesChange],
+  );
+
+  const isCreateMode = editingId === null;
+  const isFormValid = !!editTarget?.role && !!editTarget?.filterBase;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="text-sm font-bold text-gray-900">행 보안 규칙 관리</h4>
+          <p className="text-xs text-gray-500 mt-0.5">{rules.length}개 RLS 규칙</p>
+        </div>
+        <Button
+          size="sm"
+          className="bg-[#1A1A1A] hover:bg-black text-white gap-1"
+          onClick={openCreate}
+        >
+          <Plus size={14} /> 규칙 추가
+        </Button>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Input
+          placeholder="역할, 필터 기준, 필터 컬럼, 적용 대상 검색"
+          value={searchText}
+          onChange={e => setSearchText(e.target.value)}
+          className="pl-9 h-9 text-sm"
+        />
+      </div>
+
+      {/* Card grid */}
+      {filtered.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {filtered.map(rule => (
+            <RuleCard
+              key={rule.id}
+              rule={rule}
+              roleLabelMap={roleLabelMap}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+            />
           ))}
-        </TableBody>
-      </Table>
+        </div>
+      ) : (
+        <div className="py-12 text-center text-sm text-gray-400">
+          {searchText ? '검색 결과가 없습니다.' : '등록된 RLS 규칙이 없습니다.'}
+        </div>
+      )}
 
-      <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
-        <p className="text-[11px] text-gray-400">
-          * 속성 값이 비어있으면 해당 조직 수준은 필터링 없음 (전체 허용). Viewer 역할은 로그인 사용자 소속 기준 자동 적용.
-        </p>
-      </div>
+      {/* Create / Edit Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={open => { if (!open) closeDialog(); }}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>{isCreateMode ? '새 RLS 규칙 추가' : 'RLS 규칙 편집'}</DialogTitle>
+          </DialogHeader>
+
+          {editTarget && (
+            <div className="space-y-4 pt-2">
+              {/* Row 1: 역할, 필터 기준 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-gray-500 uppercase">역할</Label>
+                  <select
+                    value={editTarget.role}
+                    onChange={e => updateField('role', e.target.value as DomainRole)}
+                    className="w-full h-9 text-sm border border-gray-200 rounded-md px-3 bg-white"
+                  >
+                    <option value="">역할 선택</option>
+                    {DOMAIN_ROLES.map(r => (
+                      <option key={r} value={r}>
+                        {ROLE_LABEL_MAP[r] ?? r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-gray-500 uppercase">필터 기준</Label>
+                  <select
+                    value={editTarget.filterBase}
+                    onChange={e => updateField('filterBase', e.target.value as RlsFilterBase)}
+                    className="w-full h-9 text-sm border border-gray-200 rounded-md px-3 bg-white"
+                  >
+                    <option value="">기준 선택</option>
+                    {RLS_FILTER_BASE_OPTIONS.map(fb => (
+                      <option key={fb} value={fb}>{fb}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: 필터 컬럼, 적용 대상 뷰 그룹 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-gray-500 uppercase">필터 컬럼</Label>
+                  <Input
+                    value={editTarget.filterColumn}
+                    onChange={e => updateField('filterColumn', e.target.value)}
+                    placeholder="예: dept_code"
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-gray-500 uppercase">적용 대상 뷰 그룹</Label>
+                  <Input
+                    value={editTarget.targetViewGroups}
+                    onChange={e => updateField('targetViewGroups', e.target.value)}
+                    placeholder="예: 회계, 영업, 인사"
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: SQL WHERE 패턴 */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-gray-500 uppercase">SQL WHERE 패턴</Label>
+                <textarea
+                  value={editTarget.sqlWherePattern}
+                  onChange={e => updateField('sqlWherePattern', e.target.value)}
+                  rows={3}
+                  className="w-full text-sm border border-gray-200 rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent font-mono"
+                  placeholder="예: dept_code = :userDeptCode"
+                />
+              </div>
+
+              {/* Row 4: 예시, 비고 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-gray-500 uppercase">예시</Label>
+                  <Input
+                    value={editTarget.example}
+                    onChange={e => updateField('example', e.target.value)}
+                    placeholder="예: 재무팀(F100)만"
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-gray-500 uppercase">비고</Label>
+                  <Input
+                    value={editTarget.note}
+                    onChange={e => updateField('note', e.target.value)}
+                    placeholder="선택 사항"
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" size="sm" onClick={closeDialog}>
+                  취소
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-[#1A1A1A] hover:bg-black text-white"
+                  onClick={handleSave}
+                  disabled={!isFormValid}
+                >
+                  {isCreateMode ? '추가' : '저장'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

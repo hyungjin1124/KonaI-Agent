@@ -1,151 +1,471 @@
-import React, { useState, useMemo } from 'react';
-import { Database, Check, Minus } from '../../../icons';
-import { Badge } from '../../../ui/badge';
-import { Checkbox } from '../../../ui/checkbox';
-import type { ErpViewTable, TableAccessPolicy, UserRole } from '../../../../types';
-import { TABLE_CATEGORIES } from '../permissionSettingsData';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Info } from '../../../icons';
+import { Popover, PopoverTrigger, PopoverContent } from '../../../ui/popover';
+import type { DomainRole, AccessLevel, DomainAccessMatrix, ModuleCode } from '../../../../types';
+import {
+  VIEW_SUBCATEGORIES,
+  MODULE_DEFINITIONS,
+  ROLE_DEFINITIONS,
+  ROLE_SHORT_LABEL_MAP,
+  SENSITIVITY_DISPLAY,
+} from '../data/viewTableData';
+import { AccessMatrixCell } from './AccessMatrixCell';
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface TableAccessLayerProps {
-  tables: ErpViewTable[];
-  policies: TableAccessPolicy[];
-  onToggle: (role: UserRole, tableId: string) => void;
+  accessMatrix: DomainAccessMatrix[];
+  modifiedCells: Set<string>;
+  onToggleAccess: (role: DomainRole, subcategoryId: string, newLevel: AccessLevel) => void;
+  onResetToDefault: () => void;
 }
 
-const ROLES: UserRole[] = ['Super Admin', 'Data Manager', 'Viewer'];
+// Role order as defined in viewTableData
+const ROLE_ORDER: DomainRole[] = ROLE_DEFINITIONS.map(r => r.role);
 
-const ROLE_STYLES: Record<UserRole, { active: string; idle: string }> = {
-  'Super Admin': {
-    active: 'bg-purple-50 border-purple-200 text-purple-900',
-    idle: 'bg-white border-gray-200 text-gray-700 hover:border-gray-300',
-  },
-  'Data Manager': {
-    active: 'bg-blue-50 border-blue-200 text-blue-900',
-    idle: 'bg-white border-gray-200 text-gray-700 hover:border-gray-300',
-  },
-  'Viewer': {
-    active: 'bg-gray-100 border-gray-300 text-gray-900',
-    idle: 'bg-white border-gray-200 text-gray-700 hover:border-gray-300',
-  },
-};
+// ============================================================================
+// Helpers
+// ============================================================================
 
-export function TableAccessLayer({ tables, policies, onToggle }: TableAccessLayerProps) {
-  const [selectedRole, setSelectedRole] = useState<UserRole>('Data Manager');
+function getAccessLevel(
+  accessMatrix: DomainAccessMatrix[],
+  role: DomainRole,
+  subcategoryId: string,
+): AccessLevel {
+  const entry = accessMatrix.find(m => m.role === role);
+  return entry?.subcategoryAccess[subcategoryId] ?? 'no_access';
+}
 
-  const currentPolicy = policies.find(p => p.role === selectedRole);
-  const allowedSet = useMemo(
-    () => new Set(currentPolicy?.allowedTableIds ?? []),
-    [currentPolicy],
+function getTotalViewCount(moduleCode: ModuleCode): number {
+  return VIEW_SUBCATEGORIES.filter(s => s.moduleCode === moduleCode).reduce(
+    (sum, s) => sum + s.viewCount,
+    0,
   );
+}
 
-  const tablesByCategory = useMemo(() => {
-    const grouped: Record<string, ErpViewTable[]> = {};
-    for (const cat of TABLE_CATEGORIES) {
-      grouped[cat] = tables.filter(t => t.category === cat);
-    }
-    return grouped;
-  }, [tables]);
+// ============================================================================
+// Filter Bar
+// ============================================================================
 
-  const handleCategoryToggle = (category: string) => {
-    const categoryTables = tablesByCategory[category];
-    const allChecked = categoryTables.every(t => allowedSet.has(t.id));
-    for (const t of categoryTables) {
-      if (allChecked) {
-        if (allowedSet.has(t.id)) onToggle(selectedRole, t.id);
-      } else {
-        if (!allowedSet.has(t.id)) onToggle(selectedRole, t.id);
-      }
-    }
-  };
+const SENSITIVITY_CRITERIA = [
+  { level: '매우높음', criteria: '개인정보보호법 직접 대상 (식별+민감정보)', examples: '급여명세, 주민번호, 계좌번호' },
+  { level: '높음', criteria: '미공시 재무정보 또는 원가/단가 등 영업비밀', examples: '재무제표, 원가분석, 수익성, 세무, 연결재무' },
+  { level: '중간', criteria: '부서 간 접근 제한이 필요한 업무 데이터', examples: '영업실적, 예산, 구매발주, 프로젝트 비용' },
+  { level: '낮음', criteria: '공개되어도 리스크가 거의 없는 데이터', examples: '환율, 재고현황, 창고 재고' },
+] as const;
 
-  const getCategoryState = (category: string): boolean | 'indeterminate' => {
-    const categoryTables = tablesByCategory[category];
-    const checkedCount = categoryTables.filter(t => allowedSet.has(t.id)).length;
-    if (checkedCount === 0) return false;
-    if (checkedCount === categoryTables.length) return true;
-    return 'indeterminate';
-  };
+const SENSITIVITY_OPTIONS = ['매우높음', '높음', '중간', '낮음'] as const;
+type SensitivityOption = (typeof SENSITIVITY_OPTIONS)[number];
 
-  const totalAllowed = allowedSet.size;
-  const totalTables = tables.length;
+interface FilterBarProps {
+  moduleFilter: ModuleCode | 'ALL';
+  onModuleFilterChange: (v: ModuleCode | 'ALL') => void;
+  sensitivityFilter: Set<SensitivityOption>;
+  onSensitivityChange: (v: SensitivityOption) => void;
+  searchText: string;
+  onSearchChange: (v: string) => void;
+  modifiedCount: number;
+  onResetToDefault: () => void;
+}
 
+function FilterBar({
+  moduleFilter,
+  onModuleFilterChange,
+  sensitivityFilter,
+  onSensitivityChange,
+  searchText,
+  onSearchChange,
+  modifiedCount,
+  onResetToDefault,
+}: FilterBarProps) {
   return (
-    <div className="flex gap-6">
-      {/* Role Selector */}
-      <div className="w-56 shrink-0 space-y-2">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">역할 선택</p>
-        {ROLES.map(role => {
-          const isActive = role === selectedRole;
-          const rolePolicy = policies.find(p => p.role === role);
-          const count = rolePolicy?.allowedTableIds.length ?? 0;
-          return (
-            <button
-              key={role}
-              onClick={() => setSelectedRole(role)}
-              className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                isActive ? ROLE_STYLES[role].active : ROLE_STYLES[role].idle
-              }`}
-            >
-              <div className="text-sm font-bold">{role}</div>
-              <div className="text-xs mt-0.5 opacity-70">{count}/{totalTables} 테이블</div>
-            </button>
-          );
-        })}
+    <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
+      {/* Module filter */}
+      <div className="flex items-center gap-1.5">
+        <label className="text-xs font-medium text-gray-500 whitespace-nowrap">모듈</label>
+        <select
+          value={moduleFilter}
+          onChange={e => onModuleFilterChange(e.target.value as ModuleCode | 'ALL')}
+          className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        >
+          <option value="ALL">전체</option>
+          {MODULE_DEFINITIONS.map(m => (
+            <option key={m.code} value={m.code}>
+              {m.code} — {m.name}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* Table List */}
-      <div className="flex-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Database size={16} className="text-gray-400" />
-            <span className="text-sm font-bold text-gray-900">{selectedRole}</span>
-            <span className="text-xs text-gray-500">의 테이블 접근 권한</span>
-          </div>
-          <Badge variant="outline" className="text-xs font-mono">
-            {totalAllowed} / {totalTables}
-          </Badge>
-        </div>
-
-        <div className="divide-y divide-gray-100">
-          {TABLE_CATEGORIES.map(category => {
-            const categoryState = getCategoryState(category);
-            const categoryTables = tablesByCategory[category];
+      {/* Sensitivity filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium text-gray-500">민감도</span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="민감도 기준 안내"
+            >
+              <Info size={13} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[440px] p-0" align="start" sideOffset={8}>
+            <div className="px-4 py-2.5 border-b border-gray-100">
+              <h4 className="text-xs font-bold text-gray-900">민감도 등급 기준</h4>
+            </div>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="text-left px-4 py-1.5 font-bold text-gray-500 w-20">등급</th>
+                  <th className="text-left px-4 py-1.5 font-bold text-gray-500">기준</th>
+                  <th className="text-left px-4 py-1.5 font-bold text-gray-500 w-40">예시</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SENSITIVITY_CRITERIA.map(row => {
+                  const display = SENSITIVITY_DISPLAY[row.level as keyof typeof SENSITIVITY_DISPLAY];
+                  return (
+                    <tr key={row.level} className="border-b border-gray-50 last:border-b-0">
+                      <td className="px-4 py-1.5">
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${display?.bgColor ?? ''} ${display?.color ?? ''}`}>
+                          {row.level}
+                        </span>
+                      </td>
+                      <td className="px-4 py-1.5 text-gray-700">{row.criteria}</td>
+                      <td className="px-4 py-1.5 text-gray-500">{row.examples}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </PopoverContent>
+        </Popover>
+        <div className="flex gap-1.5">
+          {SENSITIVITY_OPTIONS.map(opt => {
+            const display = SENSITIVITY_DISPLAY[opt];
+            const checked = sensitivityFilter.has(opt);
             return (
-              <div key={category}>
-                {/* Category Header */}
-                <div className="px-6 py-3 bg-gray-50 flex items-center gap-3">
-                  <Checkbox
-                    checked={categoryState}
-                    onCheckedChange={() => handleCategoryToggle(category)}
-                    className="data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground"
-                  />
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{category}</span>
-                  <span className="text-xs text-gray-400">
-                    ({categoryTables.filter(t => allowedSet.has(t.id)).length}/{categoryTables.length})
-                  </span>
-                </div>
-
-                {/* Table Rows */}
-                {categoryTables.map(table => (
-                  <label
-                    key={table.id}
-                    className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <Checkbox
-                      checked={allowedSet.has(table.id)}
-                      onCheckedChange={() => onToggle(selectedRole, table.id)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900">{table.displayName}</span>
-                        <span className="text-xs font-mono text-gray-400">{table.name}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{table.description}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
+              <label
+                key={opt}
+                className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border cursor-pointer select-none transition-colors ${
+                  checked
+                    ? `${display.bgColor} ${display.color} border-current`
+                    : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onSensitivityChange(opt)}
+                  className="sr-only"
+                />
+                {opt}
+              </label>
             );
           })}
+        </div>
+      </div>
+
+      {/* Search */}
+      <input
+        type="text"
+        placeholder="서브카테고리 검색..."
+        value={searchText}
+        onChange={e => onSearchChange(e.target.value)}
+        className="text-xs border border-gray-200 rounded px-2.5 py-1 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400 w-44"
+      />
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Modified indicator */}
+      {modifiedCount > 0 && (
+        <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+          변경 {modifiedCount}건
+        </span>
+      )}
+
+      {/* Reset button */}
+      <button
+        type="button"
+        onClick={onResetToDefault}
+        className="text-xs px-3 py-1.5 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+      >
+        기본값 복원
+      </button>
+    </div>
+  );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
+export function TableAccessLayer({
+  accessMatrix,
+  modifiedCells,
+  onToggleAccess,
+  onResetToDefault,
+}: TableAccessLayerProps) {
+  // Filter state
+  const [moduleFilter, setModuleFilter] = useState<ModuleCode | 'ALL'>('ALL');
+  const [sensitivityFilter, setSensitivityFilter] = useState<Set<SensitivityOption>>(
+    new Set(SENSITIVITY_OPTIONS),
+  );
+  const [searchText, setSearchText] = useState('');
+
+  // Collapse state — all modules start collapsed
+  const [collapsedModules, setCollapsedModules] = useState<Set<ModuleCode>>(
+    () => new Set(MODULE_DEFINITIONS.map(m => m.code)),
+  );
+
+  const toggleModule = useCallback((code: ModuleCode) => {
+    setCollapsedModules(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) {
+        next.delete(code);
+      } else {
+        next.add(code);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSensitivityChange = useCallback((opt: SensitivityOption) => {
+    setSensitivityFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(opt)) {
+        next.delete(opt);
+      } else {
+        next.add(opt);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleCellSelect = useCallback(
+    (role: DomainRole, subcategoryId: string, newLevel: AccessLevel) => {
+      onToggleAccess(role, subcategoryId, newLevel);
+    },
+    [onToggleAccess],
+  );
+
+  // Filtered subcategory ids per module
+  const filteredSubcatsByModule = useMemo(() => {
+    const result: Record<ModuleCode, typeof VIEW_SUBCATEGORIES> = {} as Record<
+      ModuleCode,
+      typeof VIEW_SUBCATEGORIES
+    >;
+    for (const mod of MODULE_DEFINITIONS) {
+      if (moduleFilter !== 'ALL' && mod.code !== moduleFilter) continue;
+
+      const subcats = VIEW_SUBCATEGORIES.filter(s => {
+        if (s.moduleCode !== mod.code) return false;
+        if (!sensitivityFilter.has(s.sensitivityLevel as SensitivityOption)) return false;
+        if (searchText.trim()) {
+          const q = searchText.trim().toLowerCase();
+          if (!s.subcategoryName.toLowerCase().includes(q)) return false;
+        }
+        return true;
+      });
+
+      if (subcats.length > 0) {
+        result[mod.code] = subcats;
+      }
+    }
+    return result;
+  }, [moduleFilter, sensitivityFilter, searchText]);
+
+  // Modules that survive the filter
+  const visibleModules = useMemo(
+    () => MODULE_DEFINITIONS.filter(m => filteredSubcatsByModule[m.code]?.length > 0),
+    [filteredSubcatsByModule],
+  );
+
+  const STICKY_LEFT_WIDTH = 'w-[320px] min-w-[320px]';
+  const CELL_WIDTH = 'w-14 min-w-[56px]';
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden border border-gray-200 rounded-xl bg-white shadow-sm">
+      <FilterBar
+        moduleFilter={moduleFilter}
+        onModuleFilterChange={setModuleFilter}
+        sensitivityFilter={sensitivityFilter}
+        onSensitivityChange={handleSensitivityChange}
+        searchText={searchText}
+        onSearchChange={setSearchText}
+        modifiedCount={modifiedCells.size}
+        onResetToDefault={onResetToDefault}
+      />
+
+      {/* Scrollable matrix area */}
+      <div className="flex-1 overflow-auto">
+        {/* Min-width wrapper so horizontal scroll works */}
+        <div className="w-fit min-w-full">
+
+          {/* ------------------------------------------------------------------ */}
+          {/* Sticky column header row                                            */}
+          {/* ------------------------------------------------------------------ */}
+          <div className="flex sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+            {/* Left sticky label area */}
+            <div
+              className={`${STICKY_LEFT_WIDTH} flex items-end sticky left-0 z-30 bg-white border-r border-gray-200`}
+            >
+              <div className="flex w-full">
+                <div className="flex-1 px-3 py-2 text-xs font-semibold text-gray-500 border-r border-gray-100">
+                  서브카테고리
+                </div>
+                <div className="w-12 px-1 py-2 text-xs font-semibold text-gray-500 text-center border-r border-gray-100">
+                  뷰수
+                </div>
+                <div className="w-16 px-1 py-2 text-xs font-semibold text-gray-500 text-center">
+                  민감도
+                </div>
+              </div>
+            </div>
+
+            {/* Role columns */}
+            <div className="flex">
+              {ROLE_ORDER.map(role => (
+                <div
+                  key={role}
+                  className={`${CELL_WIDTH} flex flex-col items-center justify-end pb-1.5 pt-2 border-r border-gray-100 last:border-r-0`}
+                  title={ROLE_DEFINITIONS.find(r => r.role === role)?.nameKo}
+                >
+                  <span
+                    className="text-[10px] font-semibold text-gray-600 leading-tight text-center"
+                    style={{ writingMode: 'horizontal-tb' }}
+                  >
+                    {ROLE_SHORT_LABEL_MAP[role]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ------------------------------------------------------------------ */}
+          {/* Module groups                                                        */}
+          {/* ------------------------------------------------------------------ */}
+          {visibleModules.length === 0 ? (
+            <div className="flex items-center justify-center py-16 text-sm text-gray-400">
+              조건에 맞는 서브카테고리가 없습니다.
+            </div>
+          ) : (
+            visibleModules.map(mod => {
+              const subcats = filteredSubcatsByModule[mod.code] ?? [];
+              const isCollapsed = collapsedModules.has(mod.code);
+              const totalViews = getTotalViewCount(mod.code);
+
+              return (
+                <div key={mod.code} className="border-b border-gray-100 last:border-b-0">
+                  {/* ---------------------------------------------------------- */}
+                  {/* Module header row                                           */}
+                  {/* ---------------------------------------------------------- */}
+                  <button
+                    type="button"
+                    onClick={() => toggleModule(mod.code)}
+                    className="flex w-full items-center text-left hover:bg-gray-100 transition-colors bg-gray-50 border-b border-gray-100"
+                    aria-expanded={!isCollapsed}
+                  >
+                    {/* Sticky left: module info */}
+                    <div
+                      className={`${STICKY_LEFT_WIDTH} sticky left-0 z-10 bg-gray-50 border-r border-gray-200 flex items-center gap-2 px-3 py-2`}
+                      style={{ backgroundClip: 'padding-box' }}
+                    >
+                      <span
+                        className={`text-gray-400 transition-transform duration-150 text-xs ${isCollapsed ? '' : 'rotate-90'}`}
+                      >
+                        ▶
+                      </span>
+                      <span className="text-xs font-bold text-gray-700 font-mono tracking-wide">
+                        {mod.code}
+                      </span>
+                      <span className="text-xs font-medium text-gray-600">{mod.name}</span>
+                      <span className="ml-auto text-[10px] text-gray-400">
+                        {subcats.length}개 · {totalViews}뷰
+                      </span>
+                    </div>
+
+                    {/* Right: empty cells area (visual only) */}
+                    <div className="flex">
+                      {ROLE_ORDER.map(role => (
+                        <div
+                          key={role}
+                          className={`${CELL_WIDTH} h-8 border-r border-gray-100 last:border-r-0 bg-gray-50`}
+                        />
+                      ))}
+                    </div>
+                  </button>
+
+                  {/* ---------------------------------------------------------- */}
+                  {/* Subcategory rows                                            */}
+                  {/* ---------------------------------------------------------- */}
+                  {!isCollapsed &&
+                    subcats.map((subcat, rowIdx) => {
+                      const sensitivityDisplay = SENSITIVITY_DISPLAY[subcat.sensitivityLevel];
+                      return (
+                        <div
+                          key={subcat.id}
+                          className={`flex items-center ${rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'} hover:bg-blue-50/30 transition-colors`}
+                        >
+                          {/* Sticky left: subcat info */}
+                          <div
+                            className={`${STICKY_LEFT_WIDTH} sticky left-0 z-10 border-r border-gray-200 flex items-center ${rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
+                            style={{ backgroundClip: 'padding-box' }}
+                          >
+                            {/* Subcategory name */}
+                            <div className="flex-1 px-3 py-1.5 border-r border-gray-100">
+                              <span className="text-xs text-gray-800 leading-tight">
+                                {subcat.subcategoryName}
+                              </span>
+                            </div>
+
+                            {/* View count badge */}
+                            <div className="w-12 flex items-center justify-center border-r border-gray-100">
+                              <span className="text-[10px] font-mono text-gray-500 bg-gray-100 rounded px-1 py-0.5">
+                                {subcat.viewCount}
+                              </span>
+                            </div>
+
+                            {/* Sensitivity badge */}
+                            <div className="w-16 flex items-center justify-center">
+                              <span
+                                className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${sensitivityDisplay.bgColor} ${sensitivityDisplay.color}`}
+                              >
+                                {sensitivityDisplay.label}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Access cells */}
+                          <div className="flex items-center">
+                            {ROLE_ORDER.map(role => {
+                              const level = getAccessLevel(accessMatrix, role, subcat.id);
+                              const isModified = modifiedCells.has(`${role}:${subcat.id}`);
+                              return (
+                                <div
+                                  key={role}
+                                  className={`${CELL_WIDTH} flex items-center justify-center py-1 border-r border-gray-100 last:border-r-0`}
+                                >
+                                  <AccessMatrixCell
+                                    level={level}
+                                    isModified={isModified}
+                                    onLevelSelect={(newLevel) => handleCellSelect(role, subcat.id, newLevel)}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
