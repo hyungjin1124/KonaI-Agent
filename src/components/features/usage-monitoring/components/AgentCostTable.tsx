@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Line, LineChart, ResponsiveContainer } from 'recharts';
+import { Line, LineChart, Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChevronDown, ChevronUp } from '../../../icons';
 import { ChartWidget } from '../../../shared/molecules/ChartWidget';
-import { AGENT_COST_DATA } from '../usageMonitoringData';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../ui/dialog';
+import { AGENT_COST_DATA, AGENT_DAILY_USAGE } from '../usageMonitoringData';
 import type { AgentCostBreakdown } from '../usageMonitoringData';
 
 type SortField = 'costUsd' | 'totalTokens' | 'activeUsers';
@@ -37,6 +38,7 @@ function SortIcon({ field, current, dir }: { field: SortField; current: SortFiel
 export function AgentCostTable() {
   const [sortField, setSortField] = useState<SortField>('costUsd');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [selectedAgent, setSelectedAgent] = useState<AgentCostBreakdown | null>(null);
 
   const sorted = useMemo(() => {
     return [...AGENT_COST_DATA].sort((a, b) => {
@@ -106,7 +108,7 @@ export function AgentCostTable() {
           </thead>
           <tbody>
             {sorted.map((agent: AgentCostBreakdown) => (
-              <tr key={agent.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+              <tr key={agent.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer" onClick={() => setSelectedAgent(agent)}>
                 <td className="py-2 px-2">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: agent.color }} />
@@ -125,6 +127,60 @@ export function AgentCostTable() {
           </tbody>
         </table>
       </div>
+
+      {/* Drilldown Dialog */}
+      <Dialog open={!!selectedAgent} onOpenChange={open => { if (!open) setSelectedAgent(null); }}>
+        <DialogContent className="sm:max-w-lg" data-testid="agent-drilldown-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedAgent && (
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedAgent.color }} />
+              )}
+              {selectedAgent?.name} — 일별 사용 이력
+            </DialogTitle>
+          </DialogHeader>
+          {selectedAgent && AGENT_DAILY_USAGE[selectedAgent.id] && (
+            <div className="space-y-4 pt-2">
+              {/* Summary */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <div className="text-[10px] text-gray-500 font-medium">총 토큰</div>
+                  <div className="text-sm font-bold text-gray-900">{formatTokens(selectedAgent.totalTokens)}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <div className="text-[10px] text-gray-500 font-medium">총 비용</div>
+                  <div className="text-sm font-bold text-gray-900">${selectedAgent.costUsd.toLocaleString()}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <div className="text-[10px] text-gray-500 font-medium">활성 사용자</div>
+                  <div className="text-sm font-bold text-gray-900">{selectedAgent.activeUsers}명</div>
+                </div>
+              </div>
+
+              {/* Daily Chart */}
+              <div>
+                <div className="text-xs font-bold text-gray-500 uppercase mb-2">일별 토큰 사용량 (최근 14일)</div>
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={AGENT_DAILY_USAGE[selectedAgent.id]}>
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                      <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatTokens(v)} width={50} />
+                      <Tooltip
+                        formatter={(value: number, name: string) => [
+                          name === 'tokens' ? formatTokens(value) : `$${value}`,
+                          name === 'tokens' ? '토큰' : '비용',
+                        ]}
+                        contentStyle={{ fontSize: 12 }}
+                      />
+                      <Bar dataKey="tokens" fill={selectedAgent.color} radius={[2, 2, 0, 0]} opacity={0.8} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </ChartWidget>
   );
 }

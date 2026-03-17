@@ -1,32 +1,20 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Search, Plus, Filter, Edit2, Trash2,
-  Shield, Users, Briefcase, Mail, Power, BarChart2, FileText, MessageSquare, Sparkles
+  Shield, Users, Briefcase, Power, BarChart2, FileText, MessageSquare, Sparkles
 } from './icons';
 import { UsageMonitoringView } from './features/usage-monitoring';
 import { AuditLogView } from './features/audit-log';
 import { FeedbackQualityView } from './features/feedback-quality';
 import { PromptManagementView } from './features/prompt-management';
 import { PermissionSettingsView } from './features/permission-settings';
-import { User, UserRole, UserStatus } from '../types';
+import { UserFormModal, MOCK_ENHANCED_USERS as USER_MGMT_USERS } from './features/user-management';
+import { EnhancedUser, DomainRole, UserStatus } from '../types';
+import { ROLE_LABEL_MAP } from './features/permission-settings/data/viewTableData';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from './ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
 import {
   Table,
   TableBody,
@@ -41,17 +29,6 @@ import {
   TabsList,
   TabsTrigger,
 } from './ui/tabs';
-
-// --- Mock Data ---
-
-const MOCK_USERS: User[] = [
-  { id: '1', name: '홍길동', email: 'gildong.hong@konai.com', department: '전략기획실', role: 'Super Admin', status: 'Active', lastLogin: '2025-12-28 09:30', avatarColor: '#FF3C42' },
-  { id: '2', name: '김철수', email: 'cs.kim@konai.com', department: 'DID사업부', role: 'Data Manager', status: 'Active', lastLogin: '2025-12-27 18:00', avatarColor: '#3B82F6' },
-  { id: '3', name: '이영희', email: 'yh.lee@konai.com', department: '플랫폼개발팀', role: 'Viewer', status: 'Inactive', lastLogin: '2025-12-20 10:15', avatarColor: '#10B981' },
-  { id: '4', name: '박민수', email: 'ms.park@konai.com', department: '영업본부', role: 'Viewer', status: 'Active', lastLogin: '2025-12-28 08:45', avatarColor: '#F59E0B' },
-  { id: '5', name: '최지은', email: 'je.choi@konai.com', department: '재무팀', role: 'Data Manager', status: 'Pending', lastLogin: '-', avatarColor: '#8B5CF6' },
-];
-
 
 // --- Sub-Components ---
 
@@ -68,16 +45,19 @@ const UserStatusBadge: React.FC<{ status: UserStatus }> = ({ status }) => {
   );
 };
 
-const RoleBadge: React.FC<{ role: UserRole }> = ({ role }) => {
-    const styles = {
-        'Super Admin': 'text-purple-600 bg-purple-50 border-purple-100',
-        'Data Manager': 'text-blue-600 bg-blue-50 border-blue-100',
-        'Viewer': 'text-gray-600 bg-gray-50 border-gray-100'
-    };
+const DomainRoleBadge: React.FC<{ role: DomainRole }> = ({ role }) => {
+    const label = ROLE_LABEL_MAP[role] ?? role;
+    const isAdmin = role.includes('ADMIN') || role === 'ROLE_EXEC';
+    const isMgr = role.includes('MGR');
+    const style = isAdmin
+      ? 'text-purple-600 bg-purple-50 border-purple-100'
+      : isMgr
+        ? 'text-blue-600 bg-blue-50 border-blue-100'
+        : 'text-gray-600 bg-gray-50 border-gray-100';
     return (
-        <Badge variant="outline" className={`font-medium ${styles[role]}`}>
-            {role === 'Super Admin' && <Shield size={10} className="mr-1" />}
-            {role}
+        <Badge variant="outline" className={`font-medium text-xs ${style}`}>
+            {isAdmin && <Shield size={10} className="mr-1" />}
+            {label}
         </Badge>
     );
 };
@@ -86,16 +66,20 @@ const RoleBadge: React.FC<{ role: UserRole }> = ({ role }) => {
 
 const AdminView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  const [users, setUsers] = useState<EnhancedUser[]>(USER_MGMT_USERS);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<EnhancedUser | null>(null);
 
   // Filter users based on search
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.department.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    const q = searchQuery.toLowerCase();
+    return (
+      user.name.toLowerCase().includes(q) ||
+      user.email.toLowerCase().includes(q) ||
+      user.department.toLowerCase().includes(q) ||
+      (user.orgPath?.toLowerCase().includes(q) ?? false)
+    );
+  });
 
   // Handlers
   const handleUserStatusToggle = (id: string) => {
@@ -113,17 +97,20 @@ const AdminView: React.FC = () => {
     }
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: EnhancedUser) => {
     setEditingUser(user);
     setIsModalOpen(true);
   };
 
-  const handleSaveUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsModalOpen(false);
-    setEditingUser(null);
-    alert('사용자 정보가 저장되었습니다.');
-  };
+  const handleSaveUser = useCallback((savedUser: EnhancedUser) => {
+    setUsers(prev => {
+      const exists = prev.find(u => u.id === savedUser.id);
+      if (exists) {
+        return prev.map(u => u.id === savedUser.id ? savedUser : u);
+      }
+      return [...prev, savedUser];
+    });
+  }, []);
 
   // --- Render Functions ---
 
@@ -134,6 +121,7 @@ const AdminView: React.FC = () => {
                 <TableRow className="bg-gray-50 hover:bg-gray-50">
                     <TableHead className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">사용자 (User)</TableHead>
                     <TableHead className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">부서 (Dept)</TableHead>
+                    <TableHead className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">직급</TableHead>
                     <TableHead className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">권한 (Role)</TableHead>
                     <TableHead className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">상태 (Status)</TableHead>
                     <TableHead className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">마지막 접속</TableHead>
@@ -156,12 +144,31 @@ const AdminView: React.FC = () => {
                         </TableCell>
                         <TableCell className="px-6 py-4">
                             <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                                <Briefcase size={14} className="text-gray-400" />
-                                {user.department}
+                                <Briefcase size={14} className="text-gray-400 shrink-0" />
+                                <span className="truncate max-w-[180px]" title={user.orgPath || user.department}>
+                                  {user.orgPath || user.department}
+                                </span>
                             </div>
                         </TableCell>
                         <TableCell className="px-6 py-4">
-                            <RoleBadge role={user.role} />
+                            {user.positionLevel && (
+                              <Badge variant="outline" className={`rounded-full font-bold text-xs whitespace-nowrap ${
+                                user.positionLevel === '임원'
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                  : user.positionLevel === '관리자'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : 'bg-gray-50 text-gray-600 border-gray-200'
+                              }`}>
+                                {user.positionLevel}
+                              </Badge>
+                            )}
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                            <div className="flex flex-wrap gap-1">
+                              {user.roles.map(role => (
+                                <DomainRoleBadge key={role} role={role} />
+                              ))}
+                            </div>
                         </TableCell>
                         <TableCell className="px-6 py-4">
                             <UserStatusBadge status={user.status} />
@@ -298,65 +305,13 @@ const AdminView: React.FC = () => {
         </div>
       </div>
 
-      {/* User Modal */}
-      <Dialog open={isModalOpen} onOpenChange={(open) => {
-        setIsModalOpen(open);
-        if (!open) setEditingUser(null);
-      }}>
-        <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-                <DialogTitle>
-                    {editingUser ? '사용자 정보 수정' : '새 사용자 등록'}
-                </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSaveUser} className="space-y-4">
-                <div className="space-y-1">
-                    <Label className="text-xs font-bold text-gray-500 uppercase">이름</Label>
-                    <div className="relative">
-                        <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
-                        <Input type="text" defaultValue={editingUser?.name} className="pl-9" placeholder="홍길동" required />
-                    </div>
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-xs font-bold text-gray-500 uppercase">이메일</Label>
-                    <div className="relative">
-                        <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
-                        <Input type="email" defaultValue={editingUser?.email} className="pl-9" placeholder="example@konai.com" required />
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <Label className="text-xs font-bold text-gray-500 uppercase">부서</Label>
-                        <div className="relative">
-                            <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
-                            <Input type="text" defaultValue={editingUser?.department} className="pl-9" placeholder="부서명" required />
-                        </div>
-                    </div>
-                    <div className="space-y-1">
-                        <Label className="text-xs font-bold text-gray-500 uppercase">권한 (Role)</Label>
-                        <div className="relative">
-                            <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
-                            <Select defaultValue={editingUser?.role || 'Viewer'}>
-                                <SelectTrigger className="pl-9">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Super Admin">Super Admin</SelectItem>
-                                    <SelectItem value="Data Manager">Data Manager</SelectItem>
-                                    <SelectItem value="Viewer">Viewer</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="pt-4 flex gap-3 justify-end">
-                    <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>취소</Button>
-                    <Button type="submit" className="bg-[#FF3C42] hover:bg-[#E02B31] text-white shadow-sm">저장하기</Button>
-                </div>
-            </form>
-        </DialogContent>
-      </Dialog>
+      {/* User Form Modal (3-step wizard) */}
+      <UserFormModal
+        open={isModalOpen}
+        user={editingUser}
+        onSave={handleSaveUser}
+        onClose={() => { setIsModalOpen(false); setEditingUser(null); }}
+      />
     </Tabs>
   );
 };

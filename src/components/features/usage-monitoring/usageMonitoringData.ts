@@ -155,6 +155,40 @@ export const AGENT_COST_DATA: AgentCostBreakdown[] = [
   { id: 'custom', name: '커스텀 에이전트', totalTokens: 400000, costUsd: 119, billedCredits: 60, activeUsers: 8, weeklyTrend: [12, 18, 15, 22, 20, 25, 28], color: '#8B5CF6' },
 ];
 
+// --- Agent Daily Usage (for drilldown) ---
+
+export interface AgentDailyUsage {
+  date: string;
+  tokens: number;
+  cost: number;
+  runs: number;
+}
+
+function generateAgentDailyData(baseTokens: number, baseCost: number, baseRuns: number): AgentDailyUsage[] {
+  const data: AgentDailyUsage[] = [];
+  for (let i = 0; i < 14; i++) {
+    const date = new Date('2026-02-28');
+    date.setDate(date.getDate() + i);
+    const noise = 0.7 + Math.random() * 0.6;
+    const tokens = Math.round(baseTokens * noise);
+    data.push({
+      date: `${date.getMonth() + 1}/${date.getDate()}`,
+      tokens,
+      cost: Math.round(baseCost * noise * 100) / 100,
+      runs: Math.round(baseRuns * noise),
+    });
+  }
+  return data;
+}
+
+export const AGENT_DAILY_USAGE: Record<string, AgentDailyUsage[]> = {
+  ppt: generateAgentDailyData(340000, 75, 89),
+  analysis: generateAgentDailyData(230000, 50, 70),
+  chat: generateAgentDailyData(200000, 44, 47),
+  data: generateAgentDailyData(115000, 25, 26),
+  custom: generateAgentDailyData(29000, 8.5, 6),
+};
+
 // --- Team Budget Allocation ---
 
 export interface TeamBudget {

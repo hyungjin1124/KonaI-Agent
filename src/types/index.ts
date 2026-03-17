@@ -24,5 +24,8 @@ export * from './toast.types';
 // Analysis Report types
 export * from './AnalysisReport';
 
+// Admin data access control types
+export * from './admin.types';
+
 // LangGraph-compatible types
 export * from './langgraph.types';

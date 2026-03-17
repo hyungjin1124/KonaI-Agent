@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search, Activity, Bot, AlertTriangle, Clock,
-  User, Monitor, ArrowRight, ChevronDown, ChevronUp,
+  User, Monitor, ArrowRight, ChevronDown, ChevronUp, Shield, Download,
 } from '../../icons';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
@@ -84,6 +84,13 @@ const ActorBadge: React.FC<{ type: ActorType; name: string }> = ({ type, name })
     </div>
   );
 };
+
+const PIIBadge: React.FC = () => (
+  <Badge variant="outline" className="rounded-full font-bold text-[11px] bg-orange-100 text-orange-700 border-orange-200 gap-0.5">
+    <Shield size={10} />
+    PII
+  </Badge>
+);
 
 const ResultBadge: React.FC<{ status: string }> = ({ status }) => {
   const styles: Record<string, string> = {
@@ -238,6 +245,7 @@ export const AuditLogView: React.FC = () => {
   const [selectedEntry, setSelectedEntry] = useState<AuditLogEntry | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filtersExpanded, setFiltersExpanded] = useState(true);
+  const [piiOnly, setPiiOnly] = useState(false);
 
   const filteredEntries = useMemo(
     () => filterEntries(MOCK_AUDIT_LOG_ENTRIES, {
@@ -246,8 +254,9 @@ export const AuditLogView: React.FC = () => {
       category: categoryFilter,
       severity: severityFilter,
       search: searchQuery,
+      piiOnly,
     }),
-    [timeRange, actorFilter, categoryFilter, severityFilter, searchQuery]
+    [timeRange, actorFilter, categoryFilter, severityFilter, searchQuery, piiOnly]
   );
 
   const totalPages = Math.ceil(filteredEntries.length / ITEMS_PER_PAGE);
@@ -262,6 +271,31 @@ export const AuditLogView: React.FC = () => {
       setter(value);
       setCurrentPage(1);
     };
+
+  const handleExportCSV = () => {
+    const header = ['타임스탬프', '액터 타입', '액터', '액션', '카테고리', '리소스', '결과', '심각도', 'PII'].join(',');
+    const rows = filteredEntries.map(e =>
+      [
+        e.timestamp,
+        e.actor.type,
+        `"${e.actor.name}"`,
+        `"${e.action.type}"`,
+        e.action.category,
+        `"${e.resource.name}"`,
+        e.result.status,
+        e.severity,
+        e.metadata?.privacy_level === 'PII' ? 'Y' : '',
+      ].join(',')
+    );
+    const csv = '\uFEFF' + [header, ...rows].join('\n'); // BOM for Korean encoding
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const kpi = AUDIT_KPI_SUMMARY;
 
@@ -301,16 +335,27 @@ export const AuditLogView: React.FC = () => {
 
       {/* Filter Panel */}
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
-        <button
-          type="button"
-          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700"
-          onClick={() => setFiltersExpanded(!filtersExpanded)}
-          aria-expanded={filtersExpanded}
-          aria-controls="audit-log-filters"
-        >
-          <span>필터</span>
-          {filtersExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
+        <div className="flex items-center justify-between px-4 py-3">
+          <button
+            type="button"
+            className="flex items-center gap-1 text-sm font-medium text-gray-700"
+            onClick={() => setFiltersExpanded(!filtersExpanded)}
+            aria-expanded={filtersExpanded}
+            aria-controls="audit-log-filters"
+          >
+            <span>필터</span>
+            {filtersExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={handleExportCSV}
+          >
+            <Download size={14} />
+            CSV 내보내기
+          </Button>
+        </div>
         {filtersExpanded && (
           <div id="audit-log-filters" className="px-4 pb-4 flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px]">
@@ -364,6 +409,16 @@ export const AuditLogView: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              variant={piiOnly ? 'default' : 'outline'}
+              size="sm"
+              className={`h-9 text-xs gap-1.5 ${piiOnly ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
+              onClick={() => { setPiiOnly(!piiOnly); setCurrentPage(1); }}
+              aria-pressed={piiOnly}
+            >
+              <Shield size={14} />
+              PII 접근만
+            </Button>
           </div>
         )}
       </div>
@@ -409,7 +464,10 @@ export const AuditLogView: React.FC = () => {
                     <ResultBadge status={entry.result.status} />
                   </TableCell>
                   <TableCell className="px-4 py-3">
-                    <SeverityBadge severity={entry.severity} />
+                    <div className="flex items-center gap-1">
+                      <SeverityBadge severity={entry.severity} />
+                      {entry.metadata?.privacy_level === 'PII' && <PIIBadge />}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

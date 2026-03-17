@@ -11,7 +11,7 @@
 export { Activity, AlertCircle, AlertTriangle, ArrowDownRight, ArrowLeft, ArrowRight, ArrowRightLeft, ArrowUp, ArrowUpRight } from 'lucide-react';
 
 // B
-export { Banknote, BarChart2, Bell, Bot, Box, Briefcase } from 'lucide-react';
+export { Banknote, BarChart2, Bell, Bot, Box, Briefcase, Building2 } from 'lucide-react';
 
 // C
 export { Calendar, CalendarDays, Check, CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Code, Cpu, CreditCard } from 'lucide-react';

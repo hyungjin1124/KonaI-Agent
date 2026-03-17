@@ -12,6 +12,7 @@ import { MODELS } from '@/constants/models';
 export type PromptStatus = 'draft' | 'active' | 'archived';
 export type ModerationLevel = 'low' | 'medium' | 'high';
 export type PromptCategory = 'system' | 'task' | 'safety' | 'persona' | 'custom';
+export type DeploymentLabel = 'staging' | 'production';
 
 export type PromptManagementMode = 'admin' | 'user';
 export const ADMIN_CATEGORIES: PromptCategory[] = ['system', 'safety'];
@@ -37,6 +38,7 @@ export interface PromptTemplate {
   moderationLevel: ModerationLevel;
   currentVersion: number;
   versions: PromptVersion[];
+  deploymentLabel?: DeploymentLabel;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -80,6 +82,17 @@ export const STATUS_STYLES: Record<PromptStatus, string> = {
   archived: 'bg-gray-100 text-gray-500 border-gray-300',
 };
 
+export const DEPLOYMENT_LABEL_OPTIONS: { value: DeploymentLabel | 'none'; label: string }[] = [
+  { value: 'none', label: '미설정' },
+  { value: 'staging', label: 'Staging' },
+  { value: 'production', label: 'Production' },
+];
+
+export const DEPLOYMENT_LABEL_STYLES: Record<DeploymentLabel, string> = {
+  staging: 'bg-yellow-50 text-yellow-700 border-yellow-300',
+  production: 'bg-blue-50 text-blue-700 border-blue-300',
+};
+
 // --- Helpers ---
 
 export function filterTemplates(
@@ -116,6 +129,33 @@ export function getModelName(modelId: string): string {
   return model?.name ?? modelId;
 }
 
+// --- Diff Helpers ---
+
+export interface DiffLine {
+  type: 'added' | 'removed' | 'unchanged';
+  text: string;
+}
+
+export function computeSimpleDiff(oldText: string, newText: string): DiffLine[] {
+  const oldLines = oldText.split('\n');
+  const newLines = newText.split('\n');
+  const result: DiffLine[] = [];
+  const maxLen = Math.max(oldLines.length, newLines.length);
+
+  for (let i = 0; i < maxLen; i++) {
+    const oldLine = i < oldLines.length ? oldLines[i] : undefined;
+    const newLine = i < newLines.length ? newLines[i] : undefined;
+
+    if (oldLine === newLine) {
+      result.push({ type: 'unchanged', text: oldLine! });
+    } else {
+      if (oldLine !== undefined) result.push({ type: 'removed', text: oldLine });
+      if (newLine !== undefined) result.push({ type: 'added', text: newLine });
+    }
+  }
+  return result;
+}
+
 // --- Mock Test Responses ---
 
 const MOCK_RESPONSES: Record<string, string> = {
@@ -140,6 +180,7 @@ export const MOCK_TEMPLATES: PromptTemplate[] = [
     modelId: 'claude-sonnet-4-5',
     moderationLevel: 'high',
     currentVersion: 3,
+    deploymentLabel: 'production',
     versions: [
       { version: 1, content: '고객 응대 프롬프트 초기 버전', modelId: 'claude-sonnet-4-5', moderationLevel: 'medium', changeNote: '최초 생성', createdAt: '2026-02-01 09:00', createdBy: '김관리' },
       { version: 2, content: '개인정보 보호 조항 추가', modelId: 'claude-sonnet-4-5', moderationLevel: 'high', changeNote: '개인정보 보호 규정 강화 반영', createdAt: '2026-02-15 14:30', createdBy: '김관리' },
@@ -158,6 +199,7 @@ export const MOCK_TEMPLATES: PromptTemplate[] = [
     modelId: 'claude-opus-4-6',
     moderationLevel: 'low',
     currentVersion: 2,
+    deploymentLabel: 'staging',
     versions: [
       { version: 1, content: '데이터 분석 리포트 초기 버전', modelId: 'gpt-5-2', moderationLevel: 'low', changeNote: '최초 생성', createdAt: '2026-02-10 11:00', createdBy: '박분석' },
       { version: 2, content: '다음 데이터를 분석하여...', modelId: 'claude-opus-4-6', moderationLevel: 'low', changeNote: '모델 변경 (GPT→Claude Opus) + KPI 변수 추가', createdAt: '2026-03-05 09:00', createdBy: '박분석' },
@@ -175,6 +217,7 @@ export const MOCK_TEMPLATES: PromptTemplate[] = [
     modelId: 'claude-opus-4-6',
     moderationLevel: 'high',
     currentVersion: 4,
+    deploymentLabel: 'production',
     versions: [
       { version: 1, content: '컴플라이언스 기본 프롬프트', modelId: 'claude-sonnet-4-5', moderationLevel: 'medium', changeNote: '최초 생성', createdAt: '2026-01-20 10:00', createdBy: '한보안' },
       { version: 2, content: '금융소비자보호법 조항 추가', modelId: 'claude-sonnet-4-5', moderationLevel: 'high', changeNote: '금융 규제 반영', createdAt: '2026-02-05 15:00', createdBy: '한보안' },
@@ -194,6 +237,7 @@ export const MOCK_TEMPLATES: PromptTemplate[] = [
     modelId: 'claude-sonnet-4-5',
     moderationLevel: 'medium',
     currentVersion: 2,
+    deploymentLabel: 'staging',
     versions: [
       { version: 1, content: '친근한 AI 어시스턴트 기본', modelId: 'gpt-5-3-flash', moderationLevel: 'medium', changeNote: '최초 생성', createdAt: '2026-02-12 14:00', createdBy: '이기획' },
       { version: 2, content: '당신은 "{{assistant_name}}"이라는...', modelId: 'claude-sonnet-4-5', moderationLevel: 'medium', changeNote: '금지 사항 강화 + 모델 변경', createdAt: '2026-03-02 16:00', createdBy: '이기획' },
@@ -279,6 +323,7 @@ export const MOCK_TEMPLATES: PromptTemplate[] = [
     modelId: 'claude-sonnet-4-5',
     moderationLevel: 'high',
     currentVersion: 3,
+    deploymentLabel: 'production',
     versions: [
       { version: 1, content: 'PII 필터링 기본', modelId: 'claude-sonnet-4-5', moderationLevel: 'high', changeNote: '최초 생성', createdAt: '2026-01-15 10:00', createdBy: '한보안' },
       { version: 2, content: '기업비밀 키워드 검사 추가', modelId: 'claude-sonnet-4-5', moderationLevel: 'high', changeNote: '기업비밀 보호 항목 추가', createdAt: '2026-02-10 14:00', createdBy: '한보안' },

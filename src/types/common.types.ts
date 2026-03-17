@@ -1,4 +1,5 @@
 import React from 'react';
+import type { MaskingType } from './admin.types';
 
 // View Types
 export type ViewType = 'chat' | 'dashboard' | 'data' | 'skills' | 'admin' | 'history' | 'general-chat' | 'agent-config' | 'prompt-management' | 'scheduled-tasks' | 'marketplace';
@@ -89,7 +90,7 @@ export interface RowFilterRule {
 }
 
 // Layer 3: 컬럼 마스킹
-export type MaskingType = 'full' | 'partial' | 'hidden';
+// Note: MaskingType moved to admin.types.ts
 
 export interface ColumnMaskPolicy {
   id: string;

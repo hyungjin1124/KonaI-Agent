@@ -9,14 +9,14 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from 'recharts';
 import {
   ThumbsUp, ThumbsDown, TrendingUp, TrendingDown,
-  Search, MessageSquare, Target, Activity, AlertTriangle,
+  Search, MessageSquare, Target, AlertTriangle, User, Bot,
 } from '../../icons';
 import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
@@ -24,15 +24,31 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../ui/table';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '../../ui/sheet';
+import {
   type FeedbackItem,
   type PeriodFilter,
   type FeedbackFilter,
+  type AgentFilter,
   QUALITY_KPI,
   MOCK_FEEDBACK,
   PERIOD_OPTIONS,
   FEEDBACK_FILTER_OPTIONS,
   getDailyQualityByPeriod,
   filterFeedback,
+  getUniqueAgents,
 } from './feedbackQualityData';
 
 // --- KPI Card ---
@@ -79,7 +95,7 @@ function FeedbackBadge({ type }: { type: FeedbackItem['feedbackType'] }) {
   );
 }
 
-// --- Status Badge ---
+// --- Status Badge (read-only) ---
 function StatusBadge({ status }: { status: FeedbackItem['status'] }) {
   const styles = {
     reviewed: 'bg-green-50 text-green-700 border-green-200',
@@ -91,6 +107,131 @@ function StatusBadge({ status }: { status: FeedbackItem['status'] }) {
     <Badge variant="outline" className={`text-xs font-medium ${styles[status]}`}>
       {labels[status]}
     </Badge>
+  );
+}
+
+// --- Status Select (editable) ---
+const STATUS_OPTIONS: { value: FeedbackItem['status']; label: string }[] = [
+  { value: 'pending', label: '미검토' },
+  { value: 'reviewed', label: '검토됨' },
+  { value: 'resolved', label: '조치완료' },
+];
+
+function StatusSelect({ status, onChange }: {
+  status: FeedbackItem['status'];
+  onChange: (newStatus: FeedbackItem['status']) => void;
+}) {
+  const styles: Record<string, string> = {
+    reviewed: 'text-green-700',
+    pending: 'text-amber-700',
+    resolved: 'text-blue-700',
+  };
+  return (
+    <Select value={status} onValueChange={(v) => onChange(v as FeedbackItem['status'])}>
+      <SelectTrigger className={`h-7 w-[100px] text-xs font-medium border-gray-200 ${styles[status]}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {STATUS_OPTIONS.map(opt => (
+          <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// --- Feedback Detail Drawer ---
+function FeedbackDetail({ item, onClose, onStatusChange }: {
+  item: FeedbackItem;
+  onClose: () => void;
+  onStatusChange: (id: string, status: FeedbackItem['status']) => void;
+}) {
+  return (
+    <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader className="mb-6">
+          <SheetTitle className="text-lg">피드백 상세</SheetTitle>
+          <SheetDescription>{item.date} · {item.userName}</SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-6">
+          {/* Basic Info */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">기본 정보</h4>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-gray-400 text-xs">사용자</span>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <User size={14} className="text-gray-400" />
+                  <span className="font-medium text-gray-900">{item.userName}</span>
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-xs">에이전트</span>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <Bot size={14} className="text-purple-500" />
+                  <span className="font-medium text-gray-900">{item.agentName}</span>
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-xs">피드백</span>
+                <div className="mt-1"><FeedbackBadge type={item.feedbackType} /></div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-xs">상태</span>
+                <div className="mt-1">
+                  <StatusSelect status={item.status} onChange={(s) => onStatusChange(item.id, s)} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Response Summary */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">응답 요약</h4>
+            <p className="text-sm text-gray-700">{item.responseSummary}</p>
+          </div>
+
+          {/* User Comment */}
+          {item.comment && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">사용자 코멘트</h4>
+              <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm text-amber-800">
+                {item.comment}
+              </div>
+            </div>
+          )}
+
+          {/* Conversation Context */}
+          {item.conversationContext && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">대화 컨텍스트</h4>
+              <div className="space-y-3">
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <User size={12} className="text-blue-600" />
+                    <span className="text-xs font-bold text-blue-700">사용자 질문</span>
+                  </div>
+                  <p className="text-sm text-blue-800">{item.conversationContext.userQuery}</p>
+                </div>
+                <div className="bg-purple-50 border border-purple-100 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Bot size={12} className="text-purple-600" />
+                    <span className="text-xs font-bold text-purple-700">에이전트 응답</span>
+                  </div>
+                  <p className="text-sm text-purple-800">{item.conversationContext.agentResponse}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ID */}
+          <div className="pt-4 border-t text-xs text-gray-400 font-mono">
+            ID: {item.id}
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -133,14 +274,27 @@ function ChartTooltipContent({ active, payload, label }: {
 export function FeedbackQualityView() {
   const [period, setPeriod] = useState<PeriodFilter>('30d');
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all');
+  const [agentFilter, setAgentFilter] = useState<AgentFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>(MOCK_FEEDBACK);
 
   const kpi = QUALITY_KPI;
+  const agentOptions = useMemo(() => getUniqueAgents(feedbackItems), [feedbackItems]);
   const dailyData = useMemo(() => getDailyQualityByPeriod(period), [period]);
   const filteredFeedback = useMemo(
-    () => filterFeedback(MOCK_FEEDBACK, feedbackFilter, searchQuery, period),
-    [feedbackFilter, searchQuery, period],
+    () => filterFeedback(feedbackItems, feedbackFilter, searchQuery, period, agentFilter),
+    [feedbackItems, feedbackFilter, searchQuery, period, agentFilter],
   );
+
+  const [selectedItem, setSelectedItem] = useState<FeedbackItem | null>(null);
+
+  const handleStatusChange = useCallback((id: string, newStatus: FeedbackItem['status']) => {
+    setFeedbackItems(prev => prev.map(item =>
+      item.id === id ? { ...item, status: newStatus } : item
+    ));
+    // Also update selectedItem if the drawer is open for this item
+    setSelectedItem(prev => prev?.id === id ? { ...prev, status: newStatus } : prev);
+  }, []);
 
   return (
     <div className="space-y-6" data-testid="feedback-quality-view">
@@ -248,6 +402,16 @@ export function FeedbackQualityView() {
                 aria-label="피드백 검색"
               />
             </div>
+            <Select value={agentFilter} onValueChange={setAgentFilter}>
+              <SelectTrigger className="w-[160px] h-8 text-sm" aria-label="에이전트 필터" data-testid="agent-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {agentOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="flex gap-1 bg-gray-100 p-0.5 rounded-lg" role="group" aria-label="피드백 유형 필터" data-testid="feedback-filter">
               {FEEDBACK_FILTER_OPTIONS.map(opt => (
                 <button
@@ -281,7 +445,15 @@ export function FeedbackQualityView() {
             </TableHeader>
             <TableBody>
               {filteredFeedback.map(item => (
-                <TableRow key={item.id}>
+                <TableRow
+                  key={item.id}
+                  className="cursor-pointer hover:bg-blue-50/50 transition-colors"
+                  onClick={() => setSelectedItem(item)}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${item.userName}의 피드백 — ${item.responseSummary}`}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedItem(item); } }}
+                >
                   <TableCell className="px-4 py-3 text-sm text-gray-500 font-mono whitespace-nowrap">
                     {item.date}
                   </TableCell>
@@ -301,8 +473,8 @@ export function FeedbackQualityView() {
                       <span className="text-xs text-gray-300">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="px-4 py-3">
-                    <StatusBadge status={item.status} />
+                  <TableCell className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <StatusSelect status={item.status} onChange={(s) => handleStatusChange(item.id, s)} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -318,6 +490,15 @@ export function FeedbackQualityView() {
           {filteredFeedback.length}건의 피드백
         </div>
       </div>
+
+      {/* Detail Drawer */}
+      {selectedItem && (
+        <FeedbackDetail
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onStatusChange={handleStatusChange}
+        />
+      )}
     </div>
   );
 }

@@ -10,6 +10,12 @@ export type FeedbackType = 'positive' | 'negative';
 export type FeedbackStatus = 'reviewed' | 'pending' | 'resolved';
 export type PeriodFilter = '7d' | '30d' | '90d';
 export type FeedbackFilter = 'all' | 'positive' | 'negative';
+export type AgentFilter = string; // 'all' or agent name
+
+export interface ConversationContext {
+  userQuery: string;
+  agentResponse: string;
+}
 
 export interface FeedbackItem {
   id: string;
@@ -20,6 +26,7 @@ export interface FeedbackItem {
   feedbackType: FeedbackType;
   comment?: string;
   status: FeedbackStatus;
+  conversationContext?: ConversationContext;
 }
 
 export interface QualityKPI {
@@ -47,16 +54,18 @@ export function filterFeedback(
   feedbackFilter: FeedbackFilter,
   search: string,
   period?: PeriodFilter,
+  agentFilter?: AgentFilter,
 ): FeedbackItem[] {
   const cutoff = period ? getPeriodCutoffDate(period) : null;
   return items.filter(item => {
     if (cutoff && item.date < cutoff) return false;
     const matchesType = feedbackFilter === 'all' || item.feedbackType === feedbackFilter;
+    const matchesAgent = !agentFilter || agentFilter === 'all' || item.agentName === agentFilter;
     const matchesSearch = !search ||
       item.userName.toLowerCase().includes(search.toLowerCase()) ||
       item.responseSummary.toLowerCase().includes(search.toLowerCase()) ||
       (item.comment && item.comment.toLowerCase().includes(search.toLowerCase()));
-    return matchesType && matchesSearch;
+    return matchesType && matchesAgent && matchesSearch;
   });
 }
 
@@ -81,6 +90,14 @@ export const FEEDBACK_FILTER_OPTIONS: { value: FeedbackFilter; label: string }[]
   { value: 'negative', label: '부정' },
 ];
 
+export function getUniqueAgents(items: FeedbackItem[]): { value: AgentFilter; label: string }[] {
+  const names = [...new Set(items.map(i => i.agentName))].sort();
+  return [
+    { value: 'all', label: '모든 에이전트' },
+    ...names.map(name => ({ value: name, label: name })),
+  ];
+}
+
 // --- Mock Data ---
 
 export const QUALITY_KPI: QualityKPI = {
@@ -95,11 +112,11 @@ export const QUALITY_KPI: QualityKPI = {
 };
 
 export const MOCK_FEEDBACK: FeedbackItem[] = [
-  { id: 'fb-1', date: '2026-03-11', userName: '홍길동', agentName: 'KonaI Assistant', responseSummary: '2026년 1분기 매출 데이터 분석 결과를 정확히 제공', feedbackType: 'positive', status: 'reviewed' },
-  { id: 'fb-2', date: '2026-03-11', userName: '김철수', agentName: 'KonaI Assistant', responseSummary: '재무제표 요약이 최신 데이터와 일치하지 않음', feedbackType: 'negative', comment: '3월 데이터가 반영되지 않았습니다.', status: 'pending' },
-  { id: 'fb-3', date: '2026-03-10', userName: '이영희', agentName: 'Data Analyst', responseSummary: '부서별 인력 현황 차트 생성', feedbackType: 'positive', status: 'reviewed' },
+  { id: 'fb-1', date: '2026-03-11', userName: '홍길동', agentName: 'KonaI Assistant', responseSummary: '2026년 1분기 매출 데이터 분석 결과를 정확히 제공', feedbackType: 'positive', status: 'reviewed', conversationContext: { userQuery: '2026년 1분기 매출 데이터를 부서별로 분석해주세요.', agentResponse: '2026년 1분기 총 매출은 342억원으로, DID 사업부 152억(44.4%), ICT 사업부 98억(28.7%), 신사업부 92억(26.9%)을 기록했습니다. 전년 동기 대비 전체 12.3% 성장했으며, 특히 신사업부가 34.2%로 가장 높은 성장률을 보였습니다.' } },
+  { id: 'fb-2', date: '2026-03-11', userName: '김철수', agentName: 'KonaI Assistant', responseSummary: '재무제표 요약이 최신 데이터와 일치하지 않음', feedbackType: 'negative', comment: '3월 데이터가 반영되지 않았습니다.', status: 'pending', conversationContext: { userQuery: '최신 재무제표 요약을 보여주세요.', agentResponse: '2026년 2월 기준 재무제표 요약입니다. 매출액 118억원, 영업이익 23억원(영업이익률 19.5%), 당기순이익 18억원입니다. 전월 대비 매출 5.2% 증가했습니다.' } },
+  { id: 'fb-3', date: '2026-03-10', userName: '이영희', agentName: 'Data Analyst', responseSummary: '부서별 인력 현황 차트 생성', feedbackType: 'positive', status: 'reviewed', conversationContext: { userQuery: '부서별 인력 현황을 차트로 보여주세요.', agentResponse: '부서별 인력 현황 차트를 생성했습니다. 전체 임직원 487명 중 개발팀 142명(29.2%), 영업팀 98명(20.1%), 기획팀 67명(13.8%), 관리팀 52명(10.7%), 기타 128명(26.3%)입니다.' } },
   { id: 'fb-4', date: '2026-03-10', userName: '박민수', agentName: 'KonaI Assistant', responseSummary: '계약서 검토 요청에 대한 법률 검토 의견 제공', feedbackType: 'positive', comment: '법무팀 확인 후에도 정확했습니다.', status: 'reviewed' },
-  { id: 'fb-5', date: '2026-03-10', userName: '최지은', agentName: 'KonaI Assistant', responseSummary: '프로젝트 일정 관련 질문에 불완전한 답변', feedbackType: 'negative', comment: '일부 마일스톤이 누락되었습니다.', status: 'resolved' },
+  { id: 'fb-5', date: '2026-03-10', userName: '최지은', agentName: 'KonaI Assistant', responseSummary: '프로젝트 일정 관련 질문에 불완전한 답변', feedbackType: 'negative', comment: '일부 마일스톤이 누락되었습니다.', status: 'resolved', conversationContext: { userQuery: 'Project Alpha 마일스톤 일정을 알려주세요.', agentResponse: '프로젝트 Alpha 마일스톤: 1) 설계 완료 3/15, 2) 개발 완료 4/30, 3) QA 완료 5/15. 현재 설계 단계 진행 중이며 진행률 78%입니다.' } },
   { id: 'fb-6', date: '2026-03-09', userName: '정대현', agentName: 'Data Analyst', responseSummary: 'DID 사업부 월별 매출 추이 분석', feedbackType: 'positive', status: 'reviewed' },
   { id: 'fb-7', date: '2026-03-09', userName: '한소영', agentName: 'KonaI Assistant', responseSummary: '고객 불만 분류 자동화 결과 검토', feedbackType: 'positive', status: 'reviewed' },
   { id: 'fb-8', date: '2026-03-09', userName: '홍길동', agentName: 'KonaI Assistant', responseSummary: '경쟁사 분석 리포트 요약이 편향적', feedbackType: 'negative', comment: '특정 경쟁사 정보가 누락되어 있었습니다.', status: 'pending' },

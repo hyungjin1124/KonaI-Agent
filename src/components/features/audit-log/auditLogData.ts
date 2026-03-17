@@ -161,6 +161,7 @@ function generateMockEntries(): AuditLogEntry[] {
   agentDataAccess.forEach((da, i) => {
     const agent = AGENTS[i % AGENTS.length];
     const hourOffset = 20 + i * 4;
+    const isPII = i === 0 || i === 2; // 고객 개인정보 DB, 인사 기록
     entries.push({
       id: `log-da-${String(i + 1).padStart(3, '0')}`,
       timestamp: new Date(baseDate.getTime() - hourOffset * 3600000).toISOString(),
@@ -168,10 +169,10 @@ function generateMockEntries(): AuditLogEntry[] {
       action: { type: '데이터 조회', category: 'data_access', description: da.desc },
       resource: { type: 'database', id: `db-${i + 1}`, name: da.resource },
       result: { status: 'success' },
-      severity: i === 0 ? 'warning' : 'info',
+      severity: isPII ? 'warning' : 'info',
       sessionId: `sess-${String(i + 10).padStart(3, '0')}`,
-      reasoningSummary: i === 0 ? '개인정보 포함 데이터에 접근했습니다. 데이터 마스킹이 적용되었습니다.' : undefined,
-      metadata: i === 0 ? { privacy_level: 'PII', masking: 'applied' } : undefined,
+      reasoningSummary: isPII ? '개인정보 포함 데이터에 접근했습니다. 데이터 마스킹이 적용되었습니다.' : undefined,
+      metadata: isPII ? { privacy_level: 'PII', masking: 'applied' } : undefined,
     });
   });
 
@@ -334,6 +335,7 @@ export function filterEntries(
     category: ActionCategory | 'all';
     severity: Severity | 'all';
     search: string;
+    piiOnly?: boolean;
   }
 ): AuditLogEntry[] {
   let filtered = filterByTimeRange(entries, filters.timeRange);
@@ -348,6 +350,10 @@ export function filterEntries(
 
   if (filters.severity !== 'all') {
     filtered = filtered.filter(e => e.severity === filters.severity);
+  }
+
+  if (filters.piiOnly) {
+    filtered = filtered.filter(e => e.metadata?.privacy_level === 'PII');
   }
 
   if (filters.search.trim()) {

@@ -56,6 +56,7 @@ import {
   type ModerationLevel,
   type PromptCategory,
   type PromptManagementMode,
+  type DeploymentLabel,
   MOCK_TEMPLATES,
   CATEGORY_OPTIONS,
   ADMIN_CATEGORIES,
@@ -65,11 +66,14 @@ import {
   MODEL_OPTIONS,
   CATEGORY_COLORS,
   STATUS_STYLES,
+  DEPLOYMENT_LABEL_OPTIONS,
+  DEPLOYMENT_LABEL_STYLES,
   filterTemplates,
   extractVariables,
   estimateTokens,
   getModelName,
   getMockResponse,
+  computeSimpleDiff,
 } from './promptManagementData';
 
 // --- Sub-Components ---
@@ -103,6 +107,16 @@ function CategoryBadge({ category }: { category: PromptCategory }) {
   return (
     <Badge variant="outline" className={`text-xs font-medium ${CATEGORY_COLORS[category]}`}>
       {labels[category]}
+    </Badge>
+  );
+}
+
+function DeploymentBadge({ label }: { label?: DeploymentLabel }) {
+  if (!label) return null;
+  const text = label === 'production' ? 'Prod' : 'Staging';
+  return (
+    <Badge variant="outline" className={`text-[10px] font-bold ${DEPLOYMENT_LABEL_STYLES[label]}`}>
+      {text}
     </Badge>
   );
 }
@@ -156,11 +170,16 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
   const [editModeration, setEditModeration] = useState<ModerationLevel>('medium');
   const [editStatus, setEditStatus] = useState<PromptStatus>('draft');
   const [editChangeNote, setEditChangeNote] = useState('');
+  const [editDeploymentLabel, setEditDeploymentLabel] = useState<DeploymentLabel | 'none'>('none');
 
   // Test state
   const [testVariables, setTestVariables] = useState<Record<string, string>>({});
   const [testResult, setTestResult] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+
+  // Diff state
+  const [diffLeftVersion, setDiffLeftVersion] = useState<number | null>(null);
+  const [diffRightVersion, setDiffRightVersion] = useState<number | null>(null);
 
   // Derived
   const filteredTemplates = useMemo(
@@ -180,6 +199,7 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
     setEditModeration('medium');
     setEditStatus('draft');
     setEditChangeNote('');
+    setEditDeploymentLabel('none');
     setSelectedTemplate(null);
     setTestResult(null);
     setTestVariables({});
@@ -196,8 +216,11 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
     setEditModeration(template.moderationLevel);
     setEditStatus(template.status);
     setEditChangeNote('');
+    setEditDeploymentLabel(template.deploymentLabel ?? 'none');
     setTestResult(null);
     setTestVariables({});
+    setDiffLeftVersion(template.versions.length >= 2 ? template.versions[template.versions.length - 2].version : null);
+    setDiffRightVersion(template.versions[template.versions.length - 1].version);
     setIsEditorOpen(true);
   }, []);
 
@@ -213,6 +236,7 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
         status: editStatus,
         modelId: editModelId,
         moderationLevel: editModeration,
+        deploymentLabel: editDeploymentLabel === 'none' ? undefined : editDeploymentLabel,
         currentVersion: 1,
         versions: [
           {
@@ -243,6 +267,7 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
                 status: editStatus,
                 modelId: editModelId,
                 moderationLevel: editModeration,
+                deploymentLabel: editDeploymentLabel === 'none' ? undefined : editDeploymentLabel,
                 currentVersion: newVersion,
                 updatedAt: new Date().toISOString().slice(0, 10),
                 versions: [
@@ -265,7 +290,7 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
 
     setIsEditorOpen(false);
     setSelectedTemplate(null);
-  }, [editorMode, editName, editCategory, editContent, editStatus, editModelId, editModeration, editChangeNote, selectedTemplate]);
+  }, [editorMode, editName, editCategory, editContent, editStatus, editModelId, editModeration, editDeploymentLabel, editChangeNote, selectedTemplate]);
 
   const handleDelete = useCallback(() => {
     if (!deleteTarget) return;
@@ -357,6 +382,7 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
               <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">모델</TableHead>
               <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">버전</TableHead>
               <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">상태</TableHead>
+              <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">배포</TableHead>
               <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">수정일</TableHead>
               <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase text-right">관리</TableHead>
             </TableRow>
@@ -385,6 +411,9 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
                 </TableCell>
                 <TableCell className="px-4 py-3">
                   <StatusBadge status={template.status} />
+                </TableCell>
+                <TableCell className="px-4 py-3">
+                  <DeploymentBadge label={template.deploymentLabel} />
                 </TableCell>
                 <TableCell className="px-4 py-3">
                   <span className="text-xs text-gray-500 font-mono">{template.updatedAt}</span>
@@ -445,6 +474,11 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
                   <History size={12} /> 버전 이력
                 </TabsTrigger>
               )}
+              {editorMode === 'edit' && selectedTemplate && selectedTemplate.versions.length >= 2 && (
+                <TabsTrigger value="diff" className="px-3 py-1.5 text-xs font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-1.5" data-testid="tab-diff">
+                  <FileText size={12} /> 비교
+                </TabsTrigger>
+              )}
               <TabsTrigger value="test" className="px-3 py-1.5 text-xs font-bold data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm gap-1.5" data-testid="tab-test">
                 <Play size={12} /> 테스트
               </TabsTrigger>
@@ -465,8 +499,8 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
                   />
                 </div>
 
-                {/* Category + Status row */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Category + Status + Deployment row */}
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1">
                     <Label className="text-xs font-bold text-gray-500 uppercase">카테고리</Label>
                     <Select value={editCategory} onValueChange={v => setEditCategory(v as PromptCategory)}>
@@ -488,6 +522,19 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
                       </SelectTrigger>
                       <SelectContent>
                         {STATUS_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-gray-500 uppercase">배포 환경</Label>
+                    <Select value={editDeploymentLabel} onValueChange={v => setEditDeploymentLabel(v as DeploymentLabel | 'none')}>
+                      <SelectTrigger data-testid="edit-deployment-label">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEPLOYMENT_LABEL_OPTIONS.map(opt => (
                           <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                         ))}
                       </SelectContent>
@@ -631,6 +678,81 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
                       </div>
                     </div>
                   ))}
+                </div>
+              </TabsContent>
+            )}
+
+            {/* Diff Tab */}
+            {editorMode === 'edit' && selectedTemplate && selectedTemplate.versions.length >= 2 && (
+              <TabsContent value="diff" className="flex-1 overflow-y-auto px-6 py-4 mt-0">
+                <div className="space-y-4" data-testid="diff-panel">
+                  {/* Version Selectors */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-gray-500 uppercase">이전 버전</Label>
+                      <Select value={String(diffLeftVersion ?? '')} onValueChange={v => setDiffLeftVersion(Number(v))}>
+                        <SelectTrigger data-testid="diff-left-select">
+                          <SelectValue placeholder="버전 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedTemplate.versions.map(ver => (
+                            <SelectItem key={ver.version} value={String(ver.version)}>v{ver.version} — {ver.changeNote}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-gray-500 uppercase">현재 버전</Label>
+                      <Select value={String(diffRightVersion ?? '')} onValueChange={v => setDiffRightVersion(Number(v))}>
+                        <SelectTrigger data-testid="diff-right-select">
+                          <SelectValue placeholder="버전 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedTemplate.versions.map(ver => (
+                            <SelectItem key={ver.version} value={String(ver.version)}>v{ver.version} — {ver.changeNote}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Diff Output */}
+                  {diffLeftVersion && diffRightVersion && (() => {
+                    const leftVer = selectedTemplate.versions.find(v => v.version === diffLeftVersion);
+                    const rightVer = selectedTemplate.versions.find(v => v.version === diffRightVersion);
+                    if (!leftVer || !rightVer) return null;
+                    const diffLines = computeSimpleDiff(leftVer.content, rightVer.content);
+                    return (
+                      <div className="border border-gray-200 rounded-lg overflow-hidden" data-testid="diff-output">
+                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-600">v{diffLeftVersion} → v{diffRightVersion}</span>
+                          <div className="flex items-center gap-3 text-[10px]">
+                            <span className="text-green-600 font-bold">+{diffLines.filter(l => l.type === 'added').length} 추가</span>
+                            <span className="text-red-600 font-bold">-{diffLines.filter(l => l.type === 'removed').length} 삭제</span>
+                          </div>
+                        </div>
+                        <div className="font-mono text-xs leading-relaxed max-h-[400px] overflow-y-auto">
+                          {diffLines.map((line, i) => (
+                            <div
+                              key={i}
+                              className={`px-4 py-0.5 ${
+                                line.type === 'added'
+                                  ? 'bg-green-50 text-green-800'
+                                  : line.type === 'removed'
+                                    ? 'bg-red-50 text-red-800 line-through'
+                                    : 'text-gray-600'
+                              }`}
+                            >
+                              <span className="inline-block w-4 text-gray-400 select-none">
+                                {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' '}
+                              </span>
+                              {line.text || '\u00A0'}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </TabsContent>
             )}
