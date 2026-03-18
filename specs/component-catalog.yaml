@@ -766,13 +766,19 @@ categories:
       - id: skill_management
         name: "Skill / Plugin Management"
         description: "에이전트 스킬/플러그인 설치, 설정, 활성화 관리"
-        status: implemented
+        status: needs_update
         priority: medium
         complexity: moderate
         contexts: [admin]
+        last_researched: "2026-03-18"
         source_files:
           - "src/components/SkillManagementView.tsx"
           - "src/components/SkillUploadModal.tsx"
+        ia_document: "design/skill-management-ia.md"
+        notes: >
+          현재 토글 리스트 + ZIP 업로드로 구현됨.
+          리서치 결과 카테고리 기반 카탈로그 UI, 출처 배지(플랫폼/조직/개인),
+          Eval 품질 배지, 스킬 상세 슬라이드오버가 필요함. Phase 1 스펙 완료.
 
       - id: audit_log
         name: "Audit Log"
@@ -816,6 +822,52 @@ categories:
         metadata:
           last_updated: "2026-03-16"
           qa_report: "specs/implementation-logs/usage_monitoring/qa-report.md"
+
+      - id: tenant_management
+        name: "Tenant Management (Platform Admin)"
+        description: "멀티테넌트 라이프사이클 관리 — 테넌트 생성 위저드, 헬스 카드/테이블 뷰, 상태 전환(Active/Trial/Suspended/Inactive), 리소스 제한 편집, 플랜 변경"
+        status: partial
+        priority: high
+        complexity: complex
+        contexts: [admin, monitoring]
+        source_files:
+          - "src/components/features/platform-admin/PlatformAdminView.tsx"
+          - "src/components/features/platform-admin/components/TenantManagementTab.tsx"
+          - "src/components/features/platform-admin/components/TenantHealthCard.tsx"
+          - "src/components/features/platform-admin/components/TenantTableView.tsx"
+          - "src/components/features/platform-admin/components/TenantDetailPanel.tsx"
+          - "src/components/features/platform-admin/data/tenantData.ts"
+          - "src/components/features/platform-admin/data/platformAdminTypes.ts"
+        last_researched: "2026-03-18"
+        notes: "기본 목록/헬스카드/상세패널은 구현됨. 미구현: 테넌트 생성 위저드(4단계 모달), 상태 전환 드롭다운+모달, 리소스 제한 편집 UI, 플랜 변경 슬라이드 패널. IA 문서: design/platform-admin-ia.md"
+        metadata:
+          last_updated: "2026-03-18"
+
+      - id: agent_trace_view
+        name: "Agent Execution Trace View"
+        description: "에이전트 실행 트레이스 시각화 — 트레이스 목록, 워터폴 다이어그램(LLM 호출/도구 호출 계층), 성공/실패/타임아웃 상태 요약"
+        status: not_implemented
+        priority: high
+        complexity: complex
+        contexts: [admin, monitoring]
+        source_files: []
+        last_researched: "2026-03-18"
+        notes: "LangSmith/LangFuse 패턴 참조. 사용량·알림 탭 내 서브섹션으로 구현. 트레이스 상세는 슬라이드 패널. IA 문서: design/platform-admin-ia.md"
+        metadata:
+          last_updated: "2026-03-18"
+
+      - id: model_cost_breakdown
+        name: "Model-level Cost Breakdown"
+        description: "모델별 비용 분리 시각화 — 총 비용 KPI 카드, 모델별 비용 도넛 차트, 일별 비용 스택 바 차트(모델별 색상 구분)"
+        status: not_implemented
+        priority: high
+        complexity: moderate
+        contexts: [admin, monitoring]
+        source_files: []
+        last_researched: "2026-03-18"
+        notes: "OpenAI/Anthropic Admin Console 패턴 참조. 사용량·알림 탭 내 구현. IA 문서: design/platform-admin-ia.md"
+        metadata:
+          last_updated: "2026-03-18"
 
       - id: agent_config
         name: "Agent Configuration"
