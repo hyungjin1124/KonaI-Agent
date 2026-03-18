@@ -1,75 +1,98 @@
-# Dev Test Report: Approval / Rejection (ApprovalGate)
+# Dev Test Report: Approval / Rejection — AI SDK needsApproval Update
 
 ## 정적 분석
-- TypeScript: PASS (ApprovalGate 파일에 에러 없음)
+- TypeScript: PASS (ApprovalGate 파일에 에러 없음. 기존 pre-existing 에러는 무관)
 - ESLint: N/A (프로젝트에 eslint config 없음)
-- Build: PASS (모든 라우트 빌드 성공)
+- Build: PASS (13 라우트 빌드 성공)
 
 ## 단위 테스트
+
+### 기존 테스트 (변경 없음, 회귀 확인)
 | # | 테스트명 | 결과 |
 |---|---------|------|
-| 1 | ApprovalItemRow > renders item title and description | PASS |
-| 2 | ApprovalItemRow > renders approve/reject buttons for pending items | PASS |
-| 3 | ApprovalItemRow > calls onApprove with item id | PASS |
-| 4 | ApprovalItemRow > calls onReject with item id | PASS |
-| 5 | ApprovalItemRow > shows approved badge for approved items | PASS |
-| 6 | ApprovalItemRow > shows rejected badge for rejected items | PASS |
-| 7 | ApprovalItemRow > has listitem role | PASS |
-| 8 | ApprovalToast > renders title and description | PASS |
-| 9 | ApprovalToast > has role=status and aria-live=polite | PASS |
-| 10 | ApprovalToast > auto-dismisses after 5s by calling onApprove | PASS |
-| 11 | ApprovalToast > calls onReject when cancel clicked | PASS |
-| 12 | ApprovalToast > calls onClose when close button clicked | PASS |
-| 13 | ApprovalInlineCard > renders title and description | PASS |
-| 14 | ApprovalInlineCard > has role=alert and aria-live=assertive | PASS |
-| 15 | ApprovalInlineCard > calls onApprove on button click | PASS |
-| 16 | ApprovalInlineCard > calls onReject on button click | PASS |
-| 17 | ApprovalInlineCard > calls onApprove on Enter key | PASS |
-| 18 | ApprovalInlineCard > calls onReject on Escape key | PASS |
-| 19 | ApprovalInlineCard > renders modify button when provided | PASS |
-| 20 | ApprovalInlineCard > hides modify without onModify | PASS |
-| 21 | ApprovalInlineCard > renders children content | PASS |
-| 22 | ApprovalInlineCard > renders session permission checkbox | PASS |
-| 23 | ApprovalModal > renders in dialog with alertdialog role | PASS |
-| 24 | ApprovalModal > renders title and description | PASS |
-| 25 | ApprovalModal > calls onApprove on button click | PASS |
-| 26 | ApprovalModal > calls onReject on button click | PASS |
-| 27 | ApprovalModal > renders modify button when provided | PASS |
-| 28 | ApprovalModal > renders children content | PASS |
-| 29-31 | ApprovalGate > smoke tests (low/medium/high risk) | PASS |
-| 32-34 | ApprovalGate > risk-level routing (toast/inline/modal) | PASS |
-| 35-36 | ApprovalGate > title and description display | PASS |
-| 37 | ApprovalGate > calls onApprove with result | PASS |
-| 38 | ApprovalGate > calls onReject with result | PASS |
-| 39 | ApprovalGate > calls onModify with result | PASS |
-| 40-43 | ApprovalGate > multi-item mode (render, counts, status update) | PASS |
-| 44 | ApprovalGate > includes item ids in approval result | PASS |
-| 45-47 | ApprovalGate > schema form (fields, required indicator, data in result) | PASS |
-| 48 | ApprovalGate > enum fields as select dropdowns | PASS |
-| 49-50 | ApprovalGate > session permission (show/hide) | PASS |
-| 51 | ApprovalGate > session permission callback | PASS |
-| 52-53 | ApprovalGate > custom/default labels | PASS |
-| 54-55 | ApprovalGate > keyboard shortcuts (Enter/Escape) | PASS |
-| 56-57 | ApprovalGate > high-risk modal specifics | PASS |
-| 58 | ApprovalGate > auto-approve timeout for low risk | PASS |
+| 1-7 | ApprovalItemRow (renders, approve/reject, badge, role) | PASS |
+| 8-12 | ApprovalToast (renders, aria, auto-dismiss, cancel, close) | PASS |
+| 13-22 | ApprovalInlineCard (renders, aria, buttons, keyboard, modify, children, session) | PASS |
+| 23-28 | ApprovalModal (dialog, renders, buttons, modify, children) | PASS |
+| 29-58 | ApprovalGate main (smoke, risk-routing, title, handlers, multi-item, schema, session, labels, keyboard, high-risk, low-risk) | PASS |
 
-- 총 테스트: 58개
-- 통과: 58개, 실패: 0개
+### 신규 테스트: approvalConditions
+| # | 테스트명 | 결과 |
+|---|---------|------|
+| 1 | returns true for high-risk action | PASS |
+| 2 | returns true for medium-risk action | PASS |
+| 3 | returns false for low-risk action | PASS |
+| 4 | returns false when user role is in autoApproveRoles | PASS |
+| 5 | returns true when user role is NOT in autoApproveRoles | PASS |
+| 6 | returns true when autoApproveRoles not specified | PASS |
+| 7 | returns false when session permission is set | PASS |
+| 8 | session permission takes precedence over risk level | PASS |
+| 9 | createRBACCondition wraps with userRole | PASS |
+| 10 | createRBACCondition supports session store | PASS |
+| 11 | SessionPermissionStore: returns false for unknown | PASS |
+| 12 | SessionPermissionStore: returns true after set | PASS |
+| 13 | SessionPermissionStore: returns false after unset | PASS |
+| 14 | SessionPermissionStore: clears all | PASS |
+| 15 | SessionPermissionStore: isolates action types | PASS |
+
+### 신규 테스트: useApprovalGateAdapter
+| # | 테스트명 | 결과 |
+|---|---------|------|
+| 1 | converts approval-requested tools to pendingApprovals | PASS |
+| 2 | maps riskLevel and actionType from toolRiskMapping | PASS |
+| 3 | uses medium/execute default for unmapped tools | PASS |
+| 4 | excludes non-approval-requested status tools | PASS |
+| 5 | approveToolCall → addToolApprovalResponse({approved: true}) | PASS |
+| 6 | rejectToolCall → addToolApprovalResponse({approved: false}) | PASS |
+| 7 | hasPendingApprovals is false when no requests | PASS |
+| 8 | handles multiple pending approvals | PASS |
+
+### 신규 테스트: extractApprovalRequests
+| # | 테스트명 | 결과 |
+|---|---------|------|
+| 1 | extracts approval-requested tool invocations | PASS |
+| 2 | ignores non-approval-requested states | PASS |
+| 3 | ignores user messages | PASS |
+| 4 | handles messages without parts | PASS |
+| 5 | handles non-tool-invocation parts | PASS |
+| 6 | extracts multiple requests from multiple messages | PASS |
+
+- 총 테스트: 122개 (기존 93 + 신규 29)
+- 통과: 122개, 실패: 0개
+
+## 시나리오 커버리지
+| # | 시나리오 | 우선순위 | 테스트 위치 | 결과 |
+|---|---------|---------|-----------|------|
+| 1 | approval-requested → pendingApprovals 포함 | must | useApprovalGateAdapter.test.ts:L17 | PASS |
+| 2 | toolRiskMapping으로 riskLevel/actionType 매핑 | must | useApprovalGateAdapter.test.ts:L38 | PASS |
+| 3 | approveToolCall → addToolApprovalResponse({approved:true}) | must | useApprovalGateAdapter.test.ts:L97 | PASS |
+| 4 | rejectToolCall → addToolApprovalResponse({approved:false}) | must | useApprovalGateAdapter.test.ts:L115 | PASS |
+| 5 | createApprovalCondition(low,admin) → false | must | approvalConditions.test.ts:L24 | PASS |
+| 6 | createApprovalCondition(high,viewer) → true | must | approvalConditions.test.ts:L38 | PASS |
+| 7 | SessionPermissionStore set → isAutoApproved true | must | approvalConditions.test.ts:L97 | PASS |
+| 8 | session permission 스킵 → condition returns false | must | approvalConditions.test.ts:L58 | PASS |
+| 9 | approval-responded → pendingApprovals에서 제외 | should | useApprovalGateAdapter.test.ts:L75 | PASS |
+| 10 | autoApproveRoles 미지정 → 항상 승인 필요 | should | approvalConditions.test.ts:L46 | PASS |
+| 11 | clear() 호출 → 모든 세션 허가 초기화 | should | approvalConditions.test.ts:L109 | PASS |
+
+- must 커버리지: 8/8 (100%)
+- should 커버리지: 3/3 (100%)
 
 ## Acceptance Criteria 자가 검증
 | # | Criteria | 코드 구현 | 테스트 커버 | 판정 |
 |---|----------|----------|-----------|------|
-| AC1 | Generic ApprovalGate — actionType, riskLevel, handlers | types.ts:46-79, ApprovalGate.tsx:97-113 | smoke tests #29-31 | PASS |
-| AC2 | 3-tier UI (toast/inline/modal) + #FF3C42 accent | ApprovalGate.tsx:294-303, Toast.tsx:63, InlineCard.tsx:35,60, Modal.tsx:55 | risk-level routing #32-34 | PASS |
-| AC3 | schema prop → JSON Schema form rendering | ApprovalGate.tsx:16-93, types.ts:29-42 | schema form tests #45-48 | PASS |
-| AC4 | items prop → multi-item approve/reject | ApprovalGate.tsx:106-152, ItemRow.tsx:17-66 | multi-item tests #40-44 | PASS |
-| AC5 | Standalone component (orchestration-ready) | ApprovalGate.tsx exported as FC, no hook deps | smoke tests #29-31 | PASS |
-| AC6 | Session Permission checkbox | ApprovalGate.tsx:134,160-166,257-268, types.ts:70-73 | session perm tests #49-51 | PASS |
-| AC7 | a11y: alertdialog, alert+aria-live | Modal.tsx:48, InlineCard.tsx:33-34, Toast.tsx:55-56 | a11y tests #9,14,23 | PASS |
-| AC8 | Keyboard: Enter=approve, Escape=reject | InlineCard.tsx:17-29, Modal.tsx:35-43 | keyboard tests #17-18,54-55 | PASS |
+| AC1 | useApprovalGateAdapter: approval-requested → riskLevel/actionType 매핑 | useApprovalGateAdapter.ts:L60-75 | adapter tests #1-4 | PASS |
+| AC2 | onApprove/onReject → addToolApprovalResponse 호출 | useApprovalGateAdapter.ts:L77-88 | adapter tests #5-6 | PASS |
+| AC3 | createApprovalCondition → needsApproval: async fn | approvalConditions.ts:L38-59 | conditions tests #1-8 | PASS |
+| AC4 | 기존 3-tier UI 유지 + #FF3C42 accent | 기존 코드 무변경 | 기존 58개 테스트 전수 PASS | PASS |
+| AC5 | schema prop MCP Elicitation 호환 유지 | 기존 코드 무변경 | schema tests #45-48 | PASS |
+| AC6 | items prop multi-item 유지 | 기존 코드 무변경 | multi-item tests #40-44 | PASS |
+| AC7 | Session Permission → 조건부 승인 함수 자동 스킵 | approvalConditions.ts:L47-49 | conditions tests #7-8 | PASS |
+| AC8 | 접근성 유지 (alertdialog, alert, aria-live) | 기존 코드 무변경 | a11y tests #9,14,23 | PASS |
+| AC9 | 키보드 유지 (Enter/Escape/Tab) | 기존 코드 무변경 | keyboard tests #17-18,54-55 | PASS |
 
 ## QA 전달 사항
-- Phase 1 구현: 독립 컴포넌트만 (AgentChatView / usePPTScenario 미수정)
-- AgentChatView 통합은 Phase 2에서 진행 예정
-- low-risk toast의 5초 auto-dismiss는 시각적 확인 필요 (animation timing)
-- 알려진 제한사항: 없음
+- Phase 2 UPDATE: AI SDK needsApproval 어댑터 레이어만 추가. 기존 ApprovalGate UI 컴포넌트 무변경.
+- 신규 파일: useApprovalGateAdapter.ts, approvalConditions.ts (+ 테스트 2개)
+- 기존 파일 수정: types.ts (AI SDK 호환 타입 추가 + toolCallId), ApprovalGate.tsx (toolCallId prop), index.ts (export 추가)
+- 알려진 제한사항: AI SDK `useChat` 실제 연동은 백엔드 도입 시점에 E2E 검증 필요. 현재는 어댑터 레이어의 인터페이스 정합성만 테스트.

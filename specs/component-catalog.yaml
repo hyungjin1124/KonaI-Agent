@@ -358,7 +358,7 @@ categories:
       - id: approval_rejection
         name: "Approval / Rejection"
         description: "에이전트 제안에 대한 승인/거절/수정 요청 인터페이스"
-        status: needs_update
+        status: implemented
         priority: critical
         complexity: moderate
         contexts: [chat_view, agent_scenario]
@@ -373,14 +373,18 @@ categories:
           - "src/components/features/agent-chat/components/ApprovalGate/ApprovalModal.tsx"
           - "src/components/features/agent-chat/components/ApprovalGate/ApprovalItemRow.tsx"
           - "src/components/features/agent-chat/components/ApprovalGate/index.ts"
+          - "src/components/features/agent-chat/components/ApprovalGate/useApprovalGateAdapter.ts"
+          - "src/components/features/agent-chat/components/ApprovalGate/approvalConditions.ts"
           - "src/components/features/agent-chat/components/ApprovalGate/ApprovalGate.test.tsx"
+          - "src/components/features/agent-chat/components/ApprovalGate/useApprovalGateAdapter.test.ts"
+          - "src/components/features/agent-chat/components/ApprovalGate/approvalConditions.test.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/approval-gate-component.md"
           - "Insights/agent-ui/patterns/risk-based-rendering.md"
         last_researched: "2026-03-19"
         metadata:
           last_updated: "2026-03-19"
-        notes: "범용 ApprovalGate 컴포넌트 구현 완료. 3-tier risk-based rendering (toast/inline/modal), MCP Elicitation schema form, multi-item approval, session permission. UPDATE (2026-03-19): AI SDK 6 needsApproval 선언적 HITL 패턴 발견. 커스텀 HITL 훅을 needsApproval 어댑터로 표준화 필요. 조건부 승인(async fn)으로 RBAC 기반 동적 게이팅 통합. <Confirmation /> Element로 low-risk UI 표준화."
+        notes: "범용 ApprovalGate 컴포넌트 구현 완료. 3-tier risk-based rendering (toast/inline/modal), MCP Elicitation schema form, multi-item approval, session permission. Phase 2 (2026-03-19): AI SDK 6 needsApproval 어댑터 레이어 추가. useApprovalGateAdapter(approval-requested→ApprovalGate 변환), createApprovalCondition(RBAC 기반 조건부 승인), createSessionPermissionStore(세션 허가 관리). 기존 3-tier UI 완전 유지."
 
       - id: inline_selection
         name: "Inline Selection (Radio/Checkbox/Choice)"

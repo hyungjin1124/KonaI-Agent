@@ -20,6 +20,8 @@ export interface ApprovalGateResult {
   rejectedItemIds?: string[];
   reason?: string;
   schemaData?: Record<string, unknown>;
+  /** AI SDK tool call ID (present when used via needsApproval adapter) */
+  toolCallId?: string;
 }
 
 /**
@@ -72,10 +74,73 @@ export interface ApprovalGateProps {
   /** Callback when session permission changes */
   onSessionPermissionChange?: (actionType: ActionType, allowed: boolean) => void;
 
+  /** AI SDK tool call ID for needsApproval integration */
+  toolCallId?: string;
+
   /** Custom button labels */
   approveLabel?: string;
   rejectLabel?: string;
   modifyLabel?: string;
+}
+
+// ─── AI SDK needsApproval 호환 타입 ─────────────────────────
+
+/** AI SDK tool approval 상태 (needsApproval 패턴) */
+export type ToolApprovalStatus =
+  | 'approval-requested'
+  | 'approval-responded'
+  | 'output-available'
+  | 'output-denied';
+
+/** AI SDK의 도구 호출 정보 (approval 대기 중) */
+export interface ToolApprovalRequest {
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  status: ToolApprovalStatus;
+}
+
+/** addToolApprovalResponse 호출 형태 */
+export interface ToolApprovalResponse {
+  id: string;
+  approved: boolean;
+}
+
+/** 도구명 → risk/action 매핑 설정 */
+export interface ToolRiskMapping {
+  riskLevel: RiskLevel;
+  actionType: ActionType;
+}
+
+/** useApprovalGateAdapter가 변환한 개별 pending approval */
+export interface PendingApproval {
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  riskLevel: RiskLevel;
+  actionType: ActionType;
+}
+
+/** useApprovalGateAdapter 반환 타입 */
+export interface ApprovalGateAdapterResult {
+  pendingApprovals: PendingApproval[];
+  approveToolCall: (toolCallId: string) => void;
+  rejectToolCall: (toolCallId: string) => void;
+  hasPendingApprovals: boolean;
+}
+
+/** 조건부 승인 함수 생성 설정 */
+export interface ApprovalConditionConfig {
+  actionType: ActionType;
+  riskLevel: RiskLevel;
+  autoApproveRoles?: string[];
+}
+
+/** Session Permission 관리 인터페이스 */
+export interface SessionPermissionStore {
+  isAutoApproved: (actionType: ActionType) => boolean;
+  setAutoApproved: (actionType: ActionType, allowed: boolean) => void;
+  clear: () => void;
 }
 
 /** Props shared by the tier-specific sub-components */

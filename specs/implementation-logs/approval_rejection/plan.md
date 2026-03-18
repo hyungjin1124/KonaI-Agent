@@ -1,123 +1,122 @@
-# Plan: Approval / Rejection (ApprovalGate)
+# Plan: Approval / Rejection — AI SDK needsApproval Update
 
 ## 파일 구조
 
 | 파일 경로 | 역할 | 신규/수정 |
 |-----------|------|-----------|
-| `src/components/features/agent-chat/components/ApprovalGate/types.ts` | ApprovalGate 전용 타입 정의 | 신규 |
-| `src/components/features/agent-chat/components/ApprovalGate/ApprovalGate.tsx` | 메인 컴포넌트 (riskLevel 기반 3-tier 렌더링 오케스트레이터) | 신규 |
-| `src/components/features/agent-chat/components/ApprovalGate/ApprovalInlineCard.tsx` | medium-risk: 인라인 카드 UI | 신규 |
-| `src/components/features/agent-chat/components/ApprovalGate/ApprovalModal.tsx` | high-risk: 모달 다이얼로그 UI | 신규 |
-| `src/components/features/agent-chat/components/ApprovalGate/ApprovalToast.tsx` | low-risk: 토스트 알림 UI | 신규 |
-| `src/components/features/agent-chat/components/ApprovalGate/ApprovalItemRow.tsx` | 다중 항목 승인 시 개별 항목 행 | 신규 |
-| `src/components/features/agent-chat/components/ApprovalGate/index.ts` | Barrel export | 신규 |
-| `src/components/features/agent-chat/components/ApprovalGate/ApprovalGate.test.tsx` | 단위 테스트 | 신규 |
+| `src/components/features/agent-chat/components/ApprovalGate/types.ts` | AI SDK 호환 타입 추가 | 수정 |
+| `src/components/features/agent-chat/components/ApprovalGate/useApprovalGateAdapter.ts` | AI SDK `approval-requested` → ApprovalGate props 변환 훅 | 신규 |
+| `src/components/features/agent-chat/components/ApprovalGate/approvalConditions.ts` | 조건부 승인 팩토리 + Session Permission 관리 | 신규 |
+| `src/components/features/agent-chat/components/ApprovalGate/ApprovalGate.tsx` | `toolCallId` prop 추가, 결과에 toolCallId 포함 | 수정 |
+| `src/components/features/agent-chat/components/ApprovalGate/index.ts` | 새 모듈 export 추가 | 수정 |
+| `src/components/features/agent-chat/components/ApprovalGate/useApprovalGateAdapter.test.ts` | 어댑터 훅 테스트 | 신규 |
+| `src/components/features/agent-chat/components/ApprovalGate/approvalConditions.test.ts` | 조건부 승인 팩토리 테스트 | 신규 |
 
-## Props Interface
+## 핵심 인터페이스
+
+### AI SDK 호환 타입 (types.ts 추가)
 
 ```typescript
-// === Core Types ===
+/** AI SDK tool approval 상태 (needsApproval 패턴) */
+type ToolApprovalStatus = 'approval-requested' | 'approval-responded' | 'output-available' | 'output-denied';
 
-type ActionType = 'create' | 'modify' | 'delete' | 'execute' | 'custom';
-type RiskLevel = 'low' | 'medium' | 'high';
+/** AI SDK의 도구 호출 정보 (approval 대기 중) */
+interface ToolApprovalRequest {
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  status: ToolApprovalStatus;
+}
 
-interface ApprovalItem {
+/** addToolApprovalResponse 호출 형태 */
+interface ToolApprovalResponse {
   id: string;
-  title: string;
-  description?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  metadata?: Record<string, unknown>;
+  approved: boolean;
 }
 
-interface ApprovalGateResult {
-  decision: 'approved' | 'rejected' | 'modify';
-  approvedItemIds?: string[];
-  rejectedItemIds?: string[];
-  reason?: string;
-  schemaData?: Record<string, unknown>; // MCP Elicitation form data
+/** useApprovalGateAdapter 반환 타입 */
+interface ApprovalGateAdapterResult {
+  /** 승인 대기 중인 도구 호출 목록 → ApprovalGate에 전달할 props */
+  pendingApprovals: Array<{
+    toolCallId: string;
+    toolName: string;
+    args: Record<string, unknown>;
+    riskLevel: RiskLevel;
+    actionType: ActionType;
+  }>;
+  /** 개별 도구 호출 승인 */
+  approveToolCall: (toolCallId: string) => void;
+  /** 개별 도구 호출 거절 */
+  rejectToolCall: (toolCallId: string) => void;
+  /** 대기 중 여부 */
+  hasPendingApprovals: boolean;
 }
+```
 
-// === Main Component Props ===
+### createApprovalCondition (approvalConditions.ts)
 
-interface ApprovalGateProps {
-  // Core
+```typescript
+/** 조건부 승인 함수 생성을 위한 설정 */
+interface ApprovalConditionConfig {
   actionType: ActionType;
   riskLevel: RiskLevel;
-  title: string;
-  description?: string;
+  /** 자동 승인 허용 역할 목록 */
+  autoApproveRoles?: string[];
+}
 
-  // Handlers
-  onApprove: (result: ApprovalGateResult) => void;
-  onReject: (result: ApprovalGateResult) => void;
-  onModify?: (result: ApprovalGateResult) => void;
-  onClose?: () => void;
-
-  // Multi-item support (AC4)
-  items?: ApprovalItem[];
-
-  // MCP Elicitation schema (AC3)
-  schema?: Record<string, unknown>; // JSON Schema subset
-
-  // Session permission (AC6)
-  showSessionPermission?: boolean;
-  onSessionPermissionChange?: (actionType: ActionType, allowed: boolean) => void;
-
-  // Customization
-  approveLabel?: string;
-  rejectLabel?: string;
-  modifyLabel?: string;
+/** Session Permission 관리 */
+interface SessionPermissionStore {
+  isAutoApproved: (actionType: ActionType) => boolean;
+  setAutoApproved: (actionType: ActionType, allowed: boolean) => void;
+  clear: () => void;
 }
 ```
 
 ## 상태 설계
 
-### ApprovalGate 내부 state
-- `itemStatuses: Map<string, 'pending' | 'approved' | 'rejected'>` — 개별 항목 상태
-- `reason: string` — 거절/수정 사유
-- `schemaFormData: Record<string, unknown>` — MCP elicitation 폼 데이터
-- `sessionPermission: boolean` — "이 세션에서 자동 승인" 체크
+### useApprovalGateAdapter
+- 입력: AI SDK `useChat`의 messages에서 `approval-requested` 상태 도구 호출 추출
+- 입력: `toolRiskMapping: Record<string, { riskLevel, actionType }>` — 도구명 → risk 매핑
+- 출력: `ApprovalGateAdapterResult`
+- 내부: `addToolApprovalResponse` 콜백을 래핑
 
-### 외부 연동
-- AgentChatView의 `activeHitl` state → ApprovalGate 표시/숨김
-- `hitlResumeCallback` → approve/reject 시 시나리오 재개
+### approvalConditions
+- `createApprovalCondition(config)` → `async (args) => boolean` 형태의 needsApproval 함수
+- `createSessionPermissionStore()` → in-memory Map 기반 세션 허가 관리
+- `createRBACCondition(userRole, config)` → 역할 기반 조건부 승인
 
 ## 통합 지점
 
-### 1. AgentChatView에서의 사용
-기존 HITLFloatingPanel과 동일한 패턴으로 통합. `activeHitl.toolType`이 ApprovalGate 관련 타입일 때 ApprovalGate를 렌더링.
-
-```
-activeHitl.toolType === 'slide_outline_review' → ApprovalGate (medium-risk, items mode)
-activeHitl.toolType === 'data_validation' → ApprovalGate (medium-risk)
-Future: 'approval_gate' toolType → 범용 ApprovalGate
-```
-
-### 2. 독립 사용 (Phase 1 범위)
-ApprovalGate는 독립 컴포넌트로도 사용 가능. PPT 시나리오 외에도 아무 곳에서나 import하여 riskLevel + actionType만 전달하면 동작.
-
-### 3. 기존 코드 영향 최소화
-Phase 1에서는 기존 HITLFloatingPanel이나 usePPTScenario를 수정하지 않음. ApprovalGate는 새로운 독립 컴포넌트로 추가하고, AgentChatView에서 조건부로 사용.
+1. **ApprovalGate 자체**: `toolCallId` prop 추가 (선택적). 결과 객체에 포함.
+2. **어댑터 훅 사용 패턴**: AI SDK `useChat` 사용 시 → `useApprovalGateAdapter` → ApprovalGate
+3. **기존 코드 무영향**: 기존 사용처에서 `toolCallId` 미전달 시 기존 동작 유지
 
 ## Acceptance Criteria 매핑
 
 | # | Criteria | 구현 위치 |
 |---|----------|-----------|
-| AC1 | Generic ApprovalGate — actionType, riskLevel, handlers 수용 | `ApprovalGate.tsx` Props interface |
-| AC2 | riskLevel별 3가지 UI 변형 (toast/inline/modal), #FF3C42 accent | `ApprovalToast.tsx`, `ApprovalInlineCard.tsx`, `ApprovalModal.tsx` |
-| AC3 | schema prop → JSON Schema 자동 폼 렌더링 | `ApprovalInlineCard.tsx` + `ApprovalModal.tsx` 내 SchemaForm 렌더링 |
-| AC4 | items prop → 다중 항목 개별 승인/거부 | `ApprovalItemRow.tsx` + items 모드 렌더링 |
-| AC5 | Orchestration ScenarioStep.approvalGate 연동 가능 | ApprovalGate를 AgentChatView에서 조건부 렌더링 |
-| AC6 | Session Permission: "Allow for Session" → 자동 승인 | `showSessionPermission` prop + checkbox UI |
-| AC7 | 접근성: Modal=alertdialog+focus trap, Inline=alert+aria-live | Radix Dialog role 속성 활용 |
-| AC8 | 키보드: Enter=approve, Escape=reject, Tab=항목 이동 | onKeyDown handler 구현 |
+| AC1 | useApprovalGateAdapter: approval-requested → riskLevel/actionType 매핑 | useApprovalGateAdapter.ts |
+| AC2 | onApprove/onReject → addToolApprovalResponse({id, approved}) 호출 | useApprovalGateAdapter.ts: approveToolCall/rejectToolCall |
+| AC3 | createApprovalCondition → needsApproval: async fn 형태 | approvalConditions.ts |
+| AC4 | 기존 3-tier UI 유지 + #FF3C42 accent | 기존 코드 변경 없음 |
+| AC5 | schema prop MCP Elicitation 호환 유지 | 기존 코드 변경 없음 |
+| AC6 | items prop multi-item 유지 | 기존 코드 변경 없음 |
+| AC7 | Session Permission → 조건부 승인 함수 자동 스킵 | approvalConditions.ts: SessionPermissionStore 통합 |
+| AC8 | 접근성 유지 (alertdialog, alert, aria-live) | 기존 코드 변경 없음 |
+| AC9 | 키보드 유지 (Enter/Escape/Tab) | 기존 코드 변경 없음 |
 
-## 렌더링 로직 상세
+## 테스트 시나리오
 
-```
-if (riskLevel === 'low')    → ApprovalToast: 하단 토스트, 5초 auto-dismiss, "취소" 버튼
-if (riskLevel === 'medium') → ApprovalInlineCard: 채팅 내 인라인 카드, border-left #FF3C42
-if (riskLevel === 'high')   → ApprovalModal: Radix Dialog 모달, focus trap, #FF3C42 CTA
-```
-
-items가 있으면 ApprovalItemRow를 리스트로 렌더링 (inline/modal 내부에서).
-schema가 있으면 JSON Schema 기반 폼 필드를 자동 생성.
+| # | Acceptance Criteria | 시나리오 | 테스트 방법 | 우선순위 |
+|---|---------------------|---------|-----------|---------|
+| 1 | AC1 | approval-requested 상태 도구를 pendingApprovals에 포함 | renderHook + mock messages | must |
+| 2 | AC1 | toolRiskMapping으로 riskLevel/actionType 매핑 | renderHook + assert | must |
+| 3 | AC2 | approveToolCall → addToolApprovalResponse({approved: true}) | vi.fn() assert | must |
+| 4 | AC2 | rejectToolCall → addToolApprovalResponse({approved: false}) | vi.fn() assert | must |
+| 5 | AC3 | createApprovalCondition(low, admin) → false (자동 승인) | 순수 함수 테스트 | must |
+| 6 | AC3 | createApprovalCondition(high, viewer) → true (승인 필요) | 순수 함수 테스트 | must |
+| 7 | AC7 | SessionPermissionStore: set → isAutoApproved returns true | 순수 함수 테스트 | must |
+| 8 | AC7 | session permission 스킵 시 createApprovalCondition → false | 순수 함수 + store 연동 | must |
+| 9 | AC1 | approval-responded 상태 도구는 pendingApprovals에서 제외 | renderHook | should |
+| 10 | AC3 | autoApproveRoles 미지정 시 항상 승인 필요 | 순수 함수 테스트 | should |
+| 11 | AC7 | clear() 호출 시 모든 세션 허가 초기화 | 순수 함수 테스트 | should |

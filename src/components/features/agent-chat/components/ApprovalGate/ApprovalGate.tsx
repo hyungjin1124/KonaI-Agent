@@ -107,6 +107,7 @@ export const ApprovalGate: React.FC<ApprovalGateProps> = ({
   schema,
   showSessionPermission = false,
   onSessionPermissionChange,
+  toolCallId,
   approveLabel = '승인',
   rejectLabel = '거절',
   modifyLabel,
@@ -169,6 +170,10 @@ export const ApprovalGate: React.FC<ApprovalGateProps> = ({
   const buildResult = useCallback(
     (decision: 'approved' | 'rejected' | 'modify'): ApprovalGateResult => {
       const result: ApprovalGateResult = { decision };
+
+      if (toolCallId) {
+        result.toolCallId = toolCallId;
+      }
 
       if (items) {
         result.approvedItemIds = items
