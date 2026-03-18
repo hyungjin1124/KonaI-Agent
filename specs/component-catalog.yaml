@@ -18,7 +18,7 @@
 
 metadata:
   version: "1.3.0"
-  last_updated: "2026-03-16"
+  last_updated: "2026-03-19"
   project: "KonaI-Agent"
   tech_stack:
     framework: "Next.js 15"
@@ -358,7 +358,7 @@ categories:
       - id: approval_rejection
         name: "Approval / Rejection"
         description: "에이전트 제안에 대한 승인/거절/수정 요청 인터페이스"
-        status: implemented
+        status: needs_update
         priority: critical
         complexity: moderate
         contexts: [chat_view, agent_scenario]
@@ -377,10 +377,10 @@ categories:
         obsidian_sources:
           - "Insights/agent-ui/patterns/approval-gate-component.md"
           - "Insights/agent-ui/patterns/risk-based-rendering.md"
-        last_researched: "2026-02-21"
+        last_researched: "2026-03-19"
         metadata:
-          last_updated: "2026-02-21"
-        notes: "범용 ApprovalGate 컴포넌트 구현 완료. 3-tier risk-based rendering (toast/inline/modal), MCP Elicitation schema form, multi-item approval, session permission. Phase 1: standalone 컴포넌트 (기존 hooks 미수정). OpenAI Codex 0.113.0 (Mar 10): request_permissions 빌트인 도구 + 런타임 승인 UI + 사용자 패턴 기억. Salesforce Agentforce Contact Center (Mar 10): AI-to-human seamless 핸드오프, 컨텍스트 보존 전달. GitHub Copilot (Mar 13): repo 설정으로 코딩 에이전트 워크플로우 승인 바이패스 가능. trust-level 기반 구성 가능한 승인 게이트 패턴."
+          last_updated: "2026-03-19"
+        notes: "범용 ApprovalGate 컴포넌트 구현 완료. 3-tier risk-based rendering (toast/inline/modal), MCP Elicitation schema form, multi-item approval, session permission. UPDATE (2026-03-19): AI SDK 6 needsApproval 선언적 HITL 패턴 발견. 커스텀 HITL 훅을 needsApproval 어댑터로 표준화 필요. 조건부 승인(async fn)으로 RBAC 기반 동적 게이팅 통합. <Confirmation /> Element로 low-risk UI 표준화."
 
       - id: inline_selection
         name: "Inline Selection (Radio/Checkbox/Choice)"
