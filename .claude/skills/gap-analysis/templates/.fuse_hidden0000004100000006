@@ -1,0 +1,42 @@
+# Production Readiness Gap Analysis — {date}
+
+## Scope
+{What was scanned: directories, file count}
+
+## Summary
+| Status | Count | % |
+|--------|-------|---|
+| Implemented | {n} | {%} |
+| Partial | {n} | {%} |
+| Missing | {n} | {%} |
+| **Total** | **{n}** | **100%** |
+
+## Critical Gaps (must fix before launch)
+| # | Category | Item | Status | Effort | Evidence |
+|---|----------|------|--------|--------|----------|
+
+## Important Gaps (fix within 30 days)
+| # | Category | Item | Status | Effort | Evidence |
+|---|----------|------|--------|--------|----------|
+
+## Nice-to-Have Gaps
+| # | Category | Item | Status | Effort | Evidence |
+|---|----------|------|--------|--------|----------|
+
+## Fully Implemented Items
+| # | Category | Item | Evidence |
+|---|----------|------|----------|
+
+## Critical Path (recommended fix order)
+1. {Item} — {effort} — blocks: {what depends on this}
+2. ...
+
+## Effort Summary
+| Effort | Critical | Important | Nice-to-have |
+|--------|----------|-----------|-------------|
+| S (< 1d) | {n} | {n} | {n} |
+| M (1-3d) | {n} | {n} | {n} |
+| L (3-5d) | {n} | {n} | {n} |
+| XL (1w+) | {n} | {n} | {n} |
+
+Total estimated effort for Critical items: {person-days}

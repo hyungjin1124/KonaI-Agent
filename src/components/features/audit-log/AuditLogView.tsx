@@ -273,7 +273,7 @@ export const AuditLogView: React.FC = () => {
     };
 
   const handleExportCSV = () => {
-    const header = ['타임스탬프', '액터 타입', '액터', '액션', '카테고리', '리소스', '결과', '심각도', 'PII'].join(',');
+    const header = ['시간', '수행자 유형', '수행자', '작업', '분류', '대상', '결과', '심각도', '개인정보'].join(',');
     const rows = filteredEntries.map(e =>
       [
         e.timestamp,

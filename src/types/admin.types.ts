@@ -55,7 +55,6 @@ export interface RoleDefinition {
   nameEn: string;
   description: string;
   dataScope: DataScopeType;
-  targetExample: string;
   note?: string;
 }
 
@@ -91,6 +90,13 @@ export interface ViewSubcategory {
   sensitivityLevel: SensitivityLevel;
 }
 
+export interface ViewDefinition {
+  id: string;              // e.g., 'mv_slip_universal'
+  subcategoryId: string;   // FK → ViewSubcategory.id
+  viewName: string;        // technical name
+  displayName: string;     // Korean label
+}
+
 // ---------------------------------------------------------------------------
 // 4. Access Matrix (시트 ②)
 // ---------------------------------------------------------------------------
@@ -98,6 +104,7 @@ export interface ViewSubcategory {
 export interface DomainAccessMatrix {
   role: DomainRole;
   subcategoryAccess: Record<string, AccessLevel>; // subcategoryId → AccessLevel
+  viewOverrides: Record<string, AccessLevel>;     // viewId → AccessLevel (override only)
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +168,32 @@ export interface ResolvedEffectivePolicy {
   rowFilters: string[];
   columnMasking: Record<SensitiveColumnCategory, MaskingType>;
   auditWarning: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// 7-1. Permission Audit Log
+// ---------------------------------------------------------------------------
+
+export type PermissionAuditAction =
+  | 'access_change'
+  | 'view_override'
+  | 'role_delete'
+  | 'rls_change'
+  | 'mask_change'
+  | 'role_change'
+  | 'mapping_change'
+  | 'save'
+  | 'reset';
+
+export interface PermissionAuditEntry {
+  id: string;
+  timestamp: string;
+  actor: string;
+  action: PermissionAuditAction;
+  target: string;
+  detail: string;
+  oldValue?: string;
+  newValue?: string;
 }
 
 // ---------------------------------------------------------------------------

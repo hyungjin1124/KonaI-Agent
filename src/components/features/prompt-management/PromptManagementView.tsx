@@ -142,9 +142,12 @@ function VariableHighlight({ content }: { content: string }) {
 
 interface PromptManagementViewProps {
   mode?: PromptManagementMode;
+  readOnly?: boolean;
 }
 
-export function PromptManagementView({ mode }: PromptManagementViewProps) {
+export function PromptManagementView({ mode, readOnly: readOnlyProp }: PromptManagementViewProps) {
+  // mode="user" implies read-only unless explicitly overridden
+  const readOnly = readOnlyProp ?? mode === 'user';
   // Mode-based category filtering
   const allowedCategories = mode === 'admin' ? ADMIN_CATEGORIES : mode === 'user' ? USER_CATEGORIES : undefined;
   const visibleCategoryOptions = allowedCategories
@@ -161,6 +164,7 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PromptTemplate | null>(null);
   const [editorMode, setEditorMode] = useState<'create' | 'edit'>('create');
+  const [toastMsg, setToastMsg] = useState('');
 
   // Editor form state
   const [editName, setEditName] = useState('');
@@ -290,6 +294,9 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
 
     setIsEditorOpen(false);
     setSelectedTemplate(null);
+    const msg = editorMode === 'create' ? '프롬프트가 생성되었습니다.' : '프롬프트가 저장되었습니다.';
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3000);
   }, [editorMode, editName, editCategory, editContent, editStatus, editModelId, editModeration, editDeploymentLabel, editChangeNote, selectedTemplate]);
 
   const handleDelete = useCallback(() => {
@@ -362,14 +369,16 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
           </Select>
         </div>
 
-        <Button
-          className="bg-[#1A1A1A] hover:bg-black text-white shadow-sm h-9"
-          size="sm"
-          onClick={openCreateEditor}
-          data-testid="create-prompt-button"
-        >
-          <Plus size={14} className="mr-1.5" /> 새 프롬프트
-        </Button>
+        {!readOnly && (
+          <Button
+            className="bg-[#1A1A1A] hover:bg-black text-white shadow-sm h-9"
+            size="sm"
+            onClick={openCreateEditor}
+            data-testid="create-prompt-button"
+          >
+            <Plus size={14} className="mr-1.5" /> 새 프롬프트
+          </Button>
+        )}
       </div>
 
       {/* Prompt Table */}
@@ -384,7 +393,7 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
               <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">상태</TableHead>
               <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">배포</TableHead>
               <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">수정일</TableHead>
-              <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase text-right">관리</TableHead>
+              {!readOnly && <TableHead className="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase text-right">관리</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -393,8 +402,8 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
                 <TableCell className="px-4 py-3">
                   <button
                     className="text-left w-full"
-                    onClick={() => openEditEditor(template)}
-                    aria-label={`${template.name} 편집`}
+                    onClick={() => { if (!readOnly) openEditEditor(template); else setSelectedTemplate(template); }}
+                    aria-label={readOnly ? `${template.name} 상세 보기` : `${template.name} 편집`}
                   >
                     <div className="text-sm font-bold text-gray-900">{template.name}</div>
                     <div className="text-xs text-gray-500 mt-0.5 truncate max-w-[240px]">{template.content.slice(0, 60)}...</div>
@@ -418,32 +427,34 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
                 <TableCell className="px-4 py-3">
                   <span className="text-xs text-gray-500 font-mono">{template.updatedAt}</span>
                 </TableCell>
-                <TableCell className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-blue-600 hover:bg-blue-50"
-                      onClick={() => openEditEditor(template)}
-                      title="편집"
-                      aria-label={`${template.name} 편집`}
-                      data-testid={`edit-button-${template.id}`}
-                    >
-                      <Edit2 size={14} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-red-600 hover:bg-red-50"
-                      onClick={() => openDeleteDialog(template)}
-                      title="삭제"
-                      aria-label={`${template.name} 삭제`}
-                      data-testid={`delete-button-${template.id}`}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </TableCell>
+                {!readOnly && (
+                  <TableCell className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-blue-600 hover:bg-blue-50"
+                        onClick={() => openEditEditor(template)}
+                        title="편집"
+                        aria-label={`${template.name} 편집`}
+                        data-testid={`edit-button-${template.id}`}
+                      >
+                        <Edit2 size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-600 hover:bg-red-50"
+                        onClick={() => openDeleteDialog(template)}
+                        title="삭제"
+                        aria-label={`${template.name} 삭제`}
+                        data-testid={`delete-button-${template.id}`}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -859,6 +870,13 @@ export function PromptManagementView({ mode }: PromptManagementViewProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Toast */}
+      {toastMsg && (
+        <div role="alert" className="fixed bottom-6 right-6 z-50 px-4 py-2.5 bg-green-600 text-white text-sm rounded-lg shadow-lg animate-fade-in-up">
+          {toastMsg}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,12 +1,12 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import type { MaskingType } from './admin.types';
 
 // View Types
-export type ViewType = 'chat' | 'dashboard' | 'data' | 'skills' | 'admin' | 'history' | 'general-chat' | 'agent-config' | 'prompt-management' | 'scheduled-tasks' | 'marketplace';
+export type ViewType = 'chat' | 'dashboard' | 'data' | 'skills' | 'admin' | 'history' | 'general-chat' | 'agent-config' | 'prompt-management' | 'scheduled-tasks' | 'marketplace' | 'platform-admin';
 
 // Sidebar Types
 export interface SidebarItem {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   badge?: string;
   active?: boolean;
@@ -15,11 +15,11 @@ export interface SidebarItem {
 export interface TaskItem {
   id: string;
   title: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
 }
 
 export interface ActionChip {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   iconColor?: string;
 }

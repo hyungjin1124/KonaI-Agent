@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+'use client';
+
+import { useState, useMemo, useCallback } from 'react';
 
 import type {
   DomainRole,
@@ -16,6 +18,12 @@ import {
   MASKING_TYPE_LABELS,
   SENSITIVE_CATEGORY_LABELS,
 } from '../permissionSettingsData';
+
+const MASKING_BADGE_CLASS: Record<'full' | 'partial' | 'hidden', string> = {
+  full:    'bg-green-50 text-green-700',
+  partial: 'bg-amber-50 text-amber-700',
+  hidden:  'bg-red-50 text-red-600',
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -89,7 +97,7 @@ function TableAccessSummary({ subcategoryAccess }: TableAccessSummaryProps) {
     }).filter((entry) => entry.total > 0);
   }, [subcategoryAccess]);
 
-  const toggleModule = (code: string) => {
+  const toggleModule = useCallback((code: string) => {
     setExpandedModules((prev) => {
       const next = new Set(prev);
       if (next.has(code)) {
@@ -99,7 +107,7 @@ function TableAccessSummary({ subcategoryAccess }: TableAccessSummaryProps) {
       }
       return next;
     });
-  };
+  }, []);
 
   return (
     <div className="space-y-1">
@@ -141,6 +149,7 @@ function TableAccessSummary({ subcategoryAccess }: TableAccessSummaryProps) {
                   {accessibleCount}/{total} 접근 가능
                 </span>
                 <span
+                  aria-hidden="true"
                   className={`text-gray-400 text-xs transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`}
                 >
                   ▾
@@ -179,17 +188,6 @@ interface ColumnMaskingSectionProps {
 function ColumnMaskingSection({ columnMasking }: ColumnMaskingSectionProps) {
   const categories = Object.keys(SENSITIVE_CATEGORY_LABELS) as SensitiveColumnCategory[];
 
-  const maskingBadgeClass = (type: 'full' | 'partial' | 'hidden') => {
-    switch (type) {
-      case 'full':
-        return 'bg-green-50 text-green-700';
-      case 'partial':
-        return 'bg-amber-50 text-amber-700';
-      case 'hidden':
-        return 'bg-red-50 text-red-600';
-    }
-  };
-
   return (
     <div className="space-y-1.5">
       {categories.map((cat) => {
@@ -201,7 +199,7 @@ function ColumnMaskingSection({ columnMasking }: ColumnMaskingSectionProps) {
           >
             <span className="text-sm text-gray-700">{SENSITIVE_CATEGORY_LABELS[cat]}</span>
             <span
-              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${maskingBadgeClass(maskType)}`}
+              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${MASKING_BADGE_CLASS[maskType]}`}
             >
               {MASKING_TYPE_LABELS[maskType]}
             </span>
@@ -239,7 +237,7 @@ export function ConflictPreviewPanel({
 
       {result === null ? (
         <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-          <div className="text-2xl mb-2 text-gray-300">⊕</div>
+          <div className="text-2xl mb-2 text-gray-300" aria-hidden="true">⊕</div>
           <p className="text-xs text-gray-400">
             역할을 선택하면 통합 권한을 미리 볼 수 있습니다.
           </p>
@@ -249,10 +247,18 @@ export function ConflictPreviewPanel({
           {/* Audit warning banner */}
           {result.auditWarning && (
             <div className="flex gap-2 items-start px-3 py-2.5 rounded-lg border border-amber-300 bg-amber-50">
-              <span className="text-amber-500 text-sm shrink-0 mt-0.5">⚠️</span>
+              <span className="text-amber-500 text-sm shrink-0 mt-0.5" aria-hidden="true">⚠️</span>
               <p className="text-xs text-amber-800 leading-relaxed">
                 <span className="font-bold">감사 강화: </span>
-                HR 역할과 비인사 역할이 동시 할당됨
+                {(() => {
+                  const hrRoles = selectedRoles.filter(r => r.includes('HR'));
+                  const nonHrRoles = selectedRoles.filter(r => !r.includes('HR'));
+                  const hrNames = hrRoles.map(r => ROLE_LABEL_MAP[r] ?? r).join(', ');
+                  const nonHrNames = nonHrRoles.map(r => ROLE_LABEL_MAP[r] ?? r).join(', ');
+                  return hrRoles.length > 0 && nonHrRoles.length > 0
+                    ? `${hrNames} 역할과 ${nonHrNames} 역할이 동시 할당됨`
+                    : `${selectedRoles.map(r => ROLE_LABEL_MAP[r] ?? r).join(', ')} 역할 조합 시 감사 강화 대상`;
+                })()}
               </p>
             </div>
           )}
@@ -279,7 +285,7 @@ export function ConflictPreviewPanel({
             ) : (
               <div className="space-y-1.5">
                 {result.rowFilters.map((filter, idx) => (
-                  <div key={idx}>
+                  <div key={filter}>
                     {idx > 0 && (
                       <div className="flex items-center gap-1.5 my-1">
                         <div className="flex-1 border-t border-gray-200" />

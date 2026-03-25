@@ -1,0 +1,31 @@
+# Code Review Report — {date}
+
+## Target
+{directory or file path reviewed}
+
+## Summary
+{1-2 sentence overview of findings}
+
+## Critical Issues
+| File | Line | Issue | Suggested Fix |
+|------|------|-------|---------------|
+
+## Major Issues
+| File | Line | Issue | Suggested Fix |
+|------|------|-------|---------------|
+
+## Minor Issues
+| File | Line | Issue | Suggested Fix |
+|------|------|-------|---------------|
+
+## Quick Wins (Top 5)
+1. {file}: {issue} — est. {minutes}min
+2.
+3.
+4.
+5.
+
+## Metrics
+- Files reviewed: {count}
+- Total issues: {count} (Critical: {n} / Major: {n} / Minor: {n})
+- Estimated fix time (Quick Wins only): {total}min

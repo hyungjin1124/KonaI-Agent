@@ -6,6 +6,7 @@ import { Button } from '../../ui/button';
 export interface ChartWidgetProps {
   title: string;
   subtitle?: string;
+  lastUpdated?: string;
   children: React.ReactNode;
   height?: number;
   headerRight?: React.ReactNode;
@@ -21,6 +22,7 @@ export const ChartWidget = memo<ChartWidgetProps>(
   ({
     title,
     subtitle,
+    lastUpdated,
     children,
     height = 220,
     headerRight,
@@ -44,8 +46,7 @@ export const ChartWidget = memo<ChartWidgetProps>(
             )}
             <div className="flex flex-col">
               <h3 className="text-sm font-bold text-gray-900 leading-tight">{title}</h3>
-              {/* Compact subtitle or hide if needed for extreme compactness */}
-              {/* {subtitle && <p className="text-[10px] text-gray-400">{subtitle}</p>} */}
+              {lastUpdated && <p className="text-[10px] text-gray-400">업데이트: {lastUpdated}</p>}
             </div>
           </div>
           {headerRight}

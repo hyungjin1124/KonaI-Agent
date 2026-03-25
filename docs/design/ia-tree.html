@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KonaI-Agent IA Tree</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f1117;
+    color: #e1e4e8;
+    min-height: 100vh;
+    overflow-x: auto;
+  }
+
+  .header {
+    text-align: center;
+    padding: 32px 20px 16px;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 13px;
+    color: #8b949e;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 12px 20px 24px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #8b949e;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .tree-container {
+    display: flex;
+    justify-content: center;
+    padding: 0 40px 60px;
+    min-width: fit-content;
+  }
+
+  /* Tree layout */
+  .tree ul {
+    position: relative;
+    padding-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 0;
+  }
+  .tree li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 6px 0;
+    list-style: none;
+  }
+
+  /* Vertical connector from parent */
+  .tree li::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 20px;
+    background: #30363d;
+  }
+  /* Horizontal connector */
+  .tree li::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 2px;
+    background: #30363d;
+    right: 0;
+  }
+  .tree li:first-child::after { left: 50%; }
+  .tree li:last-child::after { right: 50%; left: auto; }
+  .tree li:only-child::after { display: none; }
+  .tree li:first-child::after { border-radius: 2px 0 0 0; }
+  .tree li:last-child::after { border-radius: 0 2px 0 0; }
+
+  /* Root has no connectors */
+  .tree > ul > li::before,
+  .tree > ul > li::after { display: none; }
+
+  /* Node card */
+  .node {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1.5px solid #30363d;
+    background: #161b22;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    max-width: 180px;
+    text-align: center;
+  }
+  .node:hover {
+    border-color: #58a6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(88,166,255,0.15);
+  }
+
+  .node .icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+  .node .label {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #e1e4e8;
+  }
+  .node .sub-label {
+    font-size: 10px;
+    color: #8b949e;
+    margin-top: 2px;
+  }
+
+  /* Color themes */
+  .node.root {
+    background: linear-gradient(135deg, #1a1f35, #1f2847);
+    border-color: #58a6ff;
+    padding: 14px 24px;
+    max-width: 220px;
+  }
+  .node.root .label { font-size: 15px; color: #fff; }
+
+  .node.menu {
+    background: linear-gradient(135deg, #0d1b2a, #1b2838);
+    border-color: #388bfd;
+    min-width: 120px;
+  }
+  .node.menu .label { color: #79c0ff; font-size: 13px; }
+
+  .node.tab {
+    background: #1c2333;
+    border-color: #2d4a22;
+    min-width: 90px;
+  }
+  .node.tab .label { color: #7ee787; }
+
+  .node.category {
+    background: #1c2333;
+    border-color: #6e40c9;
+    min-width: 100px;
+  }
+  .node.category .label { color: #d2a8ff; }
+
+  .node.item {
+    background: #1a1d23;
+    border-color: #30363d;
+    min-width: 80px;
+    padding: 8px 12px;
+  }
+  .node.item .label { color: #c9d1d9; font-weight: 500; font-size: 11px; }
+
+  .node.phase2 {
+    opacity: 0.45;
+    border-style: dashed;
+  }
+
+  .node.connection {
+    background: #1d2230;
+    border-color: #d29922;
+    min-width: 100px;
+  }
+  .node.connection .label { color: #e3b341; }
+
+  /* Tooltip */
+  .tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #c9d1d9;
+    line-height: 1.5;
+    white-space: nowrap;
+    max-width: 280px;
+    white-space: normal;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    pointer-events: none;
+  }
+  .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #30363d;
+  }
+  .node:hover .tooltip { display: block; }
+
+  /* Responsive */
+  @media (max-width: 1200px) {
+    .tree-container { padding: 0 16px 40px; }
+    .node { min-width: 75px; max-width: 150px; padding: 8px 10px; }
+    .node .label { font-size: 10px; }
+  }
+
+  /* Connection arrows section */
+  .connections-section {
+    max-width: 900px;
+    margin: 0 auto 60px;
+    padding: 0 20px;
+  }
+  .connections-section h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .conn-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .conn-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+  .conn-card:hover { border-color: #e3b341; }
+  .conn-card .conn-from-to {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e3b341;
+    margin-bottom: 6px;
+  }
+  .conn-card .conn-desc {
+    font-size: 11px;
+    color: #8b949e;
+    line-height: 1.5;
+  }
+  .conn-card.optional { border-style: dashed; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>KonaI-Agent — Information Architecture</h1>
+  <p>feature-architecture.md 기반 · 프로토타입 범위</p>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#388bfd"></div>최상위 메뉴</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7ee787"></div>탭</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff"></div>카테고리</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c9d1d9"></div>항목</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c9d1d9; opacity:0.4; border:1px dashed #666"></div>Phase 2</div>
+</div>
+
+<div class="tree-container">
+<div class="tree">
+<ul>
+  <li>
+    <!-- ROOT -->
+    <div class="node root">
+      <div class="icon">🏠</div>
+      <div class="label">KonaI-Agent</div>
+      <div class="sub-label">AI 에이전트 엔터프라이즈 플랫폼</div>
+    </div>
+    <ul>
+
+      <!-- 1. 홈/대시보드 -->
+      <li>
+        <div class="node menu">
+          <div class="icon">📊</div>
+          <div class="label">홈/대시보드</div>
+          <div class="sub-label">의사결정 진입점</div>
+          <div class="tooltip">전사 직원의 의사결정 진입점. AI 인사이트와 KPI를 한눈에 파악. 홈과 대시보드를 단일 페이지 탭으로 통합.</div>
+        </div>
+        <ul>
+          <li>
+            <div class="node tab">
+              <div class="icon">🤖</div>
+              <div class="label">AI 인사이트</div>
+              <div class="sub-label">기본 탭</div>
+              <div class="tooltip">AI가 자동 발견한 이상 신호, 추세 변화, 기회를 우선순위순 표시. ThoughtSpot AI Highlights 패턴. Level 1~3 통합.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node tab">
+              <div class="icon">📈</div>
+              <div class="label">KPI 대시보드</div>
+              <div class="sub-label">현재값 + 트렌드</div>
+              <div class="tooltip">조직 핵심 성과 지표 모니터링. 현재값, 변화율, 트렌드 차트 제공.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node tab">
+              <div class="icon">🎨</div>
+              <div class="label">커스텀 대시보드</div>
+              <div class="sub-label">사용자/팀 생성</div>
+              <div class="tooltip">사용자/팀이 만든 대시보드 목록 + 새 대시보드 생성. AI 채팅 결과 저장 도착점. Databricks Genie→Dashboard 패턴.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node tab phase2">
+              <div class="icon">🏢</div>
+              <div class="label">부서별 성과</div>
+              <div class="sub-label">Phase 2</div>
+              <div class="tooltip">부서 구조 데이터가 없는 프로토타입 단계에서 제외.</div>
+            </div>
+          </li>
+        </ul>
+      </li>
+
+      <!-- 2. AI 채팅 -->
+      <li>
+        <div class="node menu">
+          <div class="icon">💬</div>
+          <div class="label">AI 채팅</div>
+          <div class="sub-label">중심 허브 · 개발 중</div>
+          <div class="tooltip">이미 개발 중. 다른 메뉴와의 연결점만 본 문서에서 정의. 모든 메뉴의 중심 허브 역할.</div>
+        </div>
+        <ul>
+          <li>
+            <div class="node item">
+              <div class="label">대화 인터페이스</div>
+              <div class="tooltip">자연어 질의 → AI 분석 → 결과 제공</div>
+            </div>
+          </li>
+          <li>
+            <div class="node item">
+              <div class="label">Artifact 패널</div>
+              <div class="tooltip">에이전트 생성 결과물 표시 · 스킬 정의 확인/수정</div>
+            </div>
+          </li>
+          <li>
+            <div class="node item">
+              <div class="label">스킬 생성</div>
+              <div class="sub-label">대화 기반</div>
+              <div class="tooltip">채팅에서 "이걸 반복 작업으로 만들자" → 스킬 생성. Claude Code SKILL.md 패턴.</div>
+            </div>
+          </li>
+        </ul>
+      </li>
+
+      <!-- 3. 스킬 -->
+      <li>
+        <div class="node menu">
+          <div class="icon">⚡</div>
+          <div class="label">스킬</div>
+          <div class="sub-label">업무 자동화 도구 허브</div>
+          <div class="tooltip">AI 에이전트가 호출하는 업무 자동화 도구를 탐색·관리하는 중앙 허브. 단일 목록 뷰 + 필터 구조. 생성은 AI 채팅에서.</div>
+        </div>
+        <ul>
+          <li>
+            <div class="node tab">
+              <div class="icon">📋</div>
+              <div class="label">스킬 목록</div>
+              <div class="sub-label">내 스킬 / 전체 필터</div>
+              <div class="tooltip">단일 목록에서 "내 스킬 / 전체" 필터로 전환. 활성 사용자 수 직접 표시. 프로토타입 단계에서 탭 분리 불필요.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node item">
+              <div class="label">편집 · 공유 · 삭제</div>
+              <div class="tooltip">기존 스킬의 편집(채팅 이동), 공유, 삭제 관리</div>
+            </div>
+          </li>
+          <li>
+            <div class="node item">
+              <div class="label">스킬 범위</div>
+              <div class="sub-label">MCP · API · 프롬프트 · 워크플로우</div>
+              <div class="tooltip">포함: MCP 도구, API 커넥터, 프롬프트 템플릿, 워크플로우. 미포함: 에이전트(주체), 데이터 소스(데이터 메뉴).</div>
+            </div>
+          </li>
+        </ul>
+      </li>
+
+      <!-- 4. 데이터 -->
+      <li>
+        <div class="node menu">
+          <div class="icon">🗄️</div>
+          <div class="label">데이터</div>
+          <div class="sub-label">데이터 거버넌스 허브</div>
+          <div class="tooltip">데이터 담당자 전용. 에이전트가 올바른 데이터에 올바른 권한으로 접근하도록 설정하는 "백스테이지". OpenAI Frontier Business Context + Enterprise Security.</div>
+        </div>
+        <ul>
+          <li>
+            <div class="node tab">
+              <div class="icon">📑</div>
+              <div class="label">뷰 테이블</div>
+              <div class="sub-label">메타데이터 · 접근 제어</div>
+              <div class="tooltip">ERP 등 소스 DB에서 에이전트가 쿼리할 테이블 목록 탐색, 메타데이터 관리, 개별 접근 제어. Snowflake Catalog Explorer 패턴.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node tab">
+              <div class="icon">🔗</div>
+              <div class="label">온톨로지</div>
+              <div class="sub-label">읽기 + 간단 편집</div>
+              <div class="tooltip">테이블·컬럼·비즈니스 개념 간 의미 관계 정의. 시맨틱 레이어. 프로토타입: 읽기 전용 시각화 + 간단한 편집. 풀 에디터/AI 자동 생성은 Phase 2.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node tab">
+              <div class="icon">🔒</div>
+              <div class="label">접근 정책</div>
+              <div class="sub-label">테이블/행/컬럼 수준</div>
+              <div class="tooltip">역할별 테이블/컬럼/행 수준 접근 권한 중앙 관리. 데이터 담당자가 설정. 관리자 메뉴에서는 요약만 표시. Snowflake RLS 패턴.</div>
+            </div>
+          </li>
+          <li>
+            <div class="node tab">
+              <div class="icon">📝</div>
+              <div class="label">감사 로그</div>
+              <div class="sub-label">데이터 접근 이력</div>
+              <div class="tooltip">데이터 접근 이력만 추적. 누가 어떤 테이블을 언제 조회/수정했는지. 관리자 감사 로그와 범위 구분됨.</div>
+            </div>
+          </li>
+        </ul>
+      </li>
+
+      <!-- 5. 관리자 -->
+      <li>
+        <div class="node menu">
+          <div class="icon">⚙️</div>
+          <div class="label">관리자</div>
+          <div class="sub-label">엔터프라이즈 통제 허브</div>
+          <div class="tooltip">사용자·권한·감사·사용량·AI 거버넌스를 통해 엔터프라이즈급 통제를 실현. 3개 카테고리 + Platform Admin 전용 영역.</div>
+        </div>
+        <ul>
+          <!-- 접근 제어 -->
+          <li>
+            <div class="node category">
+              <div class="icon">🔑</div>
+              <div class="label">접근 제어</div>
+              <div class="sub-label">누가 무엇에 접근?</div>
+            </div>
+            <ul>
+              <li>
+                <div class="node item">
+                  <div class="label">사용자 관리</div>
+                  <div class="tooltip">사용자 계정 생성, 역할 할당, 비활성화</div>
+                </div>
+              </li>
+              <li>
+                <div class="node item">
+                  <div class="label">권한 관리</div>
+                  <div class="tooltip">역할 정의, 기능별·데이터별 접근 권한 매트릭스. RBAC 기반.</div>
+                </div>
+              </li>
+            </ul>
+          </li>
+
+          <!-- 모니터링 -->
+          <li>
+            <div class="node category">
+              <div class="icon">📡</div>
+              <div class="label">모니터링</div>
+              <div class="sub-label">무슨 일이 일어났나?</div>
+            </div>
+            <ul>
+              <li>
+                <div class="node item">
+                  <div class="label">감사 로그</div>
+                  <div class="sub-label">플랫폼 전체</div>
+                  <div class="tooltip">플랫폼 전체 활동 로그. 로그인, 권한 변경, AI 사용 등. 데이터 감사 로그보다 넓은 범위.</div>
+                </div>
+              </li>
+              <li>
+                <div class="node item">
+                  <div class="label">사용량</div>
+                  <div class="tooltip">AI 사용량, API 호출, 토큰 소비, 비용 추적. OpenAI Usage Dashboard 패턴.</div>
+                </div>
+              </li>
+            </ul>
+          </li>
+
+          <!-- AI 정책 -->
+          <li>
+            <div class="node category">
+              <div class="icon">🛡️</div>
+              <div class="label">AI 정책</div>
+              <div class="sub-label">AI 행동 제약</div>
+            </div>
+            <ul>
+              <li>
+                <div class="node item">
+                  <div class="label">AI 거버넌스</div>
+                  <div class="tooltip">AI 가드레일 설정, 콘텐츠 필터, 모델 접근 제어, 데이터 정책 적용 현황. Copilot Studio DLP, ServiceNow AI Control Tower 패턴.</div>
+                </div>
+              </li>
+            </ul>
+          </li>
+
+          <!-- Platform Admin -->
+          <li>
+            <div class="node category phase2">
+              <div class="icon">🏗️</div>
+              <div class="label">Platform Admin</div>
+              <div class="sub-label">전용 · Phase 2</div>
+            </div>
+            <ul>
+              <li>
+                <div class="node item phase2">
+                  <div class="label">테넌트 관리</div>
+                  <div class="tooltip">고객사(테넌트) 생성, 설정, 격리 관리. 멀티테넌트 SaaS 대비.</div>
+                </div>
+              </li>
+              <li>
+                <div class="node item phase2">
+                  <div class="label">전체 사용량</div>
+                  <div class="tooltip">전체 테넌트 통합 사용량, 시스템 리소스 모니터링.</div>
+                </div>
+              </li>
+              <li>
+                <div class="node item phase2">
+                  <div class="label">시스템 설정</div>
+                  <div class="tooltip">모델 배포, API 키 관리, 시스템 전역 설정.</div>
+                </div>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+
+    </ul>
+  </li>
+</ul>
+</div>
+</div>
+
+<!-- 메뉴 간 연결점 -->
+<div class="connections-section">
+  <h2>🔀 메뉴 간 연결점</h2>
+  <div class="conn-grid">
+    <div class="conn-card">
+      <div class="conn-from-to">채팅 → 대시보드</div>
+      <div class="conn-desc">채팅 결과를 대시보드 위젯으로 저장. "대시보드에 저장" 버튼. ThoughtSpot Pin to Liveboard 패턴.</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-from-to">대시보드 → 채팅</div>
+      <div class="conn-desc">KPI/인사이트 클릭 → 채팅에서 심층 분석. "AI로 분석하기" 버튼.</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-from-to">채팅 ↔ 스킬</div>
+      <div class="conn-desc">채팅 중 @멘션 또는 자동 트리거로 스킬 호출. 결과가 채팅에 표시.</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-from-to">스킬 → 채팅</div>
+      <div class="conn-desc">스킬 상세에서 "채팅에서 실행". 스킬 테스트/실행 진입점.</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-from-to">데이터 → 채팅</div>
+      <div class="conn-desc">에이전트가 온톨로지 + 접근 정책 참조하여 자연어 질의 이해. 시스템 레벨 연결.</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-from-to">관리자 → 전체</div>
+      <div class="conn-desc">RBAC 정책이 모든 메뉴의 접근 권한 제어. 시스템 레벨 연결.</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-from-to">AI 거버넌스 → 접근 정책</div>
+      <div class="conn-desc">AI 거버넌스에서 데이터 정책 적용 현황 요약 → 데이터 메뉴로 딥링크.</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-from-to">데이터 정책 → 대시보드</div>
+      <div class="conn-desc">접근 정책(RLS)이 대시보드 위젯 표시에 자동 적용. 시스템 레벨.</div>
+    </div>
+    <div class="conn-card optional">
+      <div class="conn-from-to">스킬 → 대시보드 <span style="font-size:10px;opacity:0.7">(선택)</span></div>
+      <div class="conn-desc">스킬 실행 결과를 대시보드 위젯으로 추가. 프로토 포함 여부 미결.</div>
+    </div>
+    <div class="conn-card optional">
+      <div class="conn-from-to">스킬 ↔ 데이터 <span style="font-size:10px;opacity:0.7">(선택)</span></div>
+      <div class="conn-desc">스킬이 사용하는 데이터 소스 표시 / 데이터에서 관련 스킬 링크. 프로토 포함 여부 미결.</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

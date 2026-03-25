@@ -10,6 +10,21 @@ import type {
 } from '../../../types';
 
 // ============================================================================
+// Shared form constants
+// ============================================================================
+
+export const DATA_SCOPE_OPTIONS: { value: DataScopeType; label: string }[] = [
+  { value: 'All', label: '전체' },
+  { value: 'Division', label: '사업부 단위' },
+  { value: 'Department', label: '부서 단위' },
+  { value: 'Plant', label: '공장 단위' },
+  { value: 'Plant+Line', label: '공장+라인' },
+  { value: 'Warehouse', label: '창고 단위' },
+  { value: 'Project', label: '프로젝트 단위' },
+  { value: 'Self', label: '본인만' },
+];
+
+// ============================================================================
 // RLS — Row-Level Security Policies (시트 ⑤)
 // ============================================================================
 
@@ -246,12 +261,11 @@ const ACCESS_PRIORITY: Record<AccessLevel, number> = {
 
 const SCOPE_PRIORITY: Record<DataScopeType, number> = {
   All: 7,
-  Division: 6,
-  Plant: 5,
-  'Plant+Line': 4,
-  Warehouse: 3,
-  Project: 3,
-  Department: 2,
+  Division: 6, Div: 6,
+  Plant: 5, PlantLine: 4, 'Plant+Line': 4,
+  Warehouse: 3, WH: 3,
+  Project: 3, Pjt: 3,
+  Department: 2, Dept: 2,
   Self: 1,
 };
 
@@ -307,8 +321,9 @@ export function resolveEffectivePolicy(
     if (hasExposedRole) {
       columnMasking[policy.category] = 'full';
     } else {
-      // Keep as hidden (default)
-      columnMasking[policy.category] = 'hidden';
+      // Determine partial vs hidden based on masking rule description
+      const isPartial = /마스킹|SUBSTR|REPLACE|뒷자리|중간/i.test(policy.maskingRule);
+      columnMasking[policy.category] = isPartial ? 'partial' : 'hidden';
     }
   }
 

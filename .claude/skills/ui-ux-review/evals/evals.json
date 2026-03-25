@@ -1,0 +1,23 @@
+{
+  "skill_name": "ui-ux-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "admin 화면 UX 리뷰 해줘. 코드 리뷰는 필요 없고 사용성만 봐줘.",
+      "expected_output": "ux-review-{date}.md와 ux-priority-{date}.md 두 파일이 reports/admin/에 생성됨. UX 리포트에 Part 1~4 모두 포함. 우선순위 매트릭스에 Quick Wins와 기능 부재 목록 포함.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "platform-admin 페이지의 시나리오 분석이랑 프로덕션 준비도를 점검하고 싶어. UX만 봐줘.",
+      "expected_output": "platform-admin 타겟으로 리뷰 실행. reports/platform-admin/에 리포트와 우선순위 매트릭스 생성. Part 2 시나리오 분석에 페르소나와 필드 감사 포함.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "채팅 화면 사용성 문제 있는지 확인해줘. 특히 사용자 관점에서 어디서 막히는지 알고 싶어.",
+      "expected_output": "chat 타겟으로 리뷰 실행. reports/chat/에 리포트 생성. Part 2 시나리오 워크스루에서 마찰점이 구체적 파일/컴포넌트와 함께 식별됨.",
+      "files": []
+    }
+  ]
+}

@@ -84,13 +84,10 @@ export function getDailyUsageByPeriod(period: PeriodFilter): DailyUsageData[] {
   }
 }
 
-// --- Agent Usage Distribution ---
+// --- Agent Usage Distribution (단일 에이전트) ---
 
 export const AGENT_USAGE_DATA: AgentUsageData[] = [
-  { name: 'PPT 에이전트', runs: 1243, tokens: 4800000, color: '#FF3C42' },
-  { name: '분석 에이전트', runs: 987, tokens: 3200000, color: '#2563EB' },
-  { name: '채팅 에이전트', runs: 654, tokens: 2800000, color: '#10B981' },
-  { name: '데이터 에이전트', runs: 357, tokens: 1600000, color: '#F59E0B' },
+  { name: 'KonaI Agent', runs: 3241, tokens: 12400000, color: '#1A1A1A' },
 ];
 
 // --- Model Cost Distribution ---
@@ -127,11 +124,7 @@ export interface AgentHealthStatus {
 }
 
 export const AGENT_HEALTH_DATA: AgentHealthStatus[] = [
-  { id: 'ppt', name: 'PPT 에이전트', status: 'healthy', latencyMs: 245, errorRate: 0.3 },
-  { id: 'analysis', name: '분석 에이전트', status: 'healthy', latencyMs: 312, errorRate: 0.8 },
-  { id: 'chat', name: '채팅 에이전트', status: 'degraded', latencyMs: 1840, errorRate: 4.2 },
-  { id: 'data', name: '데이터 에이전트', status: 'healthy', latencyMs: 189, errorRate: 0.1 },
-  { id: 'custom', name: '커스텀 에이전트', status: 'down', latencyMs: 0, errorRate: 100 },
+  { id: 'konai', name: 'KonaI Agent', status: 'healthy', latencyMs: 245, errorRate: 0.3 },
 ];
 
 // --- Agent Cost Breakdown ---
@@ -148,11 +141,7 @@ export interface AgentCostBreakdown {
 }
 
 export const AGENT_COST_DATA: AgentCostBreakdown[] = [
-  { id: 'ppt', name: 'PPT 에이전트', totalTokens: 4800000, costUsd: 1056, billedCredits: 528, activeUsers: 45, weeklyTrend: [120, 145, 132, 168, 155, 180, 172], color: '#FF3C42' },
-  { id: 'analysis', name: '분석 에이전트', totalTokens: 3200000, costUsd: 704, billedCredits: 352, activeUsers: 38, weeklyTrend: [95, 88, 102, 110, 98, 115, 108], color: '#2563EB' },
-  { id: 'chat', name: '채팅 에이전트', totalTokens: 2800000, costUsd: 616, billedCredits: 308, activeUsers: 72, weeklyTrend: [80, 92, 85, 78, 95, 88, 90], color: '#10B981' },
-  { id: 'data', name: '데이터 에이전트', totalTokens: 1600000, costUsd: 352, billedCredits: 176, activeUsers: 22, weeklyTrend: [45, 52, 48, 55, 50, 58, 62], color: '#F59E0B' },
-  { id: 'custom', name: '커스텀 에이전트', totalTokens: 400000, costUsd: 119, billedCredits: 60, activeUsers: 8, weeklyTrend: [12, 18, 15, 22, 20, 25, 28], color: '#8B5CF6' },
+  { id: 'konai', name: 'KonaI Agent', totalTokens: 12400000, costUsd: 2847, billedCredits: 1424, activeUsers: 156, weeklyTrend: [352, 395, 382, 433, 418, 466, 460], color: '#1A1A1A' },
 ];
 
 // --- Agent Daily Usage (for drilldown) ---
@@ -182,11 +171,7 @@ function generateAgentDailyData(baseTokens: number, baseCost: number, baseRuns: 
 }
 
 export const AGENT_DAILY_USAGE: Record<string, AgentDailyUsage[]> = {
-  ppt: generateAgentDailyData(340000, 75, 89),
-  analysis: generateAgentDailyData(230000, 50, 70),
-  chat: generateAgentDailyData(200000, 44, 47),
-  data: generateAgentDailyData(115000, 25, 26),
-  custom: generateAgentDailyData(29000, 8.5, 6),
+  konai: generateAgentDailyData(886000, 203, 232),
 };
 
 // --- Team Budget Allocation ---
@@ -221,16 +206,16 @@ export interface UserUsageData {
 }
 
 export const USER_USAGE_DATA: UserUsageData[] = [
-  { id: 'u1', name: '김현진', email: 'hj.kim@konai.com', team: 'Engineering', totalTokens: 820000, costUsd: 180.4, activeAgents: ['PPT', '분석'], lastActivity: '2분 전' },
-  { id: 'u2', name: '이서연', email: 'sy.lee@konai.com', team: 'Engineering', totalTokens: 650000, costUsd: 143.0, activeAgents: ['분석', '데이터'], lastActivity: '15분 전' },
-  { id: 'u3', name: '박지훈', email: 'jh.park@konai.com', team: 'Sales', totalTokens: 580000, costUsd: 127.6, activeAgents: ['PPT', '채팅'], lastActivity: '1시간 전' },
-  { id: 'u4', name: '정민수', email: 'ms.jung@konai.com', team: 'Engineering', totalTokens: 520000, costUsd: 114.4, activeAgents: ['PPT', '분석', '데이터'], lastActivity: '30분 전' },
-  { id: 'u5', name: '최유나', email: 'yn.choi@konai.com', team: 'Sales', totalTokens: 480000, costUsd: 105.6, activeAgents: ['채팅'], lastActivity: '3시간 전' },
-  { id: 'u6', name: '한도윤', email: 'dy.han@konai.com', team: 'Support', totalTokens: 420000, costUsd: 92.4, activeAgents: ['채팅', '분석'], lastActivity: '45분 전' },
-  { id: 'u7', name: '송예린', email: 'yr.song@konai.com', team: 'Engineering', totalTokens: 380000, costUsd: 83.6, activeAgents: ['데이터'], lastActivity: '2시간 전' },
-  { id: 'u8', name: '윤태호', email: 'th.yoon@konai.com', team: 'Sales', totalTokens: 310000, costUsd: 68.2, activeAgents: ['PPT'], lastActivity: '5시간 전' },
-  { id: 'u9', name: '임수빈', email: 'sb.lim@konai.com', team: 'Support', totalTokens: 250000, costUsd: 55.0, activeAgents: ['채팅'], lastActivity: '1일 전' },
-  { id: 'u10', name: '오지현', email: 'jh.oh@konai.com', team: 'Engineering', totalTokens: 190000, costUsd: 41.8, activeAgents: ['분석', '커스텀'], lastActivity: '3시간 전' },
-  { id: 'u11', name: '강민재', email: 'mj.kang@konai.com', team: 'Sales', totalTokens: 170000, costUsd: 37.4, activeAgents: ['PPT', '채팅'], lastActivity: '6시간 전' },
-  { id: 'u12', name: '배은서', email: 'es.bae@konai.com', team: 'Support', totalTokens: 140000, costUsd: 30.8, activeAgents: ['채팅'], lastActivity: '1일 전' },
+  { id: 'u1', name: '김현진', email: 'hj.kim@konai.com', team: 'Engineering', totalTokens: 820000, costUsd: 180.4, activeAgents: ['KonaI'], lastActivity: '2분 전' },
+  { id: 'u2', name: '이서연', email: 'sy.lee@konai.com', team: 'Engineering', totalTokens: 650000, costUsd: 143.0, activeAgents: ['KonaI'], lastActivity: '15분 전' },
+  { id: 'u3', name: '박지훈', email: 'jh.park@konai.com', team: 'Sales', totalTokens: 580000, costUsd: 127.6, activeAgents: ['KonaI'], lastActivity: '1시간 전' },
+  { id: 'u4', name: '정민수', email: 'ms.jung@konai.com', team: 'Engineering', totalTokens: 520000, costUsd: 114.4, activeAgents: ['KonaI'], lastActivity: '30분 전' },
+  { id: 'u5', name: '최유나', email: 'yn.choi@konai.com', team: 'Sales', totalTokens: 480000, costUsd: 105.6, activeAgents: ['KonaI'], lastActivity: '3시간 전' },
+  { id: 'u6', name: '한도윤', email: 'dy.han@konai.com', team: 'Support', totalTokens: 420000, costUsd: 92.4, activeAgents: ['KonaI'], lastActivity: '45분 전' },
+  { id: 'u7', name: '송예린', email: 'yr.song@konai.com', team: 'Engineering', totalTokens: 380000, costUsd: 83.6, activeAgents: ['KonaI'], lastActivity: '2시간 전' },
+  { id: 'u8', name: '윤태호', email: 'th.yoon@konai.com', team: 'Sales', totalTokens: 310000, costUsd: 68.2, activeAgents: ['KonaI'], lastActivity: '5시간 전' },
+  { id: 'u9', name: '임수빈', email: 'sb.lim@konai.com', team: 'Support', totalTokens: 250000, costUsd: 55.0, activeAgents: ['KonaI'], lastActivity: '1일 전' },
+  { id: 'u10', name: '오지현', email: 'jh.oh@konai.com', team: 'Engineering', totalTokens: 190000, costUsd: 41.8, activeAgents: ['KonaI'], lastActivity: '3시간 전' },
+  { id: 'u11', name: '강민재', email: 'mj.kang@konai.com', team: 'Sales', totalTokens: 170000, costUsd: 37.4, activeAgents: ['KonaI'], lastActivity: '6시간 전' },
+  { id: 'u12', name: '배은서', email: 'es.bae@konai.com', team: 'Support', totalTokens: 140000, costUsd: 30.8, activeAgents: ['KonaI'], lastActivity: '1일 전' },
 ];

@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, BarChart,
+  Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
-import { Activity, CreditCard, Users, Bot } from '../../icons';
+import { Activity, CreditCard, Users, Bot, Download } from '../../icons';
 import { KPICard } from '../../shared/atoms/KPICard';
 import { ChartWidget } from '../../shared/molecules/ChartWidget';
 import {
   USAGE_KPI_SUMMARY,
-  AGENT_USAGE_DATA,
   MODEL_COST_DATA,
   PERIOD_OPTIONS,
   getDailyUsageByPeriod,
@@ -48,6 +47,24 @@ export const UsageMonitoringView: React.FC = () => {
           <h3 className="text-lg font-bold text-gray-900">AI 사용량 모니터링</h3>
           <p className="text-sm text-gray-500 mt-0.5">에이전트 사용량, 비용, 성능을 한눈에 확인합니다.</p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const rows = dailyData.map(d => `${d.date},${d.tokens},$${d.cost}`);
+              const csv = `\uFEFF날짜,토큰,비용\n${rows.join('\n')}`;
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `usage_${period}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="flex items-center gap-1 h-8 px-3 text-xs border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50"
+            aria-label="사용량 데이터 CSV 다운로드"
+          >
+            <Download size={13} /> CSV
+          </button>
         <div className="flex gap-1 bg-gray-100 p-1 rounded-lg" role="group" aria-label="기간 선택">
           {PERIOD_OPTIONS.map((opt) => (
             <button
@@ -63,6 +80,7 @@ export const UsageMonitoringView: React.FC = () => {
               {opt.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
@@ -173,50 +191,8 @@ export const UsageMonitoringView: React.FC = () => {
         </ResponsiveContainer>
       </ChartWidget>
 
-      {/* Charts Row 2: Agent Distribution + Model Cost */}
+      {/* Charts Row 2: Model Cost (full width) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Agent Usage Distribution */}
-        <ChartWidget
-          title="에이전트 유형별 실행 수"
-          height={220}
-          insightSummary="PPT 에이전트가 전체 실행의 38%를 차지하며 가장 활발하게 사용됩니다."
-          insightDetail={
-            <div className="space-y-3 text-sm">
-              <p>에이전트 유형별 실행 분석 결과, PPT 에이전트(1,243회)가 전체 3,241회 실행 중 38%를 차지하며 가장 높은 활용도를 보입니다.</p>
-              <p>분석 에이전트(987회, 30%)가 2위이며, 채팅 에이전트(654회, 20%)와 데이터 에이전트(357회, 11%)가 뒤를 잇습니다.</p>
-              <p><strong>권장 액션:</strong> PPT 에이전트의 높은 사용량을 고려하여, 자주 사용되는 템플릿을 캐싱하면 토큰 소비를 15~20% 절감할 수 있습니다.</p>
-            </div>
-          }
-          expandTestId="agent-distribution-insight"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              layout="vertical"
-              data={AGENT_USAGE_DATA}
-              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
-              <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-              <YAxis
-                dataKey="name"
-                type="category"
-                width={100}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fontWeight: 600 }}
-              />
-              <Tooltip
-                contentStyle={TOOLTIP_STYLE}
-                formatter={(value: number) => [`${value.toLocaleString()}회`, '실행 수']}
-              />
-              <Bar dataKey="runs" barSize={20} radius={[0, 4, 4, 0]}>
-                {AGENT_USAGE_DATA.map((entry, index) => (
-                  <Cell key={`agent-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartWidget>
 
         {/* Model Cost Distribution */}
         <ChartWidget

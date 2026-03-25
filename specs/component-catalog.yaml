@@ -384,7 +384,9 @@ categories:
         last_researched: "2026-03-19"
         metadata:
           last_updated: "2026-03-19"
-        notes: "범용 ApprovalGate 컴포넌트 구현 완료. 3-tier risk-based rendering (toast/inline/modal), MCP Elicitation schema form, multi-item approval, session permission. Phase 2 (2026-03-19): AI SDK 6 needsApproval 어댑터 레이어 추가. useApprovalGateAdapter(approval-requested→ApprovalGate 변환), createApprovalCondition(RBAC 기반 조건부 승인), createSessionPermissionStore(세션 허가 관리). 기존 3-tier UI 완전 유지."
+        qa_verdict: PASS
+        qa_date: "2026-03-19"
+        notes: "범용 ApprovalGate 컴포넌트 구현 완료. 3-tier risk-based rendering (toast/inline/modal), MCP Elicitation schema form, multi-item approval, session permission. Phase 2 (2026-03-19): AI SDK 6 needsApproval 어댑터 레이어 추가. useApprovalGateAdapter(approval-requested→ApprovalGate 변환), createApprovalCondition(RBAC 기반 조건부 승인), createSessionPermissionStore(세션 허가 관리). 기존 3-tier UI 완전 유지. QA PASS (2026-03-19): AC 9/9 통과, 122 테스트 전수 PASS, Minor 3건 (buildResult deps 누락, schema validation 미구현, 디바운스 미적용)."
 
       - id: inline_selection
         name: "Inline Selection (Radio/Checkbox/Choice)"

@@ -1,0 +1,164 @@
+---
+name: gap-analysis
+description: Use when analyzing production readiness, identifying missing features, or auditing codebase against a requirements checklist. Scans actual code, maps each item as Implemented/Partial/Missing, and estimates effort.
+---
+
+# Gap Analysis Workflow
+
+Analyze the KonaI-Agent codebase against a production requirements checklist.
+
+**Scope**: $ARGUMENTS (default: entire codebase — frontend only unless backend path specified)
+
+## Step 1: Load or create production checklist
+
+1. Check if `./research/production-checklist.md` exists
+2. If YES: read it and use as the baseline
+3. If NO: generate a checklist from the categories below, then save it to `./research/production-checklist.md` before proceeding
+
+### Default checklist categories
+
+#### Auth & Authorization
+- [ ] OAuth 2.0 / OIDC login flow implemented
+- [ ] Session management (token refresh, expiry, logout)
+- [ ] RBAC enforcement on every route (not just UI hiding)
+- [ ] API key management (generation, rotation, revocation)
+- [ ] SSO support (SAML / OIDC federation)
+- [ ] Multi-tenant isolation verified (tenant A cannot access tenant B data)
+
+#### Security
+- [ ] XSS prevention (no dangerouslySetInnerHTML, input sanitization)
+- [ ] CSRF protection on state-changing requests
+- [ ] Content Security Policy headers configured
+- [ ] Sensitive data encrypted at rest and in transit
+- [ ] Audit logging for all admin actions
+- [ ] PII masking in logs and error messages
+- [ ] Column masking enforced (salary, SSN, bank_account per admin.types.ts)
+- [ ] Rate limiting on API endpoints
+
+#### Monitoring & Observability
+- [ ] Structured logging (JSON format, correlation IDs)
+- [ ] APM integration (traces, spans for API calls)
+- [ ] Error tracking (Sentry or equivalent)
+- [ ] Health check endpoint (/api/health)
+- [ ] Uptime monitoring and alerting
+- [ ] Performance metrics (Core Web Vitals, API latency p50/p95/p99)
+
+#### Stability & Resilience
+- [ ] Error boundaries at page and section level
+- [ ] API retry with exponential backoff
+- [ ] Circuit breaker for external service calls
+- [ ] Graceful degradation when backend is down
+- [ ] Loading states for all async operations
+- [ ] Empty states for all data views
+- [ ] Offline/network-error handling
+
+#### Operations & CI/CD
+- [ ] CI pipeline: lint → type-check → unit test → build → e2e
+- [ ] Environment management (dev, staging, production configs)
+- [ ] Feature flags system
+- [ ] Rollback strategy documented
+- [ ] Database migration strategy
+- [ ] Secrets management (no hardcoded keys)
+- [ ] Container/deployment configuration
+
+#### UX & Accessibility
+- [ ] WCAG 2.1 AA compliance (color contrast, keyboard nav, screen reader)
+- [ ] Responsive design (mobile, tablet, desktop breakpoints)
+- [ ] Onboarding flow for new users
+- [ ] In-app help / documentation links
+- [ ] i18n support (at minimum Korean + English)
+- [ ] Dark mode support (next-themes is installed)
+- [ ] Form validation with clear error messages
+
+#### Cost & Usage Control
+- [ ] Token usage tracking per tenant
+- [ ] Usage dashboard for admins
+- [ ] Quota/limit enforcement
+- [ ] Cost alerting thresholds
+- [ ] Usage export (CSV/API)
+
+## Step 2: Scan codebase
+
+For each checklist item:
+
+1. **Search for evidence** using file patterns and code search:
+   ```
+   Glob: src/**/*.{ts,tsx} matching relevant patterns
+   Grep: specific keywords (e.g., "ErrorBoundary", "aria-label", "csrf", "rate-limit")
+   ```
+
+2. **Classify status**:
+   - **Implemented**: code exists, handles edge cases, has tests
+   - **Partial**: code exists but incomplete (e.g., ErrorBoundary on some pages but not all)
+   - **Missing**: no evidence found in codebase
+
+3. **Estimate effort** for Missing/Partial items:
+   - **S** (< 1 day): config change, add a wrapper, install a package
+   - **M** (1-3 days): new component, hook, or API endpoint
+   - **L** (3-5 days): new feature, significant refactoring
+   - **XL** (1+ week): architectural change, new system
+
+4. **Assess risk**:
+   - **Critical**: blocks production launch (security, auth, data isolation)
+   - **Important**: needed within first month post-launch
+   - **Nice-to-have**: can be added later without user impact
+
+## Step 3: Generate report
+
+Save to `./reports/gap-analysis-{date}.md`:
+
+```markdown
+# Production Readiness Gap Analysis — {date}
+
+## Scope
+{What was scanned: directories, file count}
+
+## Summary
+| Status | Count | % |
+|--------|-------|---|
+| Implemented | {n} | {%} |
+| Partial | {n} | {%} |
+| Missing | {n} | {%} |
+| **Total** | **{n}** | **100%** |
+
+## Critical Gaps (must fix before launch)
+| # | Category | Item | Status | Effort | Evidence |
+|---|----------|------|--------|--------|----------|
+| 1 | ... | ... | Missing | M | No files found matching... |
+
+## Important Gaps (fix within 30 days)
+| # | Category | Item | Status | Effort | Evidence |
+|---|----------|------|--------|--------|----------|
+
+## Nice-to-Have Gaps
+| # | Category | Item | Status | Effort | Evidence |
+|---|----------|------|--------|--------|----------|
+
+## Fully Implemented Items
+| # | Category | Item | Evidence |
+|---|----------|------|----------|
+| 1 | ... | ... | src/components/... |
+
+## Critical Path (recommended fix order)
+1. {Item} — {effort} — blocks: {what depends on this}
+2. ...
+
+## Effort Summary
+| Effort | Critical | Important | Nice-to-have |
+|--------|----------|-----------|-------------|
+| S | {n} | {n} | {n} |
+| M | {n} | {n} | {n} |
+| L | {n} | {n} | {n} |
+| XL | {n} | {n} | {n} |
+
+Total estimated effort for Critical items: {person-days}
+```
+
+## Rules
+
+- NEVER modify source files. This skill produces reports only.
+- Always cite specific file paths as evidence for "Implemented" items.
+- For "Missing" items, describe what code search was done (e.g., "grep for 'ErrorBoundary' in src/ returned 0 results").
+- Do not count mock data or TODO comments as "Implemented".
+- If package.json includes a relevant dependency (e.g., @sentry/nextjs), check if it's actually configured and used — not just installed.
+- Focus on frontend gaps. Backend gaps should be noted under "Open Questions" with a recommendation to involve the backend team.

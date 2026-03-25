@@ -14,7 +14,8 @@ import {
   Bot,
   Sparkles,
   Clock,
-  Store
+  Store,
+  Building2,
 } from './icons';
 import { ViewType } from '../types';
 import { useNotification, Anomaly } from '../context/NotificationContext';
@@ -41,11 +42,12 @@ const VIEW_TO_PATH: Record<string, string> = {
   data: '/data',
   admin: '/admin',
   history: '/history',
-  skills: '/settings/skills',
+  skills: '/skills',
   'agent-config': '/settings/agent-config',
   'prompt-management': '/settings/prompt-management',
   'scheduled-tasks': '/settings/scheduled-tasks',
   marketplace: '/settings/marketplace',
+  'platform-admin': '/platform-admin',
 };
 
 // pathname → ViewType mapping for active state
@@ -54,11 +56,13 @@ function pathnameToViewType(pathname: string): ViewType {
   if (pathname === '/chat') return 'general-chat';
   if (pathname === '/data') return 'data';
   if (pathname === '/admin') return 'admin';
+  if (pathname === '/platform-admin') return 'platform-admin';
   if (pathname === '/history') return 'history';
   if (pathname === '/settings/agent-config') return 'agent-config';
   if (pathname === '/settings/prompt-management') return 'prompt-management';
   if (pathname === '/settings/scheduled-tasks') return 'scheduled-tasks';
   if (pathname === '/settings/marketplace') return 'marketplace';
+  if (pathname === '/skills') return 'skills';
   if (pathname.startsWith('/settings')) return 'skills';
   if (pathname.startsWith('/agent')) return 'chat';
   return 'dashboard';
@@ -88,11 +92,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
   const bellRef = useRef<HTMLButtonElement>(null);
 
   const navItems = [
-    { id: 'dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-    { id: 'general-chat', icon: <MessageSquare size={20} />, label: '채팅' },
-    { id: 'data', icon: <Database size={20} />, label: 'Data Management' },
-    { id: 'admin', icon: <UserCog size={20} />, label: 'Admin' },
-    { id: 'history', icon: <History size={20} />, label: 'Chat History' },
+    { id: 'dashboard', icon: <LayoutDashboard size={20} />, label: '홈/대시보드' },
+    { id: 'general-chat', icon: <MessageSquare size={20} />, label: 'AI 채팅' },
+    { id: 'skills', icon: <Cpu size={20} />, label: '스킬' },
+    { id: 'data', icon: <Database size={20} />, label: '데이터' },
+    { id: 'admin', icon: <UserCog size={20} />, label: '관리자' },
+    { id: 'platform-admin', icon: <Building2 size={20} />, label: 'Platform Admin' },
     { id: 'settings', icon: <Settings size={20} />, label: 'Settings' },
   ];
 
@@ -111,12 +116,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
   return (
     <nav className="w-full h-16 bg-[#FFFFFF] border-b border-[#E5E7EB] flex items-center justify-between px-6 shrink-0 z-50 relative">
         {/* Logo Section */}
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('dashboard')}>
+        <button type="button" aria-label="KonaAgent 홈으로 이동" className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('dashboard')}>
             <div className="w-7 h-7 bg-[#FF3C42] rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">K</span>
             </div>
             <span className="font-bold text-lg text-[#000000]">KonaAgent</span>
-        </div>
+        </button>
 
         {/* Center Navigation - Icons Only */}
         <div className="flex items-center gap-6">
@@ -126,14 +131,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
                    isActive = currentView === 'dashboard' || currentView === 'chat';
                 } else if (item.id === 'general-chat') {
                    isActive = currentView === 'general-chat';
+                } else if (item.id === 'skills') {
+                   isActive = currentView === 'skills';
                 } else if (item.id === 'data') {
                    isActive = currentView === 'data';
                 } else if (item.id === 'admin') {
                    isActive = currentView === 'admin';
-                } else if (item.id === 'history') {
-                   isActive = currentView === 'history';
                 } else if (item.id === 'settings') {
-                   isActive = currentView === 'skills' || currentView === 'agent-config' || currentView === 'prompt-management' || currentView === 'scheduled-tasks' || currentView === 'marketplace';
+                   isActive = currentView === 'agent-config' || currentView === 'prompt-management' || currentView === 'scheduled-tasks' || currentView === 'marketplace';
                 }
 
                 // Settings → DropdownMenu (click-based, replaces hover dropdown)
@@ -154,10 +159,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="center">
-                                <DropdownMenuItem onClick={() => navigate('skills')}>
-                                    <Cpu size={16} />
-                                    Skill 관리
-                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => navigate('agent-config')}>
                                     <Bot size={16} />
                                     에이전트 설정
@@ -209,11 +210,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => setIsPopupOpen(!isPopupOpen)}
+                    aria-label={unreadCount > 0 ? `알림 ${unreadCount}건 읽지 않음` : '알림'}
                     className={`rounded-full relative ${isPopupOpen ? 'bg-gray-100 text-[#FF3C42]' : 'text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50'}`}
                 >
-                    <Bell size={20} />
+                    <Bell size={20} aria-hidden="true" />
                     {unreadCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF3C42] rounded-full border border-white"></span>
+                        <span aria-hidden="true" className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF3C42] rounded-full border border-white"></span>
                     )}
                 </Button>
 

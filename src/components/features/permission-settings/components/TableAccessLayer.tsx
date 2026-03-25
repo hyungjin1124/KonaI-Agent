@@ -1,6 +1,9 @@
+'use client';
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { Info } from '../../../icons';
 import { Popover, PopoverTrigger, PopoverContent } from '../../../ui/popover';
+import { ConfirmDialog } from '../../../ui/confirm-dialog';
 import type { DomainRole, AccessLevel, DomainAccessMatrix, ModuleCode } from '../../../../types';
 import {
   VIEW_SUBCATEGORIES,
@@ -9,7 +12,9 @@ import {
   ROLE_SHORT_LABEL_MAP,
   SENSITIVITY_DISPLAY,
 } from '../data/viewTableData';
+import { VIEWS_BY_SUBCATEGORY } from '../data/viewDefinitionData';
 import { AccessMatrixCell } from './AccessMatrixCell';
+import { ViewRowsSection } from './ViewRowsSection';
 
 // ============================================================================
 // Types
@@ -19,22 +24,26 @@ interface TableAccessLayerProps {
   accessMatrix: DomainAccessMatrix[];
   modifiedCells: Set<string>;
   onToggleAccess: (role: DomainRole, subcategoryId: string, newLevel: AccessLevel) => void;
+  onToggleViewAccess: (role: DomainRole, viewId: string, subcategoryId: string, newLevel: AccessLevel) => void;
   onResetToDefault: () => void;
 }
 
 // Role order as defined in viewTableData
 const ROLE_ORDER: DomainRole[] = ROLE_DEFINITIONS.map(r => r.role);
 
+const STICKY_LEFT_WIDTH = 'w-[320px] min-w-[320px]';
+const CELL_WIDTH = 'w-14 min-w-[56px]';
+
 // ============================================================================
 // Helpers
 // ============================================================================
 
 function getAccessLevel(
-  accessMatrix: DomainAccessMatrix[],
+  matrixMap: Map<DomainRole, DomainAccessMatrix>,
   role: DomainRole,
   subcategoryId: string,
 ): AccessLevel {
-  const entry = accessMatrix.find(m => m.role === role);
+  const entry = matrixMap.get(role);
   return entry?.subcategoryAccess[subcategoryId] ?? 'no_access';
 }
 
@@ -43,6 +52,23 @@ function getTotalViewCount(moduleCode: ModuleCode): number {
     (sum, s) => sum + s.viewCount,
     0,
   );
+}
+
+/** Count view-level overrides across all roles for views in a subcategory */
+function getOverrideCount(
+  subcategoryId: string,
+  accessMatrix: DomainAccessMatrix[],
+): number {
+  const views = VIEWS_BY_SUBCATEGORY[subcategoryId] ?? [];
+  let count = 0;
+  for (const view of views) {
+    for (const matrix of accessMatrix) {
+      if (matrix.viewOverrides[view.id] !== undefined) {
+        count++;
+      }
+    }
+  }
+  return count;
 }
 
 // ============================================================================
@@ -80,7 +106,10 @@ function FilterBar({
   modifiedCount,
   onResetToDefault,
 }: FilterBarProps) {
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+
   return (
+    <>
     <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
       {/* Module filter */}
       <div className="flex items-center gap-1.5">
@@ -150,13 +179,15 @@ function FilterBar({
             return (
               <label
                 key={opt}
-                className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border cursor-pointer select-none transition-colors ${
+                htmlFor={`sensitivity-${opt}`}
+                className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border cursor-pointer select-none transition-colors focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-1 ${
                   checked
                     ? `${display.bgColor} ${display.color} border-current`
                     : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <input
+                  id={`sensitivity-${opt}`}
                   type="checkbox"
                   checked={checked}
                   onChange={() => onSensitivityChange(opt)}
@@ -171,8 +202,9 @@ function FilterBar({
 
       {/* Search */}
       <input
-        type="text"
-        placeholder="서브카테고리 검색..."
+        type="search"
+        aria-label="서브카테고리/뷰 검색"
+        placeholder="서브카테고리/뷰 검색..."
         value={searchText}
         onChange={e => onSearchChange(e.target.value)}
         className="text-xs border border-gray-200 rounded px-2.5 py-1 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400 w-44"
@@ -191,12 +223,22 @@ function FilterBar({
       {/* Reset button */}
       <button
         type="button"
-        onClick={onResetToDefault}
-        className="text-xs px-3 py-1.5 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+        onClick={() => setResetConfirmOpen(true)}
+        className="text-xs px-3 py-1.5 rounded border border-red-200 bg-white text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors"
       >
         기본값 복원
       </button>
     </div>
+    <ConfirmDialog
+      open={resetConfirmOpen}
+      title="기본값 복원"
+      description="모든 접근 권한 변경 사항이 초기화됩니다. 계속하시겠습니까?"
+      confirmLabel="복원"
+      destructive
+      onConfirm={() => { onResetToDefault(); setResetConfirmOpen(false); }}
+      onCancel={() => setResetConfirmOpen(false)}
+    />
+    </>
   );
 }
 
@@ -208,6 +250,7 @@ export function TableAccessLayer({
   accessMatrix,
   modifiedCells,
   onToggleAccess,
+  onToggleViewAccess,
   onResetToDefault,
 }: TableAccessLayerProps) {
   // Filter state
@@ -222,6 +265,9 @@ export function TableAccessLayer({
     () => new Set(MODULE_DEFINITIONS.map(m => m.code)),
   );
 
+  // Subcategory expansion state (for view rows)
+  const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
+
   const toggleModule = useCallback((code: ModuleCode) => {
     setCollapsedModules(prev => {
       const next = new Set(prev);
@@ -229,6 +275,18 @@ export function TableAccessLayer({
         next.delete(code);
       } else {
         next.add(code);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSubcategory = useCallback((subcatId: string) => {
+    setExpandedSubcategories(prev => {
+      const next = new Set(prev);
+      if (next.has(subcatId)) {
+        next.delete(subcatId);
+      } else {
+        next.add(subcatId);
       }
       return next;
     });
@@ -253,12 +311,14 @@ export function TableAccessLayer({
     [onToggleAccess],
   );
 
-  // Filtered subcategory ids per module
-  const filteredSubcatsByModule = useMemo(() => {
+  // Filtered subcategory ids per module + auto-expand for view search matches
+  const { filteredSubcatsByModule, viewSearchMatches } = useMemo(() => {
     const result: Record<ModuleCode, typeof VIEW_SUBCATEGORIES> = {} as Record<
       ModuleCode,
       typeof VIEW_SUBCATEGORIES
     >;
+    const viewMatches = new Set<string>(); // subcategory IDs that matched via view name
+
     for (const mod of MODULE_DEFINITIONS) {
       if (moduleFilter !== 'ALL' && mod.code !== moduleFilter) continue;
 
@@ -267,7 +327,15 @@ export function TableAccessLayer({
         if (!sensitivityFilter.has(s.sensitivityLevel as SensitivityOption)) return false;
         if (searchText.trim()) {
           const q = searchText.trim().toLowerCase();
-          if (!s.subcategoryName.toLowerCase().includes(q)) return false;
+          const matchesSubcat = s.subcategoryName.toLowerCase().includes(q);
+          const views = VIEWS_BY_SUBCATEGORY[s.id] ?? [];
+          const matchesView = views.some(
+            v => v.viewName.toLowerCase().includes(q) || v.displayName.toLowerCase().includes(q),
+          );
+          if (!matchesSubcat && !matchesView) return false;
+          if (matchesView && !matchesSubcat) {
+            viewMatches.add(s.id);
+          }
         }
         return true;
       });
@@ -276,7 +344,7 @@ export function TableAccessLayer({
         result[mod.code] = subcats;
       }
     }
-    return result;
+    return { filteredSubcatsByModule: result, viewSearchMatches: viewMatches };
   }, [moduleFilter, sensitivityFilter, searchText]);
 
   // Modules that survive the filter
@@ -285,8 +353,29 @@ export function TableAccessLayer({
     [filteredSubcatsByModule],
   );
 
-  const STICKY_LEFT_WIDTH = 'w-[320px] min-w-[320px]';
-  const CELL_WIDTH = 'w-14 min-w-[56px]';
+  // O(1) role → matrix lookup (replaces O(n) find() calls)
+  const accessMatrixMap = useMemo(
+    () => new Map(accessMatrix.map(m => [m.role, m])),
+    [accessMatrix],
+  );
+
+  // Pre-computed override counts per subcategory — avoids O(views×roles) per row
+  const overrideCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const subcat of VIEW_SUBCATEGORIES) {
+      const views = VIEWS_BY_SUBCATEGORY[subcat.id] ?? [];
+      let count = 0;
+      for (const view of views) {
+        for (const matrix of accessMatrix) {
+          if (matrix.viewOverrides[view.id] !== undefined) {
+            count++;
+          }
+        }
+      }
+      map.set(subcat.id, count);
+    }
+    return map;
+  }, [accessMatrix]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden border border-gray-200 rounded-xl bg-white shadow-sm">
@@ -337,7 +426,6 @@ export function TableAccessLayer({
                 >
                   <span
                     className="text-[10px] font-semibold text-gray-600 leading-tight text-center"
-                    style={{ writingMode: 'horizontal-tb' }}
                   >
                     {ROLE_SHORT_LABEL_MAP[role]}
                   </span>
@@ -369,6 +457,7 @@ export function TableAccessLayer({
                     onClick={() => toggleModule(mod.code)}
                     className="flex w-full items-center text-left hover:bg-gray-100 transition-colors bg-gray-50 border-b border-gray-100"
                     aria-expanded={!isCollapsed}
+                    aria-controls={`module-panel-${mod.code}`}
                   >
                     {/* Sticky left: module info */}
                     <div
@@ -376,6 +465,7 @@ export function TableAccessLayer({
                       style={{ backgroundClip: 'padding-box' }}
                     >
                       <span
+                        aria-hidden="true"
                         className={`text-gray-400 transition-transform duration-150 text-xs ${isCollapsed ? '' : 'rotate-90'}`}
                       >
                         ▶
@@ -403,65 +493,113 @@ export function TableAccessLayer({
                   {/* ---------------------------------------------------------- */}
                   {/* Subcategory rows                                            */}
                   {/* ---------------------------------------------------------- */}
+                  <div id={`module-panel-${mod.code}`}>
                   {!isCollapsed &&
                     subcats.map((subcat, rowIdx) => {
                       const sensitivityDisplay = SENSITIVITY_DISPLAY[subcat.sensitivityLevel];
+                      const isSubcatExpanded =
+                        expandedSubcategories.has(subcat.id) || viewSearchMatches.has(subcat.id);
+                      const views = VIEWS_BY_SUBCATEGORY[subcat.id] ?? [];
+                      const overrideCount = overrideCountMap.get(subcat.id) ?? 0;
+                      const rowBg = rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40';
+
                       return (
-                        <div
-                          key={subcat.id}
-                          className={`flex items-center ${rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'} hover:bg-blue-50/30 transition-colors`}
-                        >
-                          {/* Sticky left: subcat info */}
+                        <React.Fragment key={subcat.id}>
+                          {/* Subcategory header row (now expandable) */}
                           <div
-                            className={`${STICKY_LEFT_WIDTH} sticky left-0 z-10 border-r border-gray-200 flex items-center ${rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
-                            style={{ backgroundClip: 'padding-box' }}
+                            className={`flex items-center ${rowBg} hover:bg-blue-50/30 transition-colors`}
                           >
-                            {/* Subcategory name */}
-                            <div className="flex-1 px-3 py-1.5 border-r border-gray-100">
-                              <span className="text-xs text-gray-800 leading-tight">
-                                {subcat.subcategoryName}
-                              </span>
-                            </div>
-
-                            {/* View count badge */}
-                            <div className="w-12 flex items-center justify-center border-r border-gray-100">
-                              <span className="text-[10px] font-mono text-gray-500 bg-gray-100 rounded px-1 py-0.5">
-                                {subcat.viewCount}
-                              </span>
-                            </div>
-
-                            {/* Sensitivity badge */}
-                            <div className="w-16 flex items-center justify-center">
-                              <span
-                                className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${sensitivityDisplay.bgColor} ${sensitivityDisplay.color}`}
+                            {/* Sticky left: subcat info */}
+                            <div
+                              className={`${STICKY_LEFT_WIDTH} sticky left-0 z-10 border-r border-gray-200 flex items-center ${rowBg}`}
+                              style={{ backgroundClip: 'padding-box' }}
+                            >
+                              {/* Subcategory name with toggle */}
+                              <button
+                                type="button"
+                                onClick={() => toggleSubcategory(subcat.id)}
+                                aria-expanded={isSubcatExpanded}
+                                aria-controls={`subcat-panel-${subcat.id}`}
+                                aria-label={`${subcat.subcategoryName} 뷰 ${isSubcatExpanded ? '접기' : '펼치기'}`}
+                                className="flex items-center gap-1.5 flex-1 px-3 py-1.5 border-r border-gray-100 text-left hover:bg-blue-50/50 transition-colors"
                               >
-                                {sensitivityDisplay.label}
-                              </span>
+                                <span
+                                  aria-hidden="true"
+                                  className={`text-gray-400 text-[10px] transition-transform duration-150 ${
+                                    isSubcatExpanded ? 'rotate-90' : ''
+                                  }`}
+                                >
+                                  ▶
+                                </span>
+                                <span className="text-xs text-gray-800 leading-tight">
+                                  {subcat.subcategoryName}
+                                </span>
+                                {overrideCount > 0 && (
+                                  <span className="text-[8px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded ml-auto shrink-0">
+                                    {overrideCount} 오버라이드
+                                  </span>
+                                )}
+                              </button>
+
+                              {/* View count badge */}
+                              <div className="w-12 flex items-center justify-center border-r border-gray-100">
+                                <span className="text-[10px] font-mono text-gray-500 bg-gray-100 rounded px-1 py-0.5">
+                                  {subcat.viewCount}
+                                </span>
+                              </div>
+
+                              {/* Sensitivity badge */}
+                              <div className="w-16 flex items-center justify-center">
+                                <span
+                                  className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${sensitivityDisplay.bgColor} ${sensitivityDisplay.color}`}
+                                >
+                                  {sensitivityDisplay.label}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Access cells — subcategory level */}
+                            <div className="flex items-center">
+                              {ROLE_ORDER.map(role => {
+                                const level = getAccessLevel(accessMatrixMap, role, subcat.id);
+                                const isModified = modifiedCells.has(`${role}:${subcat.id}`);
+                                return (
+                                  <div
+                                    key={role}
+                                    className={`${CELL_WIDTH} flex items-center justify-center py-1 border-r border-gray-100 last:border-r-0`}
+                                  >
+                                    <AccessMatrixCell
+                                      level={level}
+                                      isModified={isModified}
+                                      onLevelSelect={(newLevel) => handleCellSelect(role, subcat.id, newLevel)}
+                                      label={`기본값 — 하위 ${subcat.viewCount}개 뷰에 일괄 적용`}
+                                    />
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
 
-                          {/* Access cells */}
-                          <div className="flex items-center">
-                            {ROLE_ORDER.map(role => {
-                              const level = getAccessLevel(accessMatrix, role, subcat.id);
-                              const isModified = modifiedCells.has(`${role}:${subcat.id}`);
-                              return (
-                                <div
-                                  key={role}
-                                  className={`${CELL_WIDTH} flex items-center justify-center py-1 border-r border-gray-100 last:border-r-0`}
-                                >
-                                  <AccessMatrixCell
-                                    level={level}
-                                    isModified={isModified}
-                                    onLevelSelect={(newLevel) => handleCellSelect(role, subcat.id, newLevel)}
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
+                          {/* Expanded view rows */}
+                          {isSubcatExpanded && views.length > 0 && (
+                            <div id={`subcat-panel-${subcat.id}`}>
+                            <ViewRowsSection
+                              subcategory={subcat}
+                              views={views}
+                              accessMatrix={accessMatrix}
+                              accessMatrixMap={accessMatrixMap}
+                              modifiedCells={modifiedCells}
+                              onToggleViewAccess={onToggleViewAccess}
+                              roleOrder={ROLE_ORDER}
+                              cellWidth={CELL_WIDTH}
+                              stickyLeftWidth={STICKY_LEFT_WIDTH}
+                            />
+                            </div>
+                          )}
+                        </React.Fragment>
                       );
                     })}
+                  </div>
                 </div>
               );
             })

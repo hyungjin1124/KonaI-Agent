@@ -7,6 +7,7 @@ import type {
   DomainAccessMatrix,
   RoleDefinition,
   DataScopeType,
+  SensitivityLevel,
 } from '../../../../types';
 
 // ============================================================================
@@ -204,7 +205,7 @@ function buildDefaultAccessMatrix(): DomainAccessMatrix[] {
     for (const [subcatId, row] of Object.entries(MATRIX_DATA)) {
       subcategoryAccess[subcatId] = row[roleIdx];
     }
-    return { role, subcategoryAccess };
+    return { role, subcategoryAccess, viewOverrides: {} };
   });
 }
 
@@ -215,21 +216,21 @@ export const DEFAULT_ACCESS_MATRIX: DomainAccessMatrix[] = buildDefaultAccessMat
 // ============================================================================
 
 export const ROLE_DEFINITIONS: RoleDefinition[] = [
-  { role: 'ROLE_SYS_ADMIN', nameKo: '시스템 관리자',  nameEn: 'System Admin',     description: '시스템 전체 설정, 사용자/역할 관리, 데이터 접근 정책 설정, 감사로그 조회', dataScope: 'All',        targetExample: '정보보안팀, IT관리자',       note: '최소 인원 지정 권장' },
-  { role: 'ROLE_FIN_ADMIN', nameKo: '재무관리자',     nameEn: 'Finance Admin',    description: '회계/재무/세무/결산/자금/연결재무 전 모듈 전체 접근',                        dataScope: 'All',        targetExample: 'CFO, 재무팀장, 회계팀장' },
-  { role: 'ROLE_FIN_USER',  nameKo: '재무담당자',     nameEn: 'Finance User',     description: '회계전표, 재무제표, 예산, 세무, 자금 등 재무 실무 데이터 접근',              dataScope: 'Department', targetExample: '재무팀·회계팀 실무자',       note: '타부서 전표 RLS 제한' },
-  { role: 'ROLE_SALES_MGR', nameKo: '영업관리자',     nameEn: 'Sales Manager',    description: '영업/매출/수금 전체 + 매출원가/수익성분석 접근',                              dataScope: 'Division',   targetExample: '사업실장, Biz그룹장, 카드영업부장' },
-  { role: 'ROLE_SALES_USER',nameKo: '영업담당자',     nameEn: 'Sales User',       description: '영업 실적, 수주/출하/매출, 거래처별 실적 조회',                               dataScope: 'Department', targetExample: '영업팀 실무자, Biz담당',     note: '원가 정보 마스킹' },
-  { role: 'ROLE_PURCH_USER',nameKo: '구매담당자',     nameEn: 'Purchase User',    description: '구매발주, 입고, 매입전표, 거래처 관리 데이터 접근',                           dataScope: 'Department', targetExample: 'SCM팀, 구매담당' },
-  { role: 'ROLE_PROD_MGR',  nameKo: '생산관리자',     nameEn: 'Production Mgr',   description: '생산계획/실적, BOM, 외주, 원가 전체 접근',                                    dataScope: 'Plant',      targetExample: '생산Group장' },
-  { role: 'ROLE_PROD_USER', nameKo: '생산담당자',     nameEn: 'Production User',  description: '작업지시, 자재투입, 생산실적 조회',                                           dataScope: 'Plant+Line', targetExample: '생산Group 실무자',           note: '원가 정보 제한적' },
-  { role: 'ROLE_LOG_USER',  nameKo: '물류담당자',     nameEn: 'Logistics User',   description: '입출고, 재고현황, 창고별 재고 조회',                                          dataScope: 'Warehouse',  targetExample: '재고담당, 물류담당' },
-  { role: 'ROLE_PJT_MGR',   nameKo: '프로젝트관리자', nameEn: 'Project Manager',  description: '프로젝트 현황, 투입비용, 인력현황, 예산 관리',                                dataScope: 'Project',    targetExample: '개발그룹장, PM' },
-  { role: 'ROLE_HR_ADMIN',  nameKo: '인사관리자',     nameEn: 'HR Admin',         description: '인사/급여 전체 데이터 접근 (급여명세, 개인정보 포함)',                         dataScope: 'All',        targetExample: 'HR팀장',                     note: '개인정보 포함, 최소 인원' },
-  { role: 'ROLE_HR_USER',   nameKo: '인사담당자',     nameEn: 'HR User',          description: '인사발령, 근태, 인원현황 조회 (급여 상세 제외)',                               dataScope: 'Department', targetExample: 'HR팀 담당자',                 note: '급여명세 제외' },
-  { role: 'ROLE_EXEC',      nameKo: '경영진',        nameEn: 'Executive',         description: '경영정보(EIS) 대시보드 + 주요 재무제표 요약 조회',                            dataScope: 'All',        targetExample: '대표이사, 부문장, 임원',     note: '상세 전표 미접근' },
-  { role: 'ROLE_DEPT_MGR',  nameKo: '부서관리자',     nameEn: 'Dept. Manager',    description: '소속 부서 관련 비용/예산/실적 조회',                                          dataScope: 'Department', targetExample: '팀장, 그룹장, 실장',          note: '예산/비용 실적 중심' },
-  { role: 'ROLE_VIEWER',    nameKo: '일반조회자',     nameEn: 'General Viewer',   description: '공통 기준정보(환율, 계정과목) + 본인 관련 데이터만 조회',                     dataScope: 'Self',       targetExample: '일반 개발자, QA, 일반직원',  note: '최소 권한' },
+  { role: 'ROLE_SYS_ADMIN', nameKo: '시스템 관리자',  nameEn: 'System Admin',     description: '시스템 전체 설정, 사용자/역할 관리, 데이터 접근 정책 설정, 감사로그 조회', dataScope: 'All',        note: '최소 인원 지정 권장' },
+  { role: 'ROLE_FIN_ADMIN', nameKo: '재무관리자',     nameEn: 'Finance Admin',    description: '회계/재무/세무/결산/자금/연결재무 전 모듈 전체 접근',                        dataScope: 'All' },
+  { role: 'ROLE_FIN_USER',  nameKo: '재무담당자',     nameEn: 'Finance User',     description: '회계전표, 재무제표, 예산, 세무, 자금 등 재무 실무 데이터 접근',              dataScope: 'Department', note: '타부서 전표 RLS 제한' },
+  { role: 'ROLE_SALES_MGR', nameKo: '영업관리자',     nameEn: 'Sales Manager',    description: '영업/매출/수금 전체 + 매출원가/수익성분석 접근',                              dataScope: 'Division' },
+  { role: 'ROLE_SALES_USER',nameKo: '영업담당자',     nameEn: 'Sales User',       description: '영업 실적, 수주/출하/매출, 거래처별 실적 조회',                               dataScope: 'Department', note: '원가 정보 마스킹' },
+  { role: 'ROLE_PURCH_USER',nameKo: '구매담당자',     nameEn: 'Purchase User',    description: '구매발주, 입고, 매입전표, 거래처 관리 데이터 접근',                           dataScope: 'Department' },
+  { role: 'ROLE_PROD_MGR',  nameKo: '생산관리자',     nameEn: 'Production Mgr',   description: '생산계획/실적, BOM, 외주, 원가 전체 접근',                                    dataScope: 'Plant' },
+  { role: 'ROLE_PROD_USER', nameKo: '생산담당자',     nameEn: 'Production User',  description: '작업지시, 자재투입, 생산실적 조회',                                           dataScope: 'Plant+Line', note: '원가 정보 제한적' },
+  { role: 'ROLE_LOG_USER',  nameKo: '물류담당자',     nameEn: 'Logistics User',   description: '입출고, 재고현황, 창고별 재고 조회',                                          dataScope: 'Warehouse' },
+  { role: 'ROLE_PJT_MGR',   nameKo: '프로젝트관리자', nameEn: 'Project Manager',  description: '프로젝트 현황, 투입비용, 인력현황, 예산 관리',                                dataScope: 'Project' },
+  { role: 'ROLE_HR_ADMIN',  nameKo: '인사관리자',     nameEn: 'HR Admin',         description: '인사/급여 전체 데이터 접근 (급여명세, 개인정보 포함)',                         dataScope: 'All',        note: '개인정보 포함, 최소 인원' },
+  { role: 'ROLE_HR_USER',   nameKo: '인사담당자',     nameEn: 'HR User',          description: '인사발령, 근태, 인원현황 조회 (급여 상세 제외)',                               dataScope: 'Department', note: '급여명세 제외' },
+  { role: 'ROLE_EXEC',      nameKo: '경영진',        nameEn: 'Executive',         description: '경영정보(EIS) 대시보드 + 주요 재무제표 요약 조회',                            dataScope: 'All',        note: '상세 전표 미접근' },
+  { role: 'ROLE_DEPT_MGR',  nameKo: '부서관리자',     nameEn: 'Dept. Manager',    description: '소속 부서 관련 비용/예산/실적 조회',                                          dataScope: 'Department', note: '예산/비용 실적 중심' },
+  { role: 'ROLE_VIEWER',    nameKo: '일반조회자',     nameEn: 'General Viewer',   description: '공통 기준정보(환율, 계정과목) + 본인 관련 데이터만 조회',                     dataScope: 'Self',       note: '최소 권한' },
 ];
 
 export const ROLE_LABEL_MAP: Record<DomainRole, string> = Object.fromEntries(
@@ -258,7 +259,7 @@ export const ROLE_SHORT_LABEL_MAP: Record<DomainRole, string> = {
 // Sensitivity Level Display
 // ============================================================================
 
-export const SENSITIVITY_DISPLAY: Record<string, { label: string; color: string; bgColor: string }> = {
+export const SENSITIVITY_DISPLAY: Record<SensitivityLevel, { label: string; color: string; bgColor: string }> = {
   '매우높음': { label: '매우높음', color: 'text-red-700',    bgColor: 'bg-red-100' },
   '높음':     { label: '높음',     color: 'text-orange-700', bgColor: 'bg-orange-100' },
   '중간':     { label: '중간',     color: 'text-yellow-700', bgColor: 'bg-yellow-100' },

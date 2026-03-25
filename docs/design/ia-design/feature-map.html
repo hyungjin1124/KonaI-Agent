@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KonaI-Agent IA Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:#f5f5f7;color:#1d1d1f;padding:40px 24px 80px;overflow-x:auto}
+  .wrap{min-width:960px;max-width:1080px;margin:0 auto}
+  h1{text-align:center;font-size:22px;font-weight:700;color:#1d1d1f;margin-bottom:6px}
+  .subtitle{text-align:center;font-size:13px;color:#86868b;margin-bottom:44px}
+
+  /* ── GNB ── */
+  .gnb{display:flex;justify-content:center;gap:3px;position:relative}
+  .gnb::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:#d2d2d7}
+  .gnb-item{
+    width:192px;text-align:center;padding:14px 0 12px;
+    font-size:14px;font-weight:700;border-radius:10px 10px 0 0;
+  }
+  .gnb-item .purpose{display:block;font-size:10px;font-weight:400;color:#86868b;margin-top:3px;line-height:1.3}
+  .gnb-item.c1{color:#0066cc;background:#e8f0fe}
+  .gnb-item.c2{color:#1a7f37;background:#e6f4ea}
+  .gnb-item.c3{color:#7c3aed;background:#f0ebff}
+  .gnb-item.c4{color:#b45309;background:#fef3c7}
+  .gnb-item.c5{color:#be123c;background:#ffe4e6}
+
+  /* ── Tree ── */
+  .tree{display:flex;justify-content:center;gap:3px}
+  .col{
+    width:192px;display:flex;flex-direction:column;align-items:center;
+    padding-top:16px;position:relative;
+  }
+  .col::before{content:'';position:absolute;top:0;left:50%;width:1px;height:16px;background:#d2d2d7}
+
+  /* Node */
+  .nd{
+    width:178px;padding:10px 12px;border-radius:8px;margin-bottom:3px;
+  }
+  .nd .nm{font-size:12.5px;font-weight:600;margin-bottom:2px}
+  .nd .wh{font-size:10px;line-height:1.4;opacity:0.55}
+  .ln{width:1px;height:3px}
+
+  .c1 .nd{background:#dbeafe;border:1px solid #bfdbfe}.c1 .nd .nm{color:#1d4ed8}.c1 .ln{background:#bfdbfe}
+  .c2 .nd{background:#d1fae5;border:1px solid #a7f3d0}.c2 .nd .nm{color:#15803d}.c2 .ln{background:#a7f3d0}
+  .c3 .nd{background:#ede9fe;border:1px solid #ddd6fe}.c3 .nd .nm{color:#6d28d9}.c3 .ln{background:#ddd6fe}
+  .c4 .nd{background:#fef3c7;border:1px solid #fde68a}.c4 .nd .nm{color:#92400e}.c4 .ln{background:#fde68a}
+  .c5 .nd{background:#ffe4e6;border:1px solid #fecdd3}.c5 .nd .nm{color:#be123c}.c5 .ln{background:#fecdd3}
+
+  /* Sub */
+  .ss{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:6px}
+  .sf{
+    width:164px;padding:4px 10px;border-radius:5px;
+    font-size:10px;color:#6e6e73;text-align:center;
+    background:rgba(0,0,0,0.025);border:1px solid rgba(0,0,0,0.05);
+  }
+
+  /* Category header (admin) */
+  .cat{
+    width:178px;padding:6px 12px;border-radius:6px;margin-bottom:3px;
+    font-size:10px;font-weight:600;color:#be123c;
+    background:rgba(190,18,60,0.04);
+    text-transform:uppercase;letter-spacing:0.3px;
+  }
+  .sep{width:140px;border-top:1px dashed #fecdd3;margin:8px 0 4px}
+  .sep-label{font-size:9px;color:#9ca3af;margin-bottom:6px}
+  .faded{opacity:0.35}
+
+  /* ── Connections ── */
+  .conns{
+    margin-top:40px;max-width:720px;margin-left:auto;margin-right:auto;
+    border-top:1px solid #d2d2d7;padding-top:24px;
+  }
+  .conns h2{font-size:12px;font-weight:600;color:#86868b;text-align:center;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.8px}
+  .cg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .cn{
+    display:flex;align-items:center;gap:6px;
+    padding:7px 10px;border-radius:6px;
+    background:#fff;border:1px solid #e5e5ea;
+    font-size:10px;color:#6e6e73;
+  }
+  .ct{font-size:9px;font-weight:600;padding:2px 5px;border-radius:3px;flex-shrink:0;white-space:nowrap}
+  .t1{background:#dbeafe;color:#1d4ed8}
+  .t2{background:#d1fae5;color:#15803d}
+  .t3{background:#ede9fe;color:#6d28d9}
+  .t4{background:#fef3c7;color:#92400e}
+  .t5{background:#ffe4e6;color:#be123c}
+  .ar{color:#aeaeb2;flex-shrink:0;font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>KonaI-Agent — Information Architecture</h1>
+<div class="subtitle">상단 GNB (5개 메뉴) → 하위 구조</div>
+
+<div class="gnb">
+  <div class="gnb-item c1">홈/대시보드<span class="purpose">AI 인사이트 + KPI 진입점</span></div>
+  <div class="gnb-item c2">AI 채팅<span class="purpose">분석 · 생성 · 스킬 생성의 허브</span></div>
+  <div class="gnb-item c3">스킬<span class="purpose">생성된 스킬 탐색 · 관리</span></div>
+  <div class="gnb-item c4">데이터<span class="purpose">에이전트 데이터 거버넌스</span></div>
+  <div class="gnb-item c5">관리자<span class="purpose">사용자 · 권한 · 감사 · AI 통제</span></div>
+</div>
+
+<div class="tree">
+
+  <!-- ── 홈/대시보드 ── -->
+  <div class="col c1">
+    <div class="nd">
+      <div class="nm">AI 인사이트</div>
+      <div class="wh">AI가 선제적으로 발견한 변화·기회</div>
+    </div>
+    <div class="ss">
+      <div class="sf">자연어 요약 카드</div>
+      <div class="sf">이상 감지 알림</div>
+      <div class="sf">→ 채팅 드릴다운</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">KPI 대시보드</div>
+      <div class="wh">조직 핵심 지표 모니터링</div>
+    </div>
+    <div class="ss">
+      <div class="sf">KPI 카드 + 트렌드</div>
+      <div class="sf">시계열 차트</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">커스텀 대시보드</div>
+      <div class="wh">채팅 분석 결과의 저장·재사용</div>
+    </div>
+    <div class="ss">
+      <div class="sf">대시보드 목록</div>
+      <div class="sf">새 대시보드 생성</div>
+    </div>
+  </div>
+
+  <!-- ── AI 채팅 ── -->
+  <div class="col c2">
+    <div class="nd">
+      <div class="nm">채팅</div>
+      <div class="wh">자연어로 분석·문서 생성·스킬 생성</div>
+    </div>
+    <div class="ss">
+      <div class="sf">자연어 질의 + 응답</div>
+      <div class="sf">스킬 자동 호출 / @멘션</div>
+      <div class="sf">스킬 생성 (대화 중)</div>
+      <div class="sf">→ 대시보드에 저장</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">Artifact 패널</div>
+      <div class="wh">생성 결과물 확인·편집</div>
+    </div>
+    <div class="ss">
+      <div class="sf">차트 · 코드 · 문서</div>
+      <div class="sf">스킬 미리보기</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">대화 이력</div>
+      <div class="wh">과거 대화·결과물 재접근</div>
+    </div>
+  </div>
+
+  <!-- ── 스킬 ── -->
+  <div class="col c3">
+    <div class="nd">
+      <div class="nm">스킬 목록</div>
+      <div class="wh">내 스킬 + 조직 공개 스킬 통합 뷰</div>
+    </div>
+    <div class="ss">
+      <div class="sf">필터: 내 스킬 / 전체</div>
+      <div class="sf">검색 · 카테고리</div>
+      <div class="sf">설치 · 편집 · 공유</div>
+      <div class="sf">활성 사용자 수 표시</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">스킬 상세</div>
+      <div class="wh">개별 스킬의 설정·정보 확인</div>
+    </div>
+    <div class="ss">
+      <div class="sf">설명 · 사용 방법</div>
+      <div class="sf">편집 (채팅으로 이동)</div>
+      <div class="sf">공유 설정</div>
+    </div>
+  </div>
+
+  <!-- ── 데이터 ── -->
+  <div class="col c4">
+    <div class="nd">
+      <div class="nm">뷰 테이블</div>
+      <div class="wh">에이전트가 쿼리할 테이블 카탈로그</div>
+    </div>
+    <div class="ss">
+      <div class="sf">테이블 목록 (트리)</div>
+      <div class="sf">컬럼 · 미리보기</div>
+      <div class="sf">메타데이터</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">온톨로지</div>
+      <div class="wh">에이전트 자연어 이해를 위한 시맨틱 레이어</div>
+    </div>
+    <div class="ss">
+      <div class="sf">그래프 시각화</div>
+      <div class="sf">엔티티 · 관계 편집</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">접근 정책</div>
+      <div class="wh">누가 어떤 데이터를 볼 수 있는지 제어</div>
+    </div>
+    <div class="ss">
+      <div class="sf">RLS · 컬럼 마스킹</div>
+      <div class="sf">PII 태깅</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">감사 로그</div>
+      <div class="wh">데이터 접근 이력 추적</div>
+    </div>
+  </div>
+
+  <!-- ── 관리자 ── -->
+  <div class="col c5">
+    <div class="cat">접근 제어</div>
+    <div class="nd">
+      <div class="nm">사용자 관리</div>
+      <div class="wh">계정 · 역할 · 초대</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">권한 관리</div>
+      <div class="wh">역할별 기능·데이터 접근 제어</div>
+    </div>
+    <div class="ln"></div>
+
+    <div class="cat">모니터링</div>
+    <div class="nd">
+      <div class="nm">감사 로그</div>
+      <div class="wh">플랫폼 전체 활동 기록</div>
+    </div>
+    <div class="ln"></div>
+    <div class="nd">
+      <div class="nm">사용량</div>
+      <div class="wh">AI · API · 비용 추적</div>
+    </div>
+    <div class="ln"></div>
+
+    <div class="cat">AI 정책</div>
+    <div class="nd">
+      <div class="nm">AI 거버넌스</div>
+      <div class="wh">가드레일 · 모델 접근 제어</div>
+    </div>
+
+    <div class="sep"></div>
+    <div class="sep-label">Platform Admin 전용</div>
+    <div class="nd faded"><div class="nm">테넌트 관리</div></div>
+    <div class="ln"></div>
+    <div class="nd faded"><div class="nm">전체 사용량</div></div>
+    <div class="ln"></div>
+    <div class="nd faded"><div class="nm">시스템 설정</div></div>
+  </div>
+
+</div>
+
+<!-- ── 메뉴 간 연결 ── -->
+<div class="conns">
+  <h2>메뉴 간 연결</h2>
+  <div class="cg">
+    <div class="cn"><span class="ct t2">채팅</span><span class="ar">→</span><span class="ct t1">대시보드</span>결과 저장</div>
+    <div class="cn"><span class="ct t1">대시보드</span><span class="ar">→</span><span class="ct t2">채팅</span>심층 분석</div>
+    <div class="cn"><span class="ct t2">채팅</span><span class="ar">⇄</span><span class="ct t3">스킬</span>호출 + 생성</div>
+    <div class="cn"><span class="ct t4">데이터</span><span class="ar">→</span><span class="ct t2">채팅</span>질의 이해</div>
+    <div class="cn"><span class="ct t5">관리자</span><span class="ar">→</span><span style="color:#86868b">전체</span>RBAC 제어</div>
+    <div class="cn"><span class="ct t5">거버넌스</span><span class="ar">→</span><span class="ct t4">데이터</span>정책 현황</div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

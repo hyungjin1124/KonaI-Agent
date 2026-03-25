@@ -1,0 +1,55 @@
+# Information Architecture — {feature}
+
+> Generated: {YYYY-MM-DD}
+> Based on: {list of research files used}
+> Status: Draft
+
+## Current State
+{What exists today: route, component, lines of code, key limitations}
+
+## Target State
+{What the improved version should achieve, in 2-3 sentences}
+
+## Menu Structure
+```
+{feature}/
+├── {Section A}
+│   ├── {Sub-page 1} — {purpose}
+│   └── {Sub-page 2} — {purpose}
+├── {Section B}
+│   └── ...
+└── {Settings/Config}
+```
+
+## Page Definitions
+| Page | Route | Purpose | Key Components | Data Source | Priority |
+|------|-------|---------|----------------|------------|----------|
+
+## Navigation Flow
+### Primary Journey: {goal}
+1. User lands on {page} → sees {what}
+2. Clicks {action} → navigates to {page}
+3. ...
+
+### Secondary Journey: {goal}
+1. ...
+
+## Component Mapping
+| UI Element | Existing Component | New/Modified | Notes |
+|------------|-------------------|-------------|-------|
+| ... | src/components/ui/... | New | ... |
+
+## Data Requirements
+| Entity | Fields | Source | Existing Type | New Type Needed |
+|--------|--------|--------|---------------|-----------------|
+
+## Design Tokens
+{Any new colors, spacing, or typography needed beyond existing Tailwind config}
+
+## Acceptance Criteria
+1. [ ] {Testable criterion}
+2. [ ] {Testable criterion}
+3. ...
+
+## Open Questions
+- {Question that needs team input before implementation}

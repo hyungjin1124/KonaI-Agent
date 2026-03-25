@@ -1,19 +1,21 @@
-import React, { useState, useMemo } from 'react';
-import { Line, LineChart, Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { ChevronDown, ChevronUp } from '../../../icons';
+import React from 'react';
+import { Line, LineChart, ResponsiveContainer } from 'recharts';
 import { ChartWidget } from '../../../shared/molecules/ChartWidget';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../ui/dialog';
-import { AGENT_COST_DATA, AGENT_DAILY_USAGE } from '../usageMonitoringData';
-import type { AgentCostBreakdown } from '../usageMonitoringData';
-
-type SortField = 'costUsd' | 'totalTokens' | 'activeUsers';
-type SortDir = 'asc' | 'desc';
+import { MODEL_COST_DATA } from '../usageMonitoringData';
 
 function formatTokens(value: number): string {
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
   if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
   return String(value);
 }
+
+// Simple weekly trend sparkline (mock data for models)
+const MODEL_TRENDS: Record<string, number[]> = {
+  'GPT-4o': [180, 210, 195, 220, 205, 240, 230],
+  'Claude 3.5 Sonnet': [110, 125, 118, 135, 128, 142, 138],
+  'GPT-4o-mini': [40, 45, 42, 50, 48, 55, 52],
+  'Claude 3 Haiku': [25, 30, 28, 32, 30, 35, 33],
+};
 
 function SparkLine({ data, color }: { data: number[]; color: string }) {
   const chartData = data.map((v, i) => ({ v, i }));
@@ -28,159 +30,55 @@ function SparkLine({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-function SortIcon({ field, current, dir }: { field: SortField; current: SortField; dir: SortDir }) {
-  if (field !== current) return <ChevronDown size={12} className="text-gray-300" />;
-  return dir === 'desc'
-    ? <ChevronDown size={12} className="text-gray-700" />
-    : <ChevronUp size={12} className="text-gray-700" />;
-}
-
 export function AgentCostTable() {
-  const [sortField, setSortField] = useState<SortField>('costUsd');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [selectedAgent, setSelectedAgent] = useState<AgentCostBreakdown | null>(null);
-
-  const sorted = useMemo(() => {
-    return [...AGENT_COST_DATA].sort((a, b) => {
-      const diff = a[sortField] - b[sortField];
-      return sortDir === 'desc' ? -diff : diff;
-    });
-  }, [sortField, sortDir]);
-
-  function handleSort(field: SortField) {
-    if (sortField === field) {
-      setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
-    } else {
-      setSortField(field);
-      setSortDir('desc');
-    }
-  }
-
-  const totalCost = AGENT_COST_DATA.reduce((sum, a) => sum + a.costUsd, 0);
+  const totalCost = MODEL_COST_DATA.reduce((sum, m) => sum + m.cost, 0);
 
   return (
     <ChartWidget
-      title="에이전트별 비용 분해"
+      title="모델별 비용 분해"
       subtitle={`총 $${totalCost.toLocaleString()}`}
-      height={280}
-      insightSummary="PPT 에이전트가 전체 비용의 37%를 차지하며, 상위 2개 에이전트가 62%를 소비합니다."
+      height={220}
+      insightSummary="GPT-4o가 전체 비용의 50%를 차지합니다. 경량 작업의 모델 전환으로 비용 절감 가능."
       insightDetail={
         <div className="space-y-3 text-sm">
-          <p>에이전트별 비용 파레토 분석 결과, PPT 에이전트($1,056)와 분석 에이전트($704)가 전체 $2,847 중 62%를 차지합니다.</p>
-          <p>PPT 에이전트는 사용자 수 대비 비용이 가장 높아(사용자당 $23.5/월), 템플릿 캐싱으로 토큰 절감 가능성이 있습니다.</p>
-          <p><strong>권장 액션:</strong> PPT 에이전트의 반복 패턴 분석 후 프리셋 템플릿을 도입하면 월 $200~300 절감이 예상됩니다.</p>
+          <p>모델별 비용 분석 결과, GPT-4o($1,420)가 전체 $2,847 중 50%를 차지하며 비용 최적화의 핵심 대상입니다.</p>
+          <p>Claude 3.5 Sonnet($890, 31%)은 토큰당 비용 효율이 가장 높으며, GPT-4o-mini($320, 11%)는 경량 작업에 적합합니다.</p>
+          <p><strong>권장 액션:</strong> 단순 질의 응답, 요약 등 경량 작업을 GPT-4o에서 GPT-4o-mini 또는 Claude 3 Haiku로 전환하면 월 $400~600 절감이 가능합니다.</p>
         </div>
       }
-      expandTestId="agent-cost-insight"
+      expandTestId="model-cost-insight"
     >
-      <div className="overflow-x-auto" data-testid="agent-cost-table">
+      <div className="overflow-x-auto" data-testid="model-cost-table">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="text-left py-2 px-2 text-xs font-bold text-gray-500">에이전트</th>
-              <th
-                className="text-right py-2 px-2 text-xs font-bold text-gray-500 cursor-pointer select-none"
-                onClick={() => handleSort('totalTokens')}
-              >
-                <span className="inline-flex items-center gap-0.5">
-                  토큰 <SortIcon field="totalTokens" current={sortField} dir={sortDir} />
-                </span>
-              </th>
-              <th
-                className="text-right py-2 px-2 text-xs font-bold text-gray-500 cursor-pointer select-none"
-                onClick={() => handleSort('costUsd')}
-              >
-                <span className="inline-flex items-center gap-0.5">
-                  비용 (USD) <SortIcon field="costUsd" current={sortField} dir={sortDir} />
-                </span>
-              </th>
-              <th className="text-right py-2 px-2 text-xs font-bold text-gray-500">Credits</th>
-              <th
-                className="text-right py-2 px-2 text-xs font-bold text-gray-500 cursor-pointer select-none"
-                onClick={() => handleSort('activeUsers')}
-              >
-                <span className="inline-flex items-center gap-0.5">
-                  사용자 <SortIcon field="activeUsers" current={sortField} dir={sortDir} />
-                </span>
-              </th>
+              <th className="text-left py-2 px-2 text-xs font-bold text-gray-500">모델</th>
+              <th className="text-right py-2 px-2 text-xs font-bold text-gray-500">토큰</th>
+              <th className="text-right py-2 px-2 text-xs font-bold text-gray-500">비용 (USD)</th>
+              <th className="text-right py-2 px-2 text-xs font-bold text-gray-500">비율</th>
               <th className="text-right py-2 px-2 text-xs font-bold text-gray-500">7일 트렌드</th>
             </tr>
           </thead>
           <tbody>
-            {sorted.map((agent: AgentCostBreakdown) => (
-              <tr key={agent.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer" onClick={() => setSelectedAgent(agent)}>
+            {MODEL_COST_DATA.map((model) => (
+              <tr key={model.name} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                 <td className="py-2 px-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: agent.color }} />
-                    <span className="font-medium text-gray-900 text-xs">{agent.name}</span>
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: model.color }} />
+                    <span className="font-medium text-gray-900 text-xs">{model.name}</span>
                   </div>
                 </td>
-                <td className="text-right py-2 px-2 text-xs text-gray-600">{formatTokens(agent.totalTokens)}</td>
-                <td className="text-right py-2 px-2 text-xs font-bold text-gray-900">${agent.costUsd.toLocaleString()}</td>
-                <td className="text-right py-2 px-2 text-xs text-gray-600">{agent.billedCredits}</td>
-                <td className="text-right py-2 px-2 text-xs text-gray-600">{agent.activeUsers}</td>
+                <td className="text-right py-2 px-2 text-xs text-gray-600">{formatTokens(model.tokens)}</td>
+                <td className="text-right py-2 px-2 text-xs font-bold text-gray-900">${model.cost.toLocaleString()}</td>
+                <td className="text-right py-2 px-2 text-xs text-gray-600">{Math.round((model.cost / totalCost) * 100)}%</td>
                 <td className="py-2 px-2 flex justify-end">
-                  <SparkLine data={agent.weeklyTrend} color={agent.color} />
+                  <SparkLine data={MODEL_TRENDS[model.name] || [0]} color={model.color} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
-      {/* Drilldown Dialog */}
-      <Dialog open={!!selectedAgent} onOpenChange={open => { if (!open) setSelectedAgent(null); }}>
-        <DialogContent className="sm:max-w-lg" data-testid="agent-drilldown-dialog">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedAgent && (
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedAgent.color }} />
-              )}
-              {selectedAgent?.name} — 일별 사용 이력
-            </DialogTitle>
-          </DialogHeader>
-          {selectedAgent && AGENT_DAILY_USAGE[selectedAgent.id] && (
-            <div className="space-y-4 pt-2">
-              {/* Summary */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-[10px] text-gray-500 font-medium">총 토큰</div>
-                  <div className="text-sm font-bold text-gray-900">{formatTokens(selectedAgent.totalTokens)}</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-[10px] text-gray-500 font-medium">총 비용</div>
-                  <div className="text-sm font-bold text-gray-900">${selectedAgent.costUsd.toLocaleString()}</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-[10px] text-gray-500 font-medium">활성 사용자</div>
-                  <div className="text-sm font-bold text-gray-900">{selectedAgent.activeUsers}명</div>
-                </div>
-              </div>
-
-              {/* Daily Chart */}
-              <div>
-                <div className="text-xs font-bold text-gray-500 uppercase mb-2">일별 토큰 사용량 (최근 14일)</div>
-                <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={AGENT_DAILY_USAGE[selectedAgent.id]}>
-                      <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                      <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatTokens(v)} width={50} />
-                      <Tooltip
-                        formatter={(value: number, name: string) => [
-                          name === 'tokens' ? formatTokens(value) : `$${value}`,
-                          name === 'tokens' ? '토큰' : '비용',
-                        ]}
-                        contentStyle={{ fontSize: 12 }}
-                      />
-                      <Bar dataKey="tokens" fill={selectedAgent.color} radius={[2, 2, 0, 0]} opacity={0.8} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </ChartWidget>
   );
 }

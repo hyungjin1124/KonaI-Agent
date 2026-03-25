@@ -1,0 +1,126 @@
+---
+name: review-page
+description: Run a full review pipeline on frontend pages. Orchestrates code-reviewer and ux-reviewer agents, compiles results into a priority matrix, and starts fixing Quick Wins. Only run when explicitly invoked.
+disable-model-invocation: true
+---
+
+# Full Page Review Pipeline
+
+Execute the complete review-to-fix workflow on a target page.
+
+**Target**: $ARGUMENTS (default: `src/components/AdminView.tsx` and `src/app/admin/`)
+
+## Phase 0: Resolve target slug
+
+Derive `{target}` from `$ARGUMENTS` using the target resolution table below:
+- `admin` → slug: `admin`
+- `platform-admin` → slug: `platform-admin`
+- `skills` → slug: `skills`
+- `liveboard` → slug: `liveboard`
+- `chat` → slug: `chat`
+- A file path → slug: filename without extension (e.g., `src/components/Foo.tsx` → `foo`)
+- (empty) → slug: `admin`
+
+All output filenames MUST include `{target}` to distinguish reports across different targets.
+
+## Phase 1: Analysis (parallel)
+
+1. **Invoke code-reviewer agent** on $ARGUMENTS
+   - Wait for output at `./reports/{target}/code-review-{date}.md`
+   - **IMPORTANT**: Pass the exact output path to the agent. Do NOT let the agent choose its own path.
+   - If no output after completion, STOP and report agent failure
+
+2. **Invoke ux-reviewer agent** on the same $ARGUMENTS
+   - Wait for output at `./reports/{target}/ux-review-{date}.md`
+   - **IMPORTANT**: Pass the exact output path to the agent. Do NOT let the agent choose its own path.
+   - If no output after completion, STOP and report agent failure
+
+Both agents run in parallel. Do NOT proceed to Phase 2 until both reports exist.
+
+## Phase 2: Prioritize
+
+3. Read both report files from the exact paths specified in Phase 1
+4. Cross-reference issues — deduplicate items found by both agents
+5. Create combined priority matrix at `./reports/{target}/priority-{date}.md`:
+
+```markdown
+# Combined Priority Matrix — {date}
+
+## Target
+{$ARGUMENTS}
+
+## Deduplicated Issue Count
+- Code issues: {n} (Critical: {n} / Major: {n} / Minor: {n})
+- UX issues: {n} (High Impact: {n} / Medium: {n} / Low: {n})
+- Overlapping: {n} issues found by both agents
+
+## Quick Wins (High Impact + Low Effort) — Fix order
+| # | Source | File | Issue | Est. Time |
+|---|--------|------|-------|-----------|
+| 1 | code/ux | ... | ... | ...min |
+
+## Strategic Items (High Impact + High Effort)
+| # | Source | File | Issue | Est. Time |
+|---|--------|------|-------|-----------|
+
+## Fill-ins (Low Impact + Low Effort)
+| # | Source | File | Issue | Est. Time |
+|---|--------|------|-------|-----------|
+
+## Deprioritize (Low Impact + High Effort)
+| # | Source | File | Issue | Est. Time |
+|---|--------|------|-------|-----------|
+```
+
+## Phase 3: Fix
+
+6. Start fixing **Quick Win items only**, in the order listed above
+7. For each fix:
+   - Read the target file first
+   - Make the minimal change that resolves the issue
+   - Verify the fix doesn't break adjacent functionality
+   - Log what changed and why in the progress file
+8. After all Quick Wins, save progress summary
+
+Progress file: `./reports/{target}/progress-{date}.md`
+
+```markdown
+# Fix Progress — {date}
+
+## Quick Wins Completed
+| # | File | Issue | Change Made | Lines Changed |
+|---|------|-------|-------------|---------------|
+
+## Quick Wins Skipped (with reason)
+| # | File | Issue | Reason |
+|---|------|-------|--------|
+
+## Remaining Items
+{Count of Strategic + Fill-in items not addressed}
+
+## Next Steps
+{Recommended order for Strategic items}
+```
+
+## Target resolution rules
+
+When `$ARGUMENTS` is provided, resolve the target as follows:
+
+| Input | Resolves to |
+|-------|-------------|
+| `admin` | `src/components/AdminView.tsx` + `src/app/admin/` |
+| `platform-admin` | `src/components/features/platform-admin/` + `src/app/platform-admin/` |
+| `skills` | `src/components/SkillManagementView.tsx` + `src/app/settings/skills/` |
+| `liveboard` | `src/components/features/liveboard/` + `src/app/liveboard/` |
+| `chat` | `src/components/features/general-chat/` + `src/app/chat/` |
+| A file path | That specific file and its imported components |
+| (empty) | Default: `admin` |
+
+## Rules
+
+- **모든 리포트와 로그는 한국어로 작성한다.** 파일 경로, 변수명, 코드 스니펫, 기술 용어는 원문 유지.
+- Fix one issue at a time. Do NOT batch multiple fixes into one edit.
+- Maintain existing code patterns: Radix UI wrappers, Tailwind classes, PascalCase components.
+- Run `npx tsc --noEmit 2>&1 | head -30` after each batch of fixes to verify no type errors introduced.
+- If a fix requires changes in more than 3 files, flag it as Strategic instead of Quick Win.
+- NEVER delete or rename existing components without explicit user confirmation.

@@ -99,6 +99,10 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateX(-16px)' },
           to: { opacity: '1', transform: 'translateX(0)' },
         },
+        'slide-in-right': {
+          from: { transform: 'translateX(100%)' },
+          to: { transform: 'translateX(0)' },
+        },
         'skeleton-shimmer': {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
@@ -110,6 +114,7 @@ const config: Config = {
         'accordion-up': 'accordion-up 0.2s ease-out forwards',
         'fade-in': 'fade-in 0.2s ease-out forwards',
         'slide-in-left': 'slide-in-left 0.2s ease-out forwards',
+        'slide-in-right': 'slide-in-right 0.25s ease-out forwards',
         'text-fade-in': 'text-fade-in 0.3s ease-out forwards',
         'text-appear': 'text-appear 0.3s ease-out',
         'shimmer-text': 'shimmer-text 1.5s linear infinite',

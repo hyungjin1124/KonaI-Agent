@@ -1,0 +1,114 @@
+---
+name: research-to-spec
+description: Use when converting research findings into design specifications or information architecture documents. Reads research files, synthesizes into IA docs with page structure, navigation flow, and component mapping. Auto-invokes when research-then-design pattern is detected.
+---
+
+# Research to Spec Workflow
+
+Convert research documents into actionable design specifications for the KonaI-Agent platform.
+
+**Target feature**: $ARGUMENTS (required — e.g., "platform-admin", "skill-management", "nvidia-toolkit")
+
+## Step 1: Gather research inputs
+
+1. Read ALL `.md` files in `./research/` that relate to $ARGUMENTS
+2. Read `specs/component-catalog.yaml` to check existing component status for the feature
+3. If the feature has `obsidian_sources` in the catalog, read:
+   `/Users/hyungjin/Documents/Obsidian Vault/KonaChain/리서치/{obsidian_sources_value}`
+4. Read the current implementation (if any) to understand what already exists:
+
+| Feature | Existing code to read |
+|---------|----------------------|
+| admin | `src/components/AdminView.tsx`, `src/types/admin.types.ts` |
+| platform-admin | `src/components/features/platform-admin/PlatformAdminView.tsx` + all sub-components |
+| skill-management | `src/components/SkillManagementView.tsx`, `src/components/SkillUploadModal.tsx` |
+| liveboard | `src/components/features/liveboard/LiveboardView.tsx` |
+| chat | `src/components/features/general-chat/GeneralChatView.tsx` |
+
+## Step 2: Synthesize design requirements
+
+For each research finding, determine:
+- **Must-have**: directly solves an identified problem or gap
+- **Should-have**: improves experience but not blocking
+- **Could-have**: nice to have, low priority
+- **Won't-have (this phase)**: out of scope for current iteration
+
+## Step 3: Create IA document
+
+Save to `./design/{feature-slug}-ia.md`:
+
+```markdown
+# Information Architecture — {Feature Name}
+
+> Generated: {YYYY-MM-DD}
+> Based on: {list of research files used}
+> Status: Draft
+
+## Current State
+{What exists today: route, component, lines of code, key limitations}
+
+## Target State
+{What the improved version should achieve, in 2-3 sentences}
+
+## Menu Structure
+```
+{feature}/
+├── {Section A}
+│   ├── {Sub-page 1} — {purpose}
+│   └── {Sub-page 2} — {purpose}
+├── {Section B}
+│   └── ...
+└── {Settings/Config}
+```
+
+## Page Definitions
+| Page | Route | Purpose | Key Components | Data Source | Priority |
+|------|-------|---------|----------------|------------|----------|
+| ... | /... | ... | ... | mock / API | Must / Should / Could |
+
+## Navigation Flow
+### Primary Journey: {goal}
+1. User lands on {page} → sees {what}
+2. Clicks {action} → navigates to {page}
+3. ...
+
+### Secondary Journey: {goal}
+1. ...
+
+## Component Mapping
+| UI Element | Existing Component | New/Modified | Notes |
+|------------|-------------------|-------------|-------|
+| ... | src/components/ui/... | New | ... |
+| ... | src/components/features/... | Modified | ... |
+
+## Data Requirements
+| Entity | Fields | Source | Existing Type | New Type Needed |
+|--------|--------|--------|---------------|-----------------|
+| ... | ... | API / mock | src/types/... | Yes / No |
+
+## Design Tokens
+{Any new colors, spacing, or typography needed beyond existing Tailwind config}
+
+## Acceptance Criteria
+1. [ ] {Testable criterion}
+2. [ ] {Testable criterion}
+3. ...
+
+## Open Questions
+- {Question that needs team input before implementation}
+```
+
+## Step 4: Update component catalog
+
+If the feature exists in `specs/component-catalog.yaml`, update its status:
+- `research_needed` → `needs_update` (if research is done, spec is ready)
+- Add or update `obsidian_sources` if new research docs were created
+
+## Rules
+
+- **모든 설계 문서는 한국어로 작성한다.** 파일 경로, 컴포넌트명, 타입명, 기술 용어는 원문 유지.
+- Do NOT generate code. This skill produces design documents only.
+- Always reference existing components by their actual file paths.
+- If research files are empty or missing, STOP and report: "No research found for {feature}. Run the researcher agent first."
+- Preserve existing route structure — do not propose new routes unless the research explicitly calls for it.
+- Flag any design decision that requires team discussion under "Open Questions".

@@ -1,12 +1,15 @@
+'use client';
+
 import { useState, useMemo, useCallback } from 'react';
 import { Edit2, Plus, Search, Trash2 } from '../../../icons';
 import { Button } from '../../../ui/button';
 import { Input } from '../../../ui/input';
 import { Label } from '../../../ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../ui/dialog';
+import { ConfirmDialog } from '../../../ui/confirm-dialog';
 import type { DomainColumnMaskPolicy, DomainRole, SensitiveColumnCategory } from '../../../../types';
-import { DOMAIN_ROLES } from '../../../../types';
-import { SENSITIVE_CATEGORY_LABELS } from '../permissionSettingsData';
+import { SENSITIVE_CATEGORY_LABELS, getMaskingExample } from '../permissionSettingsData';
+import { GROUPED_ROLES } from '../data/roleGroupUtils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -15,7 +18,7 @@ import { SENSITIVE_CATEGORY_LABELS } from '../permissionSettingsData';
 interface ColumnMaskingLayerProps {
   policies: DomainColumnMaskPolicy[];
   onPoliciesChange: (policies: DomainColumnMaskPolicy[]) => void;
-  roleLabelMap: Record<string, string>;
+  roleLabelMap: Record<DomainRole, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +62,16 @@ const CATEGORY_OPTIONS: { value: SensitiveColumnCategory; label: string }[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Auto-derive maskedRoles description
+// ---------------------------------------------------------------------------
+
+function deriveMaskedRolesText(exposedRoles: DomainRole[], roleLabelMap: Record<DomainRole, string>): string {
+  if (exposedRoles.length === 0) return '전체 역할';
+  const exposedLabels = exposedRoles.map(r => roleLabelMap[r] ?? r).join(', ');
+  return `${exposedLabels} 외 전체`;
+}
+
+// ---------------------------------------------------------------------------
 // Edit form state
 // ---------------------------------------------------------------------------
 
@@ -67,7 +80,6 @@ interface EditFormState {
   maskingRule: string;
   targetViews: string;
   exposedRoles: DomainRole[];
-  maskedRoles: string;
   resultExample: string;
 }
 
@@ -76,7 +88,6 @@ const EMPTY_FORM: EditFormState = {
   maskingRule: '',
   targetViews: '',
   exposedRoles: [],
-  maskedRoles: '',
   resultExample: '',
 };
 
@@ -86,7 +97,7 @@ const EMPTY_FORM: EditFormState = {
 
 interface PolicyCardProps {
   policy: DomainColumnMaskPolicy;
-  roleLabelMap: Record<string, string>;
+  roleLabelMap: Record<DomainRole, string>;
   onEdit: (policy: DomainColumnMaskPolicy) => void;
   onDelete: (id: string) => void;
 }
@@ -117,15 +128,17 @@ function PolicyCard({ policy, roleLabelMap, onEdit, onDelete }: PolicyCardProps)
             onClick={() => onEdit(policy)}
             className="text-gray-400 hover:text-blue-600 transition-colors p-1"
             title="편집"
+            aria-label={`${SENSITIVE_CATEGORY_LABELS[policy.category]} 정책 편집`}
           >
-            <Edit2 size={13} />
+            <Edit2 size={13} aria-hidden="true" />
           </button>
           <button
             onClick={() => onDelete(policy.id)}
             className="text-gray-400 hover:text-red-600 transition-colors p-1"
             title="삭제"
+            aria-label={`${SENSITIVE_CATEGORY_LABELS[policy.category]} 정책 삭제`}
           >
-            <Trash2 size={13} />
+            <Trash2 size={13} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -201,26 +214,41 @@ function PolicyCard({ policy, roleLabelMap, onEdit, onDelete }: PolicyCardProps)
 
 export function ColumnMaskingLayer({ policies, onPoliciesChange, roleLabelMap }: ColumnMaskingLayerProps) {
   const [searchText, setSearchText] = useState('');
+  const [sensitivityFilter, setSensitivityFilter] = useState<SensitivityLevel | 'ALL'>('ALL');
   const [editTarget, setEditTarget] = useState<EditFormState | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isCreateMode, setIsCreateMode] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState('');
+  const isCreateMode = editingId === null;
+
+  const showToast = useCallback((msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 2000);
+  }, []);
 
   // Filtered list
   const filtered = useMemo(() => {
-    if (!searchText.trim()) return policies;
-    const q = searchText.toLowerCase();
-    return policies.filter(
-      p =>
-        SENSITIVE_CATEGORY_LABELS[p.category].toLowerCase().includes(q) ||
-        p.maskingRule.toLowerCase().includes(q) ||
-        p.targetViews.toLowerCase().includes(q),
-    );
-  }, [policies, searchText]);
+    let result = policies;
+
+    if (sensitivityFilter !== 'ALL') {
+      result = result.filter(p => CATEGORY_SENSITIVITY[p.category] === sensitivityFilter);
+    }
+
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      result = result.filter(
+        p =>
+          SENSITIVE_CATEGORY_LABELS[p.category].toLowerCase().includes(q) ||
+          p.maskingRule.toLowerCase().includes(q) ||
+          p.targetViews.toLowerCase().includes(q),
+      );
+    }
+    return result;
+  }, [policies, sensitivityFilter, searchText]);
 
   const openCreate = useCallback(() => {
     setEditTarget({ ...EMPTY_FORM });
     setEditingId(null);
-    setIsCreateMode(true);
   }, []);
 
   const openEdit = useCallback((policy: DomainColumnMaskPolicy) => {
@@ -229,11 +257,9 @@ export function ColumnMaskingLayer({ policies, onPoliciesChange, roleLabelMap }:
       maskingRule: policy.maskingRule,
       targetViews: policy.targetViews,
       exposedRoles: [...policy.exposedRoles],
-      maskedRoles: policy.maskedRoles,
       resultExample: policy.resultExample,
     });
     setEditingId(policy.id);
-    setIsCreateMode(false);
   }, []);
 
   const closeDialog = useCallback(() => {
@@ -262,53 +288,82 @@ export function ColumnMaskingLayer({ policies, onPoliciesChange, roleLabelMap }:
   }, []);
 
   const handleCategoryChange = useCallback((category: SensitiveColumnCategory) => {
-    setEditTarget(prev => (prev ? { ...prev, category } : prev));
+    setEditTarget(prev => {
+      if (!prev) return prev;
+      // Auto-suggest result example from MASKING_EXAMPLES
+      const suggestedExample = getMaskingExample(category, 'partial');
+      return {
+        ...prev,
+        category,
+        // Only auto-fill if empty or matches a previous suggestion
+        resultExample: prev.resultExample || suggestedExample,
+      };
+    });
   }, []);
 
   const handleSave = useCallback(() => {
     if (!editTarget || !editTarget.category || !editTarget.maskingRule.trim()) return;
 
+    const maskedRoles = deriveMaskedRolesText(editTarget.exposedRoles, roleLabelMap);
+
     const policy: DomainColumnMaskPolicy = {
-      id: isCreateMode ? `MASK-${String(Date.now()).slice(-4)}` : (editingId ?? `MASK-${String(Date.now()).slice(-4)}`),
+      id: isCreateMode ? `MASK-${crypto.randomUUID()}` : (editingId ?? `MASK-${crypto.randomUUID()}`),
       category: editTarget.category,
       categoryName: SENSITIVE_CATEGORY_LABELS[editTarget.category],
       targetViews: editTarget.targetViews,
       maskingRule: editTarget.maskingRule,
       exposedRoles: editTarget.exposedRoles,
-      maskedRoles: editTarget.maskedRoles,
+      maskedRoles,
       resultExample: editTarget.resultExample,
     };
 
     if (isCreateMode) {
       onPoliciesChange([...policies, policy]);
+      showToast('마스킹 정책이 추가되었습니다.');
     } else {
       onPoliciesChange(policies.map(p => (p.id === editingId ? policy : p)));
+      showToast('마스킹 정책이 수정되었습니다.');
     }
 
     closeDialog();
-  }, [editTarget, isCreateMode, editingId, policies, onPoliciesChange, closeDialog]);
+  }, [editTarget, editingId, policies, onPoliciesChange, roleLabelMap, closeDialog, showToast]);
 
   const handleDelete = useCallback(
     (id: string) => {
       const policy = policies.find(p => p.id === id);
       if (!policy) return;
-      if (!confirm(`"${SENSITIVE_CATEGORY_LABELS[policy.category]}" 정책을 삭제하시겠습니까?`)) return;
-      onPoliciesChange(policies.filter(p => p.id !== id));
+      setDeleteConfirmId(id);
     },
-    [policies, onPoliciesChange],
+    [policies],
   );
 
   const isFormValid = editTarget
     ? !!editTarget.category && !!editTarget.maskingRule.trim()
     : false;
 
+  // Auto-derived maskedRoles preview in dialog
+  const maskedRolesPreview = editTarget
+    ? deriveMaskedRolesText(editTarget.exposedRoles, roleLabelMap)
+    : '';
+
+  // Auto-suggested result example
+  const suggestedExample = editTarget
+    ? getMaskingExample(editTarget.category, 'partial')
+    : '';
+
+  const deleteConfirmDescription = (() => {
+    const policy = policies.find(p => p.id === deleteConfirmId);
+    if (!policy) return '정책을 삭제하시겠습니까?';
+    return `"${SENSITIVE_CATEGORY_LABELS[policy.category]}" 정책을 삭제하시겠습니까?`;
+  })();
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="text-sm font-bold text-gray-900">컬럼 마스킹 정책</h4>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h3 className="text-sm font-bold text-gray-900">컬럼 마스킹 정책</h3>
+          <p className="text-xs text-gray-500 mt-0.5" aria-live="polite" aria-atomic="true">
             {policies.length}개 정책
           </p>
         </div>
@@ -321,21 +376,38 @@ export function ColumnMaskingLayer({ policies, onPoliciesChange, roleLabelMap }:
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder="카테고리, 마스킹 규칙, 대상 뷰 검색"
-          value={searchText}
-          onChange={e => setSearchText(e.target.value)}
-          className="pl-9 h-9 text-sm"
-        />
+      {/* Filters */}
+      <div className="flex items-center gap-3">
+        <select
+          value={sensitivityFilter}
+          onChange={e => setSensitivityFilter(e.target.value as SensitivityLevel | 'ALL')}
+          className="h-9 text-sm border border-gray-200 rounded-md px-3 bg-white"
+        >
+          <option value="ALL">전체 민감도</option>
+          <option value="매우높음">매우높음</option>
+          <option value="높음">높음</option>
+          <option value="중간">중간</option>
+        </select>
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Input
+            placeholder="카테고리, 마스킹 규칙, 대상 뷰 검색"
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            className="pl-9 h-9 text-sm"
+          />
+        </div>
+      </div>
+
+      {/* Results count */}
+      <div className="text-xs text-gray-400">
+        {filtered.length}건 표시 (전체 {policies.length}건)
       </div>
 
       {/* Card Grid */}
       {filtered.length === 0 ? (
         <div className="py-12 text-center text-gray-400 text-sm">
-          {searchText ? '검색 결과가 없습니다.' : '설정된 컬럼 마스킹 정책이 없습니다.'}
+          {searchText || sensitivityFilter !== 'ALL' ? '검색 결과가 없습니다.' : '설정된 컬럼 마스킹 정책이 없습니다.'}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -353,28 +425,37 @@ export function ColumnMaskingLayer({ policies, onPoliciesChange, roleLabelMap }:
 
       {/* Create / Edit Dialog */}
       <Dialog open={!!editTarget} onOpenChange={open => { if (!open) closeDialog(); }}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle>{isCreateMode ? '새 마스킹 정책 추가' : '마스킹 정책 편집'}</DialogTitle>
+            <DialogDescription>
+              {isCreateMode ? '민감 컬럼 카테고리에 대한 마스킹 정책을 정의합니다.' : '기존 마스킹 정책을 수정합니다.'}
+            </DialogDescription>
           </DialogHeader>
           {editTarget && (
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto pr-1">
               {/* Row 1: 카테고리 + 마스킹 규칙 */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-500 uppercase">카테고리</Label>
+                  <Label className="text-xs font-bold text-gray-500">카테고리</Label>
                   <select
                     value={editTarget.category}
                     onChange={e => handleCategoryChange(e.target.value as SensitiveColumnCategory)}
-                    className="w-full h-9 text-sm border border-gray-200 rounded-md px-3 bg-white"
+                    autoFocus
+                    className="w-full h-9 text-sm border border-gray-200 rounded-md px-2.5 bg-white"
                   >
                     {CATEGORY_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
+                  {editTarget.category && (
+                    <p className="text-[10px] text-gray-400 mt-0.5 pl-1">
+                      민감도: {CATEGORY_SENSITIVITY[editTarget.category]}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-500 uppercase">마스킹 규칙</Label>
+                  <Label className="text-xs font-bold text-gray-500">마스킹 규칙</Label>
                   <Input
                     value={editTarget.maskingRule}
                     onChange={e => updateField('maskingRule', e.target.value)}
@@ -386,65 +467,80 @@ export function ColumnMaskingLayer({ policies, onPoliciesChange, roleLabelMap }:
 
               {/* Row 2: 대상 뷰 */}
               <div className="space-y-1">
-                <Label className="text-xs font-bold text-gray-500 uppercase">대상 뷰</Label>
+                <Label className="text-xs font-bold text-gray-500">대상 뷰</Label>
                 <Input
                   value={editTarget.targetViews}
                   onChange={e => updateField('targetViews', e.target.value)}
                   placeholder="예: view_pr_pay_result, view_payroll_monthly"
-                  className="h-9 text-sm"
+                  className="h-9 text-sm font-mono"
                 />
               </div>
 
-              {/* Row 3: 전체 노출 역할 */}
+              {/* Row 3: 전체 노출 역할 — domain grouped */}
               <div className="space-y-1">
-                <Label className="text-xs font-bold text-gray-500 uppercase">전체 노출 역할</Label>
-                <div className="border border-gray-200 rounded-md p-2 max-h-32 overflow-y-auto">
-                  <div className="flex flex-wrap gap-1.5">
-                    {DOMAIN_ROLES.map(role => {
-                      const isSelected = editTarget.exposedRoles.includes(role);
-                      return (
-                        <label
-                          key={role}
-                          className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border cursor-pointer select-none transition-colors ${
-                            isSelected
-                              ? 'bg-green-50 text-green-700 border-green-200'
-                              : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleExposedRole(role)}
-                            className="sr-only"
-                          />
-                          {roleLabelMap[role] ?? role}
-                        </label>
-                      );
-                    })}
-                  </div>
+                <Label className="text-xs font-bold text-gray-500">전체 노출 역할</Label>
+                <div className="border border-gray-200 rounded-md p-2.5 max-h-40 overflow-y-auto">
+                  {GROUPED_ROLES.map(group => (
+                    <div key={group.domain} className="mb-2 last:mb-0">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">{group.label}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {group.roles.map(r => {
+                          const isSelected = editTarget.exposedRoles.includes(r.code as DomainRole);
+                          return (
+                            <label
+                              key={r.code}
+                              className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border cursor-pointer select-none transition-colors ${
+                                isSelected
+                                  ? 'bg-green-50 text-green-700 border-green-200'
+                                  : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleExposedRole(r.code as DomainRole)}
+                                className="sr-only"
+                              />
+                              {r.displayName}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Row 4: 마스킹 적용 역할 설명 + 결과 예시 */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-500 uppercase">마스킹 적용 역할 설명</Label>
-                  <Input
-                    value={editTarget.maskedRoles}
-                    onChange={e => updateField('maskedRoles', e.target.value)}
-                    placeholder="예: 기타 전체"
-                    className="h-9 text-sm"
-                  />
+              {/* Row 4: 마스킹 적용 역할 (auto-derived, read-only) */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-gray-500">
+                  마스킹 적용 역할 <span className="text-[10px] text-gray-400 font-normal">(자동 생성)</span>
+                </Label>
+                <div className="h-9 text-sm border border-gray-100 rounded-md px-2.5 bg-gray-50 flex items-center text-gray-600">
+                  {maskedRolesPreview || '노출 역할을 선택하면 자동 설정됩니다'}
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-gray-500 uppercase">결과 예시</Label>
-                  <Input
-                    value={editTarget.resultExample}
-                    onChange={e => updateField('resultExample', e.target.value)}
-                    placeholder="예: 900101-*******"
-                    className="h-9 text-sm"
-                  />
-                </div>
+              </div>
+
+              {/* Row 5: 결과 예시 (with auto-suggestion) */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-gray-500">
+                  결과 예시
+                  {suggestedExample && !editTarget.resultExample && (
+                    <button
+                      type="button"
+                      onClick={() => updateField('resultExample', suggestedExample)}
+                      className="text-[10px] text-blue-500 hover:text-blue-700 font-normal ml-2"
+                    >
+                      자동 채우기: {suggestedExample}
+                    </button>
+                  )}
+                </Label>
+                <Input
+                  value={editTarget.resultExample}
+                  onChange={e => updateField('resultExample', e.target.value)}
+                  placeholder={suggestedExample || '예: 900101-*******'}
+                  className="h-9 text-sm font-mono"
+                />
               </div>
 
               {/* Actions */}
@@ -465,6 +561,28 @@ export function ColumnMaskingLayer({ policies, onPoliciesChange, roleLabelMap }:
           )}
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={!!deleteConfirmId}
+        title="정책 삭제"
+        description={deleteConfirmDescription}
+        confirmLabel="삭제"
+        destructive
+        onConfirm={() => {
+          if (deleteConfirmId) {
+            onPoliciesChange(policies.filter(p => p.id !== deleteConfirmId));
+            showToast('마스킹 정책이 삭제되었습니다.');
+          }
+          setDeleteConfirmId(null);
+        }}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
+
+      {/* Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-2.5 bg-green-600 text-white text-sm rounded-lg shadow-lg animate-fade-in-up">
+          {toastMsg}
+        </div>
+      )}
     </div>
   );
 }

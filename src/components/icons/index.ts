@@ -8,13 +8,13 @@
  */
 
 // A
-export { Activity, AlertCircle, AlertTriangle, ArrowDownRight, ArrowLeft, ArrowRight, ArrowRightLeft, ArrowUp, ArrowUpRight } from 'lucide-react';
+export { Activity, AlertCircle, AlertTriangle, ArrowDown, ArrowDownRight, ArrowLeft, ArrowRight, ArrowRightLeft, ArrowUp, ArrowUpDown, ArrowUpRight } from 'lucide-react';
 
 // B
 export { Banknote, BarChart2, Bell, Bot, Box, Briefcase, Building2 } from 'lucide-react';
 
 // C
-export { Calendar, CalendarDays, Check, CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Code, Cpu, CreditCard } from 'lucide-react';
+export { Calendar, CalendarDays, Check, CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Code, Copy, Cpu, CreditCard } from 'lucide-react';
 
 // D
 export { Database, Download } from 'lucide-react';
@@ -43,8 +43,11 @@ export { Mail, Map, Maximize2, MessageCircleQuestion, MessageSquare, Mic, Minus,
 // P
 export { Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Paperclip, Pause, PieChart, Pin, PinOff, Play, PlayCircle, Plus, PlusCircle, Power } from 'lucide-react';
 
+// K
+export { Key } from 'lucide-react';
+
 // R
-export { RotateCcw } from 'lucide-react';
+export { RefreshCw, RotateCcw } from 'lucide-react';
 
 // S
 export { Save, Search, Send, Settings, Shield, ShieldCheck, Smartphone, Sparkles, Spline, Square, Star, Store, Share2 } from 'lucide-react';
