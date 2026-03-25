@@ -500,7 +500,7 @@ categories:
       - id: artifact_panel
         name: "Artifact Panel (Split View)"
         description: "대화 옆에 에이전트 생성 결과물을 별도 패널에 표시"
-        status: implemented
+        status: needs_update
         priority: critical
         complexity: complex
         contexts: [chat_view, artifact_panel]
