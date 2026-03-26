@@ -77,6 +77,21 @@
 
 - 총 10/10 criteria PASS
 
+## QA Fix (Cycle 1) — onScrollToMessage 배선
+
+### 수정 내용
+| # | 파일 | 변경 |
+|---|------|------|
+| 1 | `RightSidebar/RightSidebar.tsx` | `RightSidebarProps`에 `onScrollToMessage` 추가, `ArtifactsSection`에 전달 |
+| 2 | `AgentChatView.tsx` | `handleScrollToMessage` 콜백 구현 (`data-message-id` querySelector + scrollIntoView), 두 RightSidebar 인스턴스에 전달 |
+| 3 | `components/ChatHistoryPanel.tsx` | 메시지 wrapper에 `data-message-id` 속성 추가 |
+
+### 수정 후 검증
+- TypeScript: PASS (수정 파일에 신규 에러 없음)
+- Build: PASS
+- Unit Tests: 39/39 passed (ArtifactLibraryContext 전체)
+- AC7 (아티팩트→채팅 스크롤): PASS — onScrollToMessage 배선 완성
+
 ## QA 전달 사항
 - 구현에서 특히 확인이 필요한 부분:
   - ArtifactAutoSaveBridge가 AgentChatView 내 두 Provider 트리에 모두 배치되었는지 확인

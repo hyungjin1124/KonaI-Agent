@@ -474,6 +474,15 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     // TODO: 실제 다운로드 로직 구현
   }, []);
 
+  const handleScrollToMessage = useCallback((messageId: string) => {
+    const container = leftPanelRef.current;
+    if (!container) return;
+    const el = container.querySelector(`[data-message-id="${messageId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
+
   const handleDownloadAllArtifacts = useCallback(() => {
     console.log('Download all artifacts:', artifacts.length);
     // TODO: 실제 다운로드 로직 구현
@@ -1915,6 +1924,7 @@ setArtifacts([]); // Clear artifacts
         selectedArtifactId={artifactPreview.selectedArtifact?.id}
         onArtifactSelect={handleArtifactSelectForPreview}
         onArtifactDownload={handleDownloadArtifact}
+        onScrollToMessage={handleScrollToMessage}
         contextItems={contextItems}
       />
     );
@@ -2002,6 +2012,7 @@ setArtifacts([]); // Clear artifacts
       selectedArtifactId={undefined}
       onArtifactSelect={() => {}}
       onArtifactDownload={() => {}}
+      onScrollToMessage={handleScrollToMessage}
       contextItems={[]}
     />
   );
