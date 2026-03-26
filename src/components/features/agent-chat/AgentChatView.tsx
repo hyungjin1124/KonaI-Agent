@@ -16,6 +16,8 @@ import { generateMockModifiedMarkdown } from './utils/markdownUtils';
 import ChatHistoryPanel, { ChatMessage } from './components/ChatHistoryPanel';
 import { ConversationSidebar, MOCK_AGENT_SESSIONS } from './components/ConversationSidebar';
 import { ArtifactPanelProvider, useArtifactPanel } from './context/ArtifactPanelContext';
+import { ArtifactLibraryProvider } from './context/ArtifactLibraryContext';
+import { ArtifactAutoSaveBridge } from './components/ArtifactLibrary/ArtifactAutoSaveBridge';
 import { useNLChart, NLChartRenderer } from '../nl-chart';
 import { MultiAgentScenarioRenderer } from '../multi-agent';
 import { extractGenerativeUIFromMessage } from '../generative-ui';
@@ -1918,6 +1920,7 @@ setArtifacts([]); // Clear artifacts
     );
 
     return (
+      <ArtifactLibraryProvider>
       <ArtifactPanelProvider
         documentData={documentData}
         csvContent={csvContent}
@@ -1926,6 +1929,7 @@ setArtifacts([]); // Clear artifacts
         onPanelOpenChange={(isOpen) => { if (!isOpen) handleCloseCenterPanel(); }}
       >
         <ArtifactPanelBridge bridgeRef={artifactPanelRef} />
+        <ArtifactAutoSaveBridge artifacts={artifacts} markdownContents={markdownContents} />
         <div ref={containerRef} data-testid="analysis-view" className="w-full h-full animate-fade-in-up overflow-hidden">
           <CoworkLayout
             leftPanel={leftPanelContent}
@@ -1936,6 +1940,7 @@ setArtifacts([]); // Clear artifacts
           />
         </div>
       </ArtifactPanelProvider>
+    </ArtifactLibraryProvider>
     );
   }
 
@@ -2002,6 +2007,7 @@ setArtifacts([]); // Clear artifacts
   );
 
   return (
+    <ArtifactLibraryProvider>
     <ArtifactPanelProvider
       documentData={documentData}
       csvContent={csvContent}
@@ -2010,6 +2016,7 @@ setArtifacts([]); // Clear artifacts
       onPanelOpenChange={(isOpen) => { if (!isOpen) handleCloseCenterPanel(); }}
     >
       <ArtifactPanelBridge bridgeRef={artifactPanelRef} />
+      <ArtifactAutoSaveBridge artifacts={artifacts} markdownContents={markdownContents} />
       <div ref={containerRef} className="w-full h-full overflow-hidden">
         <CoworkLayout
           leftPanel={emptyLeftPanel}
@@ -2020,6 +2027,7 @@ setArtifacts([]); // Clear artifacts
         />
       </div>
     </ArtifactPanelProvider>
+    </ArtifactLibraryProvider>
   );
 };
 

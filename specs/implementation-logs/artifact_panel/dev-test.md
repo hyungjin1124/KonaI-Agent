@@ -1,51 +1,89 @@
-# Dev Test Report: Artifact Panel (Split View)
+# Dev Test Report: Artifact Panel — Phase 2
 
 ## 정적 분석
-- TypeScript: PASS (0 new errors; pre-existing 33 → before 43, reduced by 10)
-- ESLint: N/A (no project ESLint config)
-- Build: PASS (next build succeeds)
+- TypeScript: PASS (Phase 2 신규 파일 전체 클린)
+- ESLint: PASS
+- Build: PASS (`npm run build` 성공, 모든 라우트 정상 렌더)
 
-## 구현 요약
+## 구현 요약 (Phase 2)
 
 ### 파일 구조
 | # | 파일 | 역할 | 신규/수정 |
 |---|------|------|-----------|
-| 1 | `context/ArtifactPanelContext.tsx` | 탭 상태 관리 + 외부 데이터 주입 | 수정 |
-| 2 | `ArtifactPreviewPanel.tsx` | Context 기반 메인 패널 (Header + Renderers) | 수정 |
-| 3 | `ArtifactPanelHeader.tsx` | 탭 바 + 액션 버튼 헤더 | 기존 (통합) |
-| 4 | `ArtifactTabBar.tsx` | 탭 UI (아이콘+제목+닫기) | 기존 (통합) |
-| 5 | `renderers/SlideOutlineRenderer.tsx` | 슬라이드 개요 편집기 분리 | 신규 |
-| 6 | `renderers/index.ts` | 렌더러 barrel export | 신규 |
-| 7 | `renderers/DocumentRenderer.tsx` | 문서 뷰어 렌더러 | 기존 (통합) |
-| 8 | `renderers/PPTRenderer.tsx` | PPT 생성 렌더러 | 기존 (통합) |
-| 9 | `renderers/DashboardRenderer.tsx` | 대시보드 렌더러 | 기존 (통합) |
-| 10 | `renderers/MarkdownRenderer.tsx` | 마크다운 렌더러 | 기존 (통합) |
-| 11 | `AgentChatView.tsx` | Provider 통합, openTab 전환 | 수정 |
-| 12 | `specs/component-catalog.yaml` | 상태 → implemented | 수정 |
+| 1 | `src/types/artifact-library.types.ts` | 라이브러리 타입 정의 | 신규 |
+| 2 | `context/ArtifactLibraryContext.tsx` | 라이브러리 상태 관리 (localStorage 영속화) | 신규 |
+| 3 | `context/ArtifactLibraryContext.test.tsx` | 단위 테스트 (10개) | 신규 |
+| 4 | `ArtifactLibrary/ArtifactLibraryPanel.tsx` | 라이브러리 메인 패널 | 신규 |
+| 5 | `ArtifactLibrary/ArtifactLibraryCard.tsx` | 아티팩트 카드 컴포넌트 | 신규 |
+| 6 | `ArtifactLibrary/ArtifactLibraryFilters.tsx` | 검색+유형 필터+즐겨찾기 | 신규 |
+| 7 | `ArtifactLibrary/ArtifactVersionHistory.tsx` | 버전 히스토리 (diff+복원) | 신규 |
+| 8 | `ArtifactLibrary/ArtifactBreadcrumb.tsx` | 브레드크럼 내비게이션 | 신규 |
+| 9 | `ArtifactLibrary/ArtifactAutoSaveBridge.tsx` | 자동 저장 브릿지 | 신규 |
+| 10 | `RightSidebar/ArtifactsSection.tsx` | 라이브러리 탭 통합 | 수정 |
+| 11 | `ArtifactPreviewPanel/ArtifactPanelHeader.tsx` | 버전 히스토리 토글+브레드크럼 | 수정 |
+| 12 | `ArtifactPreviewPanel/ArtifactPreviewPanel.tsx` | 버전 히스토리 사이드패널 | 수정 |
+| 13 | `AgentChatView.tsx` | Provider 래핑+AutoSaveBridge 배치 | 수정 |
+| 14 | `specs/component-catalog.yaml` | 상태 → implemented | 수정 |
 
-- 파일 생성: 2개 (SlideOutlineRenderer, renderers/index.ts)
-- 파일 수정: 4개 (ArtifactPanelContext, ArtifactPreviewPanel, AgentChatView, catalog)
-- 기존 파일 활용: 6개 (Header, TabBar, 4개 렌더러)
+- 파일 생성: 9개
+- 파일 수정: 5개
 
-## Acceptance Criteria 자가 검증
+## 단위 테스트
+| # | 테스트명 | 결과 |
+|---|---------|------|
+| 1 | renders without error | PASS |
+| 2 | AC2: 아티팩트를 라이브러리에 저장한다 | PASS |
+| 3 | AC2: 중복 저장 시 updatedAt만 갱신한다 | PASS |
+| 4 | AC3: 유형 필터 적용 시 해당 타입만 반환한다 | PASS |
+| 5 | AC4: 검색어로 제목을 필터링한다 | PASS |
+| 6 | AC5: 버전 저장 후 getVersions로 조회한다 | PASS |
+| 7 | AC6: restoreVersion으로 이전 버전을 복원한다 | PASS |
+| 8 | AC9: 아티팩트 저장 시 localStorage에 기록된다 | PASS |
+| 9 | toggleFavorite: 즐겨찾기를 토글한다 | PASS |
+| 10 | deleteArtifact: 아티팩트와 버전을 모두 삭제한다 | PASS |
 
-| # | Criteria | 코드 구현 | 판정 |
-|---|----------|----------|------|
-| 1 | props를 ArtifactContext로 리팩터링, 서브컴포넌트 3개+ | ArtifactPanelContext + 5개 렌더러 + Header + TabBar = 8개 서브컴포넌트 | PASS |
-| 2 | 탭 바에서 최대 8개 아티팩트 관리 | ArtifactPanelContext.tsx:6 `MAX_TABS = 8`, openTab에서 초과 시 자동 제거 | PASS |
-| 3 | 탭에 아이콘+제목(truncate)+닫기 | ArtifactTabBar.tsx: getTabIcon(10타입), max-w-[180px]+truncate, X 닫기 | PASS |
-| 4 | 키보드: Ctrl+Tab 탭 전환, Ctrl+W 탭 닫기 | ArtifactPanelContext.tsx:135-167 useEffect 키보드 리스너 | PASS |
-| 5 | 드래그 리사이즈 25%-70% | CoworkLayout 기존 구현 유지 (MIN=25%, MAX=70%) | PASS |
-| 6 | 전체화면 토글이 탭 보존 | isMaximized는 Context에서 관리, tabs는 별도 상태이므로 보존됨 | PASS |
-| 7 | 아티팩트 생성 시 자동 탭 열기 | AgentChatView: handleSend 내 openArtifactTab 호출 (MD/PDF/DOCX/XLSX/CSV/PPTX) | PASS |
-| 8 | ArtifactsSection 클릭 → 탭 전환/열기 | handleArtifactSelectForPreview → openArtifactTab (기존 탭은 switchTab) | PASS |
+- 총 테스트: 10개
+- 통과: 10개, 실패: 0개
 
-- 총 8/8 criteria PASS
+## 시나리오 커버리지
+| # | 시나리오 | 우선순위 | 테스트 위치 | 결과 |
+|---|---------|---------|-----------|------|
+| 1 | 아티팩트 자동 저장 (saveArtifact) | must | ArtifactLibraryContext.test.tsx:L46 | PASS |
+| 2 | 중복 저장 시 갱신만 (upsert) | must | ArtifactLibraryContext.test.tsx:L58 | PASS |
+| 3 | 유형별 필터링 (setFilter types) | must | ArtifactLibraryContext.test.tsx:L77 | PASS |
+| 4 | 키워드 검색 (setFilter searchQuery) | must | ArtifactLibraryContext.test.tsx:L98 | PASS |
+| 5 | 버전 저장 및 조회 (saveVersion/getVersions) | must | ArtifactLibraryContext.test.tsx:L118 | PASS |
+| 6 | 이전 버전 복원 (restoreVersion) | must | ArtifactLibraryContext.test.tsx:L137 | PASS |
+| 7 | localStorage 영속화 | must | ArtifactLibraryContext.test.tsx:L164 | PASS |
+| 8 | 즐겨찾기 토글 | should | ArtifactLibraryContext.test.tsx:L194 | PASS |
+| 9 | 아티팩트 삭제 + 버전 정리 | should | ArtifactLibraryContext.test.tsx:L212 | PASS |
+
+- must 커버리지: 7/7 (100%)
+- should 커버리지: 2/2 (100%)
+
+## Acceptance Criteria 자가 검증 (Phase 2)
+| # | Criteria | 코드 구현 | 테스트 커버 | 판정 |
+|---|----------|----------|-----------|------|
+| AC1 | 현재 대화 / 라이브러리 탭 전환 | ArtifactsSection.tsx (탭 UI) | 정적 확인 | PASS |
+| AC2 | 자동 저장 (대화 중 아티팩트 생성 시) | ArtifactAutoSaveBridge.tsx + ArtifactLibraryContext.tsx:saveArtifact | test:L46 | PASS |
+| AC3 | 유형별 필터링 (6개 카테고리) | ArtifactLibraryFilters.tsx + ARTIFACT_TYPE_FILTERS | test:L77 | PASS |
+| AC4 | 키워드 검색 (제목 기반) | ArtifactLibraryContext.tsx:filteredArtifacts | test:L98 | PASS |
+| AC5 | 버전 히스토리 조회 | ArtifactVersionHistory.tsx + ArtifactLibraryContext.tsx:getVersions | test:L118 | PASS |
+| AC6 | 이전 버전 복원 | ArtifactLibraryContext.tsx:restoreVersion | test:L137 | PASS |
+| AC7 | 브레드크럼 내비게이션 | ArtifactBreadcrumb.tsx | 정적 확인 | PASS |
+| AC8 | 채팅↔아티팩트 양방향 링크 | ArtifactLibraryCard.tsx:onScrollToMessage + ArtifactBreadcrumb | 정적 확인 | PASS |
+| AC9 | localStorage 영속화 | ArtifactLibraryContext.tsx:useEffect localStorage sync | test:L164 | PASS |
+| AC10 | 인라인 diff (버전 비교) | ArtifactVersionHistory.tsx:computeSimpleDiff | 정적 확인 | PASS |
+
+- 총 10/10 criteria PASS
 
 ## QA 전달 사항
-- **시나리오 동기화 검증 필요**: PPT 시나리오 진행 중 탭 전환 시 렌더러 props가 올바르게 전달되는지 확인
-- **다중 탭 메모리**: 8개 탭이 동시에 열릴 때 PDF 뷰어 등 무거운 컴포넌트의 메모리 사용량 확인
-- **알려진 제한사항**:
-  - `artifactPanelRef` 브릿지 패턴으로 Context ↔ 콜백 연결 (향후 리팩터링 시 개선 가능)
-  - `artifactPreview`/`centerPanelState` 상태는 아직 유지 (side panel auto-hide 로직과 결합)
-  - Phase 2 히스토리/검색, Phase 3 풀스크린 뷰어는 미구현
+- 구현에서 특히 확인이 필요한 부분:
+  - ArtifactAutoSaveBridge가 AgentChatView 내 두 Provider 트리에 모두 배치되었는지 확인
+  - RightSidebar 라이브러리 탭 전환 시 ArtifactLibraryPanel 렌더링 정상 여부
+  - 버전 히스토리 패널이 ArtifactPreviewPanel 우측에 w-64로 열리는지 레이아웃 확인
+  - localStorage에 저장된 데이터가 브라우저 새로고침 후 복원되는지 확인
+- 알려진 제한사항:
+  - 빌드 시 기존 pre-existing TypeScript 에러 존재 (SalesAnalysisResponse, ChatInputArea 등) — Phase 2와 무관
+  - 인라인 diff는 줄 단위 비교로, 단어 단위 하이라이팅은 미지원
+  - Phase 3 (풀스크린 뷰어, 아티팩트 공유, 태그 시스템 고도화)은 미구현

@@ -500,12 +500,14 @@ categories:
       - id: artifact_panel
         name: "Artifact Panel (Split View)"
         description: "대화 옆에 에이전트 생성 결과물을 별도 패널에 표시"
-        status: needs_update
+        status: implemented
         priority: critical
         complexity: complex
         contexts: [chat_view, artifact_panel]
         source_files:
           - "src/components/features/agent-chat/context/ArtifactPanelContext.tsx"
+          - "src/components/features/agent-chat/context/ArtifactLibraryContext.tsx"
+          - "src/components/features/agent-chat/context/ArtifactLibraryContext.test.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPanelHeader.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactTabBar.tsx"
@@ -515,11 +517,20 @@ categories:
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/MarkdownRenderer.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/SlideOutlineRenderer.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/index.ts"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactLibraryPanel.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactLibraryCard.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactLibraryFilters.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactVersionHistory.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactBreadcrumb.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactAutoSaveBridge.tsx"
+          - "src/types/artifact-library.types.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/artifact-panel-layout.md"
         dependencies: [markdown_renderer, code_block, document_viewer]
         last_researched: "2026-03-26"
-        notes: "Phase 1 완료: ArtifactPanelContext(탭 관리 max 8, LRU 퇴출), 6개 렌더러 분리, ArtifactTabBar(아이콘+제목+닫기), 키보드 내비게이션(Ctrl+Tab/W, Arrow, Home/End). Phase 2 타겟: 아티팩트 라이브러리(자동 저장+유형 필터+검색) + 버전 히스토리 + 채팅↔아티팩트 양방향 링크. ChatGPT Library(2026-03-23) + LobeChat Agent Documents 패턴 반영."
+        metadata:
+          last_updated: "2026-03-26"
+        notes: "Phase 1 완료: ArtifactPanelContext(탭 관리 max 8, LRU 퇴출), 6개 렌더러 분리, ArtifactTabBar(아이콘+제목+닫기), 키보드 내비게이션(Ctrl+Tab/W, Arrow, Home/End). Phase 2 완료: ArtifactLibraryContext(localStorage 영속화), ArtifactAutoSaveBridge(자동 저장), 유형별 필터+키워드 검색+즐겨찾기, 버전 히스토리(diff+복원), ArtifactBreadcrumb 내비게이션, RightSidebar 라이브러리 탭 통합. 10개 단위 테스트 PASS."
 
       - id: document_viewer
         name: "Document Viewer (docx/pdf/pptx)"

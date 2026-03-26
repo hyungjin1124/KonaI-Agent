@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Download } from 'lucide-react';
 import { useArtifactPanel } from '../../context/ArtifactPanelContext';
+import { useArtifactLibraryOptional } from '../../context/ArtifactLibraryContext';
 import { ArtifactPanelHeader } from './ArtifactPanelHeader';
 import { DocumentRenderer } from './renderers/DocumentRenderer';
 import { PPTRenderer, PPTRendererProps } from './renderers/PPTRenderer';
@@ -8,6 +9,7 @@ import { DashboardRenderer, DashboardRendererProps } from './renderers/Dashboard
 import { MarkdownRenderer } from './renderers/MarkdownRenderer';
 import { SlideOutlineRenderer, SlideOutlineRendererProps } from './renderers/SlideOutlineRenderer';
 import { GenerativeUIRendererAdapter } from './renderers/GenerativeUIRendererAdapter';
+import { ArtifactVersionHistory } from '../ArtifactLibrary/ArtifactVersionHistory';
 import type { GenerativeUISpec } from '../../../generative-ui';
 
 interface ArtifactPreviewPanelProps {
@@ -52,12 +54,32 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
     markdownEditingState,
   } = useArtifactPanel();
 
+  const library = useArtifactLibraryOptional();
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+
   if (!activeTab) return null;
 
   const handleClosePanel = () => {
     closePanel();
     onClose();
   };
+
+  // 버전 히스토리 관련
+  const activeArtifactId = activeTab.artifact?.id;
+  const versions = activeArtifactId ? library?.getVersions(activeArtifactId) || [] : [];
+  const hasVersions = versions.length > 0;
+  const latestVersionNumber = hasVersions ? versions[versions.length - 1].versionNumber : undefined;
+  const versionCount = hasVersions ? versions.length : undefined;
+
+  const handleToggleVersionHistory = useCallback(() => {
+    setIsVersionHistoryOpen(prev => !prev);
+  }, []);
+
+  const handleRestoreVersion = useCallback((versionId: string) => {
+    if (activeArtifactId && library) {
+      library.restoreVersion(activeArtifactId, versionId);
+    }
+  }, [activeArtifactId, library]);
 
   const renderContent = () => {
     const { previewType, artifact } = activeTab;
@@ -196,16 +218,35 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
         onToggleMaximize={toggleMaximize}
         onClosePanel={handleClosePanel}
         onDownload={onDownload}
+        onToggleVersionHistory={hasVersions ? handleToggleVersionHistory : undefined}
+        isVersionHistoryOpen={isVersionHistoryOpen}
+        versionCount={versionCount}
+        currentVersion={latestVersionNumber}
       />
 
-      {/* Content */}
-      <div
-        role="tabpanel"
-        id={`tabpanel-${activeTab.id}`}
-        aria-labelledby={`tab-${activeTab.id}`}
-        className="flex-1 overflow-hidden"
-      >
-        {renderContent()}
+      {/* Content + Version History Side Panel */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Main Content */}
+        <div
+          role="tabpanel"
+          id={`tabpanel-${activeTab.id}`}
+          aria-labelledby={`tab-${activeTab.id}`}
+          className="flex-1 overflow-hidden"
+        >
+          {renderContent()}
+        </div>
+
+        {/* Version History Side Panel */}
+        {isVersionHistoryOpen && hasVersions && (
+          <div className="w-64 border-l border-gray-200 flex-shrink-0 overflow-hidden">
+            <ArtifactVersionHistory
+              versions={versions}
+              currentContent={activeArtifactId ? markdownContents[activeArtifactId] : undefined}
+              onRestore={handleRestoreVersion}
+              onClose={() => setIsVersionHistoryOpen(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

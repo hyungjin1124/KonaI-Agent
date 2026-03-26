@@ -1,34 +1,32 @@
-# Select: Artifact Panel (Split View)
+# Select: Artifact Panel (Split View) — Phase 2
 
 - **ID**: artifact_panel
-- **Status**: not_implemented
+- **Status**: needs_update (Phase 1 implemented → Phase 2 update)
 - **Priority**: critical
 - **Complexity**: complex
 - **Contexts**: [chat_view, artifact_panel]
 - **Dependencies**:
-  - `markdown_renderer` — **not_implemented** ⚠️
-  - `code_block` — **not_implemented** ⚠️
-  - `document_viewer` — **implemented** ✅
-- **Obsidian Sources**: `Insights/agent-ui/patterns/artifact-panel-layout.md`
-- **Last Researched**: 2026-02-18
-- **Existing Source Files**: (none in catalog, but existing codebase has)
-  - `src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel.tsx`
-  - `src/components/features/agent-chat/AgentChatView.tsx`
-  - `src/components/features/agent-chat/components/RightSidebar/ArtifactsSection.tsx`
-  - `src/components/features/agent-chat/types.ts`
-  - `src/components/features/agent-chat/layouts/CoworkLayout.tsx`
+  - markdown_renderer: **implemented** ✅
+  - code_block: **not_implemented** ⚠️ (Phase 2에 직접 영향 없음)
+  - document_viewer: **needs_update** (Phase 1-3 완료, 기능 사용 가능) ✅
+- **Obsidian Sources**: Insights/agent-ui/patterns/artifact-panel-layout.md
+- **Last Researched**: 2026-03-26
+- **Existing Source Files**:
+  - src/components/features/agent-chat/context/ArtifactPanelContext.tsx
+  - src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel.tsx
+  - src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPanelHeader.tsx
+  - src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactTabBar.tsx
+  - src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/*.tsx
+  - src/components/features/agent-chat/components/RightSidebar/ArtifactsSection.tsx
+  - src/components/features/agent-chat/types.ts
 
-## 의존성 분석
+## Phase 2 타겟 (Review Decision 2026-03-26 기반)
 
-- `document_viewer`: 구현 완료 — PDF, DOCX, XLSX, CSV, PPTX 지원
-- `markdown_renderer`: 미구현 — 현재 `MarkdownPreviewPanel`이 기본 마크다운 렌더링 제공. Phase 1에서는 기존 코드 활용
-- `code_block`: 미구현 — Phase 1 범위 밖. 마크다운 내 코드블록은 기본 `<pre>` 처리
+아티팩트 라이브러리(자동 저장+유형 필터+검색) + 버전 히스토리 + 채팅↔아티팩트 양방향 링크.
+ChatGPT Library(2026-03-23) + LobeChat Agent Documents 패턴 반영.
 
-## 구현 범위 판단
+## 선정 사유
 
-의존성 미충족(`markdown_renderer`, `code_block`)이나 **Phase 1 범위인 탭 관리 + 구조 리팩터링**은 의존성 없이 진행 가능:
-- 탭 관리 (열기/닫기/전환)
-- ArtifactContext 도입으로 props 분리
-- 기존 DocumentViewer, PPT, Dashboard 등 렌더러 활용
-- 키보드 내비게이션
-- 전체화면 토글 개선
+- last_researched 2026-02-18 → 2026-03-26 갱신 완료 (36일 STALE 해소)
+- ChatGPT Library + LobeChat Agent Documents 패턴 동시 등장으로 패턴 변화 감지
+- Review Decision 2026-03-26에서 APPROVE-1 (Batch 1)로 승인
