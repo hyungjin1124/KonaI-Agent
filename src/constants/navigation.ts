@@ -3,7 +3,7 @@ import { ViewType } from '../types';
 export interface NavItem {
   id: string;
   label: string;
-  iconName: 'LayoutDashboard' | 'Database' | 'UserCog' | 'History' | 'Settings' | 'Cpu' | 'MessageSquare' | 'Building2' | 'Zap';
+  iconName: 'LayoutDashboard' | 'Database' | 'UserCog' | 'History' | 'Settings' | 'Cpu' | 'MessageSquare' | 'Zap';
   viewType: ViewType;
   hasDropdown?: boolean;
   dropdownItems?: DropdownItem[];
@@ -46,12 +46,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: '관리자',
     iconName: 'UserCog',
     viewType: 'admin',
-  },
-  {
-    id: 'platform-admin',
-    label: '플랫폼 관리',
-    iconName: 'Building2',
-    viewType: 'platform-admin',
   },
   {
     id: 'history',

@@ -4,7 +4,7 @@ import React, { lazy, Suspense } from 'react';
 import { ErrorBoundary } from '../../components/ui/error-boundary';
 import { useAdminGuard } from '../../hooks/useAdminGuard';
 
-const AdminView = lazy(() => import('../../components/AdminView'));
+const AdminView = lazy(() => import('../../components/features/admin/AdminView'));
 
 export default function AdminPage() {
   const { isAllowed, isChecking } = useAdminGuard();

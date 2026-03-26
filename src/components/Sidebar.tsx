@@ -15,7 +15,6 @@ import {
   Sparkles,
   Clock,
   Store,
-  Building2,
 } from './icons';
 import { ViewType } from '../types';
 import { useNotification, Anomaly } from '../context/NotificationContext';
@@ -47,7 +46,6 @@ const VIEW_TO_PATH: Record<string, string> = {
   'prompt-management': '/settings/prompt-management',
   'scheduled-tasks': '/settings/scheduled-tasks',
   marketplace: '/settings/marketplace',
-  'platform-admin': '/platform-admin',
 };
 
 // pathname → ViewType mapping for active state
@@ -56,7 +54,6 @@ function pathnameToViewType(pathname: string): ViewType {
   if (pathname === '/chat') return 'general-chat';
   if (pathname === '/data') return 'data';
   if (pathname === '/admin') return 'admin';
-  if (pathname === '/platform-admin') return 'platform-admin';
   if (pathname === '/history') return 'history';
   if (pathname === '/settings/agent-config') return 'agent-config';
   if (pathname === '/settings/prompt-management') return 'prompt-management';
@@ -97,7 +94,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
     { id: 'skills', icon: <Cpu size={20} />, label: '스킬' },
     { id: 'data', icon: <Database size={20} />, label: '데이터' },
     { id: 'admin', icon: <UserCog size={20} />, label: '관리자' },
-    { id: 'platform-admin', icon: <Building2 size={20} />, label: 'Platform Admin' },
     { id: 'settings', icon: <Settings size={20} />, label: 'Settings' },
   ];
 

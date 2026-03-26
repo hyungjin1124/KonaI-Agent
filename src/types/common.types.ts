@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { MaskingType } from './admin.types';
 
 // View Types
-export type ViewType = 'chat' | 'dashboard' | 'data' | 'skills' | 'admin' | 'history' | 'general-chat' | 'agent-config' | 'prompt-management' | 'scheduled-tasks' | 'marketplace' | 'platform-admin';
+export type ViewType = 'chat' | 'dashboard' | 'data' | 'skills' | 'admin' | 'history' | 'general-chat' | 'agent-config' | 'prompt-management' | 'scheduled-tasks' | 'marketplace';
 
 // Sidebar Types
 export interface SidebarItem {
