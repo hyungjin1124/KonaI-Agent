@@ -500,26 +500,35 @@ categories:
       - id: artifact_panel
         name: "Artifact Panel (Split View)"
         description: "대화 옆에 에이전트 생성 결과물을 별도 패널에 표시"
-        status: needs_update
+        status: implemented
         priority: critical
         complexity: complex
         contexts: [chat_view, artifact_panel]
+        qa_verdict: PASS
         source_files:
           - "src/components/features/agent-chat/context/ArtifactPanelContext.tsx"
+          - "src/components/features/agent-chat/context/ArtifactLibraryContext.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPanelHeader.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactTabBar.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactLibraryPanel.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactLibraryCard.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactLibraryFilters.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactVersionHistory.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactBreadcrumb.tsx"
+          - "src/components/features/agent-chat/components/ArtifactLibrary/ArtifactAutoSaveBridge.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/DocumentRenderer.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/PPTRenderer.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/DashboardRenderer.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/MarkdownRenderer.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/SlideOutlineRenderer.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/index.ts"
+          - "src/types/artifact-library.types.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/artifact-panel-layout.md"
         dependencies: [markdown_renderer, code_block, document_viewer]
         last_researched: "2026-03-27"
-        notes: "Phase 1 완료: ArtifactPanelContext(탭 관리 max 8, LRU 퇴출), 6개 렌더러 분리, ArtifactTabBar(아이콘+제목+닫기), 키보드 내비게이션(Ctrl+Tab/W, Arrow, Home/End). Phase 2 타겟: 아티팩트 라이브러리(자동 저장+유형 필터+검색) + 버전 히스토리 + 채팅↔아티팩트 양방향 링크. ChatGPT Library(2026-03-23) + LobeChat Agent Documents 패턴 반영."
+        notes: "Phase 1+2 완료. Phase 1: ArtifactPanelContext(탭 관리 max 8, LRU 퇴출), 6개 렌더러, 키보드 내비게이션. Phase 2: ArtifactLibraryContext(자동 저장+유형 필터 6종+검색+정렬), 버전 히스토리(diff+복원), 채팅↔아티팩트 양방향 링크, Breadcrumb, localStorage 영속화. QA PASS (39/39 테스트). Phase 3 대기: 풀스크린 뷰어, 프로젝트별 그룹핑, 패널 분리, 내보내기, 크로스 대화 재사용."
 
       - id: document_viewer
         name: "Document Viewer (docx/pdf/pptx)"
