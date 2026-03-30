@@ -3,22 +3,122 @@
 import React from 'react';
 import { DollarSign, Coins, TrendingUp } from 'lucide-react';
 import {
-  ComposedChart,
+  BarChart,
   Bar,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
 import { KPICard } from '@/components/shared/atoms/KPICard';
 import {
   COST_USAGE_KPI,
-  DAILY_TOKEN_COST_DATA,
-  MODEL_COST_RATIOS,
+  DAILY_COST_DATA,
+  MODEL_TOTALS,
 } from '../data/monitoringMockData';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatKRW(value: number): string {
+  if (value >= 1_000_000) return `₩${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `₩${Math.round(value / 1_000)}K`;
+  return `₩${value}`;
+}
+
+const MODEL_COLORS = {
+  claude: '#FF3C42',
+  gpt4o: '#3B82F6',
+  other: '#94A3B8',
+} as const;
+
+const MODEL_LABELS: Record<string, string> = {
+  claude: 'Claude Opus 4',
+  gpt4o: 'GPT-4o',
+  other: '기타',
+};
+
+// ── Custom Tooltip ────────────────────────────────────────────────────────────
+
+interface TooltipPayloadItem {
+  dataKey: string;
+  value: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}
+
+function CostTooltip({ active, payload, label }: CustomTooltipProps) {
+  if (!active || !payload?.length) return null;
+
+  // 해당 날짜의 원본 데이터에서 토큰 수 가져오기
+  const dayData = DAILY_COST_DATA.find((d) => d.date === label);
+
+  const tokenKeys: Record<string, keyof typeof dayData & string> = {
+    claude: 'claudeTokens',
+    gpt4o: 'gpt4oTokens',
+    other: 'otherTokens',
+  };
+
+  const total = payload.reduce((sum, p) => sum + p.value, 0);
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 shadow-lg p-3 text-xs">
+      <p className="font-semibold text-gray-900 mb-2">{label}</p>
+      {payload.map((p) => {
+        const tokens = dayData ? (dayData[tokenKeys[p.dataKey] as keyof typeof dayData] as number) : 0;
+        return (
+          <div key={p.dataKey} className="flex items-center gap-2 py-0.5">
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: p.color }}
+            />
+            <span className="text-gray-600 w-[80px]">{MODEL_LABELS[p.dataKey]}</span>
+            <span className="font-medium text-gray-900 w-[56px] text-right tabular-nums">
+              {formatKRW(p.value)}
+            </span>
+            <span className="text-gray-400 w-[48px] text-right tabular-nums">
+              {tokens}K tok
+            </span>
+          </div>
+        );
+      })}
+      <div className="border-t border-gray-100 mt-1.5 pt-1.5 flex items-center justify-between">
+        <span className="text-gray-500">합계</span>
+        <span className="font-semibold text-gray-900 tabular-nums">{formatKRW(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Custom Legend ──────────────────────────────────────────────────────────────
+
+function CostLegend() {
+  const items = [
+    { key: 'claude', label: 'Claude Opus 4', color: MODEL_COLORS.claude, total: MODEL_TOTALS.claude },
+    { key: 'gpt4o', label: 'GPT-4o', color: MODEL_COLORS.gpt4o, total: MODEL_TOTALS.gpt4o },
+    { key: 'other', label: '기타', color: MODEL_COLORS.other, total: MODEL_TOTALS.other },
+  ];
+
+  return (
+    <div className="flex items-center gap-4 justify-center pt-2">
+      {items.map((item) => (
+        <div key={item.key} className="flex items-center gap-1.5 text-xs">
+          <span
+            className="w-2.5 h-2.5 rounded-sm shrink-0"
+            style={{ backgroundColor: item.color }}
+          />
+          <span className="text-gray-600">{item.label}</span>
+          <span className="text-gray-400 tabular-nums">({formatKRW(item.total)})</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -48,14 +148,14 @@ export function CostUsageSection() {
         />
       </div>
 
-      {/* Dual Y-axis chart */}
+      {/* 모델별 일별 비용 스택 바 (단일 Y축) */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">일별 토큰 사용량 & 누적 비용</h4>
+          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">모델별 일별 비용</h4>
         </div>
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={DAILY_TOKEN_COST_DATA} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+            <BarChart data={DAILY_COST_DATA} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
               <XAxis
                 dataKey="date"
@@ -64,78 +164,20 @@ export function CostUsageSection() {
                 tickLine={false}
                 interval={4}
               />
-              {/* Left Y: tokens (K) */}
               <YAxis
-                yAxisId="tokens"
-                orientation="left"
                 tick={{ fontSize: 10, fill: '#9CA3AF' }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => `${v}K`}
+                tickFormatter={(v: number) => formatKRW(v)}
               />
-              {/* Right Y: cumulative cost (K₩) */}
-              <YAxis
-                yAxisId="cost"
-                orientation="right"
-                tick={{ fontSize: 10, fill: '#9CA3AF' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v: number) => `₩${v}K`}
-              />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 11,
-                  borderRadius: 8,
-                  border: '1px solid #E5E7EB',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                }}
-                labelStyle={{ fontWeight: 600, marginBottom: 4 }}
-              />
-              <Legend
-                iconSize={8}
-                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-              />
-              {/* Stacked bars */}
-              <Bar yAxisId="tokens" dataKey="claude" name="Claude" stackId="tokens" fill="#FF3C42" radius={[0, 0, 0, 0]} barSize={14} />
-              <Bar yAxisId="tokens" dataKey="gpt4o" name="GPT-4o" stackId="tokens" fill="#3B82F6" radius={[0, 0, 0, 0]} barSize={14} />
-              <Bar yAxisId="tokens" dataKey="other" name="기타" stackId="tokens" fill="#94A3B8" radius={[2, 2, 0, 0]} barSize={14} />
-              {/* Cumulative cost line */}
-              <Line
-                yAxisId="cost"
-                type="monotone"
-                dataKey="cumulativeCost"
-                name="누적 비용"
-                stroke="#F59E0B"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, strokeWidth: 2 }}
-              />
-            </ComposedChart>
+              <Tooltip content={<CostTooltip />} />
+              <Bar dataKey="claude" name="Claude Opus 4" stackId="cost" fill={MODEL_COLORS.claude} radius={[0, 0, 0, 0]} barSize={14} />
+              <Bar dataKey="gpt4o" name="GPT-4o" stackId="cost" fill={MODEL_COLORS.gpt4o} radius={[0, 0, 0, 0]} barSize={14} />
+              <Bar dataKey="other" name="기타" stackId="cost" fill={MODEL_COLORS.other} radius={[2, 2, 0, 0]} barSize={14} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
-
-      {/* Model cost ratio bar */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">모델별 비용 비율</h4>
-        <div className="space-y-2.5">
-          {MODEL_COST_RATIOS.map((ratio) => (
-            <div key={ratio.model} className="flex items-center gap-3">
-              <span className="text-xs text-gray-600 w-[110px] truncate shrink-0">{ratio.model}</span>
-              <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500 ease-out"
-                  style={{
-                    width: `${ratio.percentage}%`,
-                    backgroundColor: ratio.color,
-                  }}
-                />
-              </div>
-              <span className="text-xs font-bold text-gray-700 w-[36px] text-right tabular-nums">{ratio.percentage}%</span>
-              <span className="text-xs text-gray-500 w-[60px] text-right tabular-nums">{ratio.amount}</span>
-            </div>
-          ))}
-        </div>
+        <CostLegend />
       </div>
     </section>
   );

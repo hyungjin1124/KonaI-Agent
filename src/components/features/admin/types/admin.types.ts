@@ -48,10 +48,19 @@ export interface AgentError {
   id: string;
   time: string;
   userName: string;
+  userTeam: string;
   errorType: AgentErrorType;
   failedStep: string;
   summary: string;
+  errorMessage: string;
+  model: string;
+  skill: string | null;
+  retryCount: string;
   conversationId: string;
+  // 판단 가이드
+  similarErrorCount: number;
+  affectedUsers: string;
+  estimatedCause: string;
 }
 
 // ── 비용/사용량 ───────────────────────────────────────────────────────────
@@ -62,19 +71,15 @@ export interface CostUsageKPI {
   avgDailyCost: { value: string };
 }
 
-export interface DailyTokenCostData {
+export interface DailyCostData {
   date: string;
   claude: number;
   gpt4o: number;
   other: number;
-  cumulativeCost: number;
-}
-
-export interface ModelCostRatio {
-  model: string;
-  percentage: number;
-  amount: string;
-  color: string;
+  // 툴팁용 토큰 수
+  claudeTokens: number;
+  gpt4oTokens: number;
+  otherTokens: number;
 }
 
 // ── 대화 이력 ─────────────────────────────────────────────────────────────
