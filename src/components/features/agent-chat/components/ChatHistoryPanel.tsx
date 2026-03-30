@@ -70,7 +70,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = React.memo(({
               message.content;
 
             return (
-              <div key={message.id}>
+              <div key={message.id} data-message-id={message.id}>
                 {message.type === 'user' ? (
                   // User Query Bubble
                   <div className="flex justify-end mb-10 mt-6">

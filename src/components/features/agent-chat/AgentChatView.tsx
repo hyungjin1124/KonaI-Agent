@@ -16,6 +16,8 @@ import { generateMockModifiedMarkdown } from './utils/markdownUtils';
 import ChatHistoryPanel, { ChatMessage } from './components/ChatHistoryPanel';
 import { ConversationSidebar, MOCK_AGENT_SESSIONS } from './components/ConversationSidebar';
 import { ArtifactPanelProvider, useArtifactPanel } from './context/ArtifactPanelContext';
+import { ArtifactLibraryProvider } from './context/ArtifactLibraryContext';
+import { ArtifactAutoSaveBridge } from './components/ArtifactLibrary/ArtifactAutoSaveBridge';
 import { useNLChart, NLChartRenderer } from '../nl-chart';
 import { MultiAgentScenarioRenderer } from '../multi-agent';
 import { extractGenerativeUIFromMessage } from '../generative-ui';
@@ -470,6 +472,15 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
   const handleDownloadArtifact = useCallback((artifact: Artifact) => {
     console.log('Download artifact:', artifact.title);
     // TODO: 실제 다운로드 로직 구현
+  }, []);
+
+  const handleScrollToMessage = useCallback((messageId: string) => {
+    const container = leftPanelRef.current;
+    if (!container) return;
+    const el = container.querySelector(`[data-message-id="${messageId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }, []);
 
   const handleDownloadAllArtifacts = useCallback(() => {
@@ -1913,11 +1924,13 @@ setArtifacts([]); // Clear artifacts
         selectedArtifactId={artifactPreview.selectedArtifact?.id}
         onArtifactSelect={handleArtifactSelectForPreview}
         onArtifactDownload={handleDownloadArtifact}
+        onScrollToMessage={handleScrollToMessage}
         contextItems={contextItems}
       />
     );
 
     return (
+      <ArtifactLibraryProvider>
       <ArtifactPanelProvider
         documentData={documentData}
         csvContent={csvContent}
@@ -1926,6 +1939,7 @@ setArtifacts([]); // Clear artifacts
         onPanelOpenChange={(isOpen) => { if (!isOpen) handleCloseCenterPanel(); }}
       >
         <ArtifactPanelBridge bridgeRef={artifactPanelRef} />
+        <ArtifactAutoSaveBridge artifacts={artifacts} markdownContents={markdownContents} />
         <div ref={containerRef} data-testid="analysis-view" className="w-full h-full animate-fade-in-up overflow-hidden">
           <CoworkLayout
             leftPanel={leftPanelContent}
@@ -1936,6 +1950,7 @@ setArtifacts([]); // Clear artifacts
           />
         </div>
       </ArtifactPanelProvider>
+    </ArtifactLibraryProvider>
     );
   }
 
@@ -1997,11 +2012,13 @@ setArtifacts([]); // Clear artifacts
       selectedArtifactId={undefined}
       onArtifactSelect={() => {}}
       onArtifactDownload={() => {}}
+      onScrollToMessage={handleScrollToMessage}
       contextItems={[]}
     />
   );
 
   return (
+    <ArtifactLibraryProvider>
     <ArtifactPanelProvider
       documentData={documentData}
       csvContent={csvContent}
@@ -2010,6 +2027,7 @@ setArtifacts([]); // Clear artifacts
       onPanelOpenChange={(isOpen) => { if (!isOpen) handleCloseCenterPanel(); }}
     >
       <ArtifactPanelBridge bridgeRef={artifactPanelRef} />
+      <ArtifactAutoSaveBridge artifacts={artifacts} markdownContents={markdownContents} />
       <div ref={containerRef} className="w-full h-full overflow-hidden">
         <CoworkLayout
           leftPanel={emptyLeftPanel}
@@ -2020,6 +2038,7 @@ setArtifacts([]); // Clear artifacts
         />
       </div>
     </ArtifactPanelProvider>
+    </ArtifactLibraryProvider>
   );
 };
 

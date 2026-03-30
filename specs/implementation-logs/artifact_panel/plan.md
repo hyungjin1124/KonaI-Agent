@@ -1,92 +1,105 @@
-# Plan: Artifact Panel (Split View) — Updated
+# Plan: Artifact Panel Phase 2 — 아티팩트 라이브러리 + 버전 히스토리
 
 ## 개요
 
-Phase 1 구현: 기존 `ArtifactPreviewPanel`(50+ props)을 `ArtifactPanelContext` 기반 탭 관리 시스템으로 리팩터링. 이미 작성된 Context/Header/TabBar/Renderers 파일을 AgentChatView에 통합하고, 렌더러 Registry 패턴을 완성한다.
-
-## 핵심 변경 사항
-
-### 이미 존재하는 파일 (수정만 필요)
-- `context/ArtifactPanelContext.tsx` — 탭별 데이터(documentData, csvContent, markdownContents, ppt/dashboard/outline props) 관리 추가
-- `ArtifactPanelHeader.tsx` — 완성됨, 통합만 필요
-- `ArtifactTabBar.tsx` — 완성됨, 통합만 필요
-- `renderers/DocumentRenderer.tsx` — 완성됨
-- `renderers/PPTRenderer.tsx` — 완성됨
-- `renderers/DashboardRenderer.tsx` — 완성됨
-- `renderers/MarkdownRenderer.tsx` — 완성됨
-
-### 새로 생성할 파일
-- `renderers/SlideOutlineRenderer.tsx` — 슬라이드 개요 편집기 렌더러 분리
-- `renderers/index.ts` — 렌더러 Registry
-
-### 주요 수정 파일
-- `ArtifactPreviewPanel.tsx` — Context 기반으로 리팩터링, Header 교체, 렌더러 Registry 사용
-- `AgentChatView.tsx` — ArtifactPanelProvider 감싸기, openTab/closeTab 전환, props 대폭 축소
-- `ArtifactsSection.tsx` — openTab 호출로 전환
+Phase 1 완료(탭 관리, Context 기반 상태, 6개 렌더러, 키보드 내비게이션) 위에 Phase 2를 구현한다:
+- ArtifactLibraryContext (자동 저장 + 유형 필터 + 검색 + 정렬)
+- 버전 히스토리 (생성/수정 추적, 복원)
+- 채팅↔아티팩트 양방향 링크
+- ArtifactsSection "현재 대화" / "라이브러리" 탭 전환
+- ArtifactPanelHeader 버전 히스토리 버튼
 
 ## 파일 구조
 
 | 파일 경로 | 역할 | 신규/수정 |
 |-----------|------|-----------|
-| `context/ArtifactPanelContext.tsx` | 탭 상태 + 타입별 데이터 관리 | 수정 |
-| `renderers/SlideOutlineRenderer.tsx` | 슬라이드 개요 렌더러 | 신규 |
-| `renderers/index.ts` | 렌더러 Registry (previewType → component) | 신규 |
-| `ArtifactPreviewPanel.tsx` | Context 기반 리팩터링 | 수정 |
-| `AgentChatView.tsx` | Provider 통합, props 축소 | 수정 |
-| `ArtifactsSection.tsx` | openTab 연동 | 수정 |
+| `context/ArtifactLibraryContext.tsx` | 라이브러리 상태 관리 (저장/삭제/필터/버전/즐겨찾기) | 신규 |
+| `types.ts` | LibraryArtifact, ArtifactVersion, ArtifactFilter 타입 추가 | 수정 |
+| `components/RightSidebar/ArtifactsSection.tsx` | "현재 대화" / "라이브러리" 탭 + 필터/검색 UI | 수정 |
+| `components/ArtifactPreviewPanel/ArtifactPanelHeader.tsx` | 버전 히스토리 버튼 추가 | 수정 |
+| `components/ArtifactPreviewPanel/VersionHistoryPanel.tsx` | 버전 목록 + 복원 UI | 신규 |
+| `components/ArtifactPreviewPanel/ArtifactPreviewPanel.tsx` | 버전 히스토리 패널 통합 | 수정 |
+| `AgentChatView.tsx` | ArtifactLibraryProvider 감싸기, 자동 저장 연동 | 수정 |
 
-## 상태 설계
-
-### ArtifactPanelContext 확장 (탭별 데이터)
+## Props Interface
 
 ```typescript
-interface ArtifactPanelContextValue {
-  // 기존 (변경 없음)
-  tabs: ArtifactTab[];
-  activeTabId: string | null;
-  openTab: (tab: ArtifactTab) => void;
-  closeTab: (tabId: string) => void;
-  switchTab: (tabId: string) => void;
-  isMaximized: boolean;
-  toggleMaximize: () => void;
-  isPanelOpen: boolean;
-  closePanel: () => void;
+// 라이브러리 아티팩트 (영속 저장용)
+interface LibraryArtifact extends Artifact {
+  conversationId: string;
+  savedAt: Date;
+  updatedAt: Date;
+  versionCount: number;
+  isFavorited: boolean;
+  tags: string[];
+}
 
-  // 추가: 탭별 데이터 (AgentChatView에서 주입)
-  documentData?: ArrayBuffer;
-  csvContent?: string;
-  markdownContents: Record<string, string>;
-  markdownEditingState: 'idle' | 'editing' | 'shimmer';
+// 아티팩트 버전
+interface ArtifactVersion {
+  id: string;
+  artifactId: string;
+  versionNumber: number;
+  content: string;
+  label?: string;
+  createdAt: Date;
+}
+
+// 필터 옵션
+interface ArtifactFilter {
+  types?: ArtifactType[];
+  searchQuery?: string;
+  favoritesOnly?: boolean;
+  sortBy?: 'date' | 'name' | 'type';
+  sortDirection?: 'asc' | 'desc';
 }
 ```
 
-### AgentChatView 변경 요약
-1. `<ArtifactPanelProvider>` 감싸기
-2. `artifactPreview` + `centerPanelState` → Context의 `openTab`/`closeTab`으로 대체
-3. `handleArtifactSelectForPreview` → Context `openTab` 호출
-4. ArtifactPreviewPanel에 50+ props 전달 → Context에서 읽기
+## 상태 설계
+
+### ArtifactLibraryContext (신규)
+- `libraryArtifacts: LibraryArtifact[]` — 전체 라이브러리
+- `filteredArtifacts: LibraryArtifact[]` — 필터 적용 결과 (computed)
+- `filter: ArtifactFilter` — 현재 필터
+- `versions: Record<string, ArtifactVersion[]>` — 아티팩트별 버전
+- Actions: saveArtifact, deleteArtifact, toggleFavorite, setFilter, saveVersion, restoreVersion, getVersions, getArtifactsByConversation, getArtifactByMessageId
+- localStorage 영속화 (데모 단계)
+
+### ArtifactPanelContext (변경 없음)
+- 기존 탭 관리 UI 상태 유지
 
 ## 통합 지점
 
-### AgentChatView → ArtifactPanelProvider
-- onPanelOpenChange: side panel auto-hide/restore 연동
-- onActiveTabChange: 활성 탭 변경 시 데이터 동기화
-
-### ArtifactsSection → Context
-- onSelect → useArtifactPanel().openTab() 호출
-
-### PPTScenarioRenderer → Context (간접)
-- 시나리오에서 setCenterPanelState → openTab 호출로 전환
+1. `AgentChatView` → `ArtifactLibraryProvider` 감싸기 (ArtifactPanelProvider 바깥)
+2. 아티팩트 생성 시 `saveArtifact()` 호출 (자동 저장)
+3. `ArtifactsSection` → useArtifactLibrary() 사용하여 라이브러리 뷰 렌더링
+4. `ArtifactPanelHeader` → 버전 히스토리 토글 버튼 추가
+5. `ArtifactPreviewPanel` → VersionHistoryPanel 사이드 패널
 
 ## Acceptance Criteria 매핑
 
 | # | Criteria | 구현 위치 |
 |---|----------|-----------|
-| 1 | props를 ArtifactContext로 리팩터링, 서브컴포넌트 3개+ | Context + 5개 렌더러 + Header |
-| 2 | 탭 바에서 최대 8개 아티팩트 관리 | ArtifactPanelContext (MAX_TABS=8) |
-| 3 | 탭에 아이콘+제목(truncate)+닫기 | ArtifactTabBar |
-| 4 | 키보드: Ctrl+Tab, Ctrl+W | ArtifactPanelContext useEffect |
-| 5 | 드래그 리사이즈 25%-70% | CoworkLayout 기존 유지 |
-| 6 | 전체화면 토글이 탭 보존 | Context isMaximized |
-| 7 | 아티팩트 생성 시 자동 탭 열기 | AgentChatView → openTab |
-| 8 | ArtifactsSection 클릭 → 탭 전환/열기 | ArtifactsSection → openTab |
+| 1 | ArtifactsSection "현재 대화"/"라이브러리" 탭 전환 | ArtifactsSection |
+| 2 | 에이전트 생성 아티팩트 자동 저장 | AgentChatView → saveArtifact |
+| 3 | 유형별 필터링 (최소 4종) | ArtifactLibraryContext + ArtifactsSection |
+| 4 | 라이브러리 내 키워드 검색 | ArtifactLibraryContext |
+| 5 | 아티팩트별 버전 히스토리 | ArtifactLibraryContext + VersionHistoryPanel |
+| 6 | 마크다운 아티팩트 이전 버전 복원 | restoreVersion() |
+| 7 | 아티팩트 클릭 → 관련 채팅 스크롤 (양방향 링크) | ArtifactsSection → messageId 기반 |
+| 8 | 채팅 메시지에서 아티팩트 빠른 접근 | 기존 openTab 활용 |
+| 9 | 대화 삭제 시 아티팩트 유지 | 대화 독립 생명주기 |
+| 10 | Breadcrumb: 타입 > 파일명 > 버전 | VersionHistoryPanel |
+
+## 테스트 시나리오
+
+| # | AC | 시나리오 | 테스트 방법 | 우선순위 |
+|---|-----|---------|-----------|---------|
+| 1 | AC-2 | saveArtifact 호출 → libraryArtifacts에 추가됨 | renderHook + act | must |
+| 2 | AC-3 | setFilter({ types: ['markdown'] }) → markdown만 반환 | renderHook + act | must |
+| 3 | AC-4 | setFilter({ searchQuery: '매출' }) → 제목 매칭 | renderHook + act | must |
+| 4 | AC-5 | saveVersion → getVersions 배열 증가 | renderHook + act | must |
+| 5 | AC-6 | restoreVersion → 새 버전 생성 + 내용 복원 | renderHook + act | must |
+| 6 | AC-9 | 대화별 아티팩트 격리 조회 | getArtifactsByConversation | must |
+| 7 | AC-1 | 탭 전환 UI 렌더링 | RTL render + userEvent | should |
+| 8 | AC-7 | messageId 기반 양방향 링크 | getArtifactByMessageId | should |
+| 9 | AC-10 | 즐겨찾기 토글 + 필터 | toggleFavorite + setFilter | should |

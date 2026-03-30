@@ -508,6 +508,7 @@ categories:
         source_files:
           - "src/components/features/agent-chat/context/ArtifactPanelContext.tsx"
           - "src/components/features/agent-chat/context/ArtifactLibraryContext.tsx"
+          - "src/components/features/agent-chat/context/ArtifactLibraryContext.test.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPanelHeader.tsx"
           - "src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactTabBar.tsx"

@@ -17,6 +17,7 @@ interface RightSidebarProps {
   selectedArtifactId?: string;
   onArtifactSelect: (artifact: Artifact) => void;
   onArtifactDownload: (artifact: Artifact) => void;
+  onScrollToMessage?: (messageId: string) => void;
   // Context Props
   contextItems: ContextItem[];
 }
@@ -31,6 +32,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   selectedArtifactId,
   onArtifactSelect,
   onArtifactDownload,
+  onScrollToMessage,
   contextItems,
 }) => {
   if (isCollapsed) {
@@ -74,6 +76,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
           onToggle={() => onToggleSection('artifacts')}
           onSelect={onArtifactSelect}
           onDownload={onArtifactDownload}
+          onScrollToMessage={onScrollToMessage}
         />
         <ContextSection
           items={contextItems}

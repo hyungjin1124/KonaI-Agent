@@ -1,34 +1,35 @@
-# Select: Artifact Panel (Split View)
+# Select: Artifact Panel Phase 2 — 아티팩트 라이브러리 + 버전 히스토리
 
 - **ID**: artifact_panel
-- **Status**: not_implemented
+- **Status**: needs_update (Phase 1 완료, Phase 2 구현 대기)
 - **Priority**: critical
 - **Complexity**: complex
 - **Contexts**: [chat_view, artifact_panel]
 - **Dependencies**:
-  - `markdown_renderer` — **not_implemented** ⚠️
-  - `code_block` — **not_implemented** ⚠️
+  - `markdown_renderer` — **implemented** (MarkdownRenderer in renderers/)
+  - `code_block` — **not_implemented** ⚠️ (Phase 2 범위 외)
   - `document_viewer` — **implemented** ✅
 - **Obsidian Sources**: `Insights/agent-ui/patterns/artifact-panel-layout.md`
-- **Last Researched**: 2026-02-18
-- **Existing Source Files**: (none in catalog, but existing codebase has)
+- **Last Researched**: 2026-03-27
+- **Existing Source Files** (Phase 1):
+  - `src/components/features/agent-chat/context/ArtifactPanelContext.tsx`
   - `src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPreviewPanel.tsx`
-  - `src/components/features/agent-chat/AgentChatView.tsx`
+  - `src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactPanelHeader.tsx`
+  - `src/components/features/agent-chat/components/ArtifactPreviewPanel/ArtifactTabBar.tsx`
+  - `src/components/features/agent-chat/components/ArtifactPreviewPanel/renderers/*`
   - `src/components/features/agent-chat/components/RightSidebar/ArtifactsSection.tsx`
   - `src/components/features/agent-chat/types.ts`
-  - `src/components/features/agent-chat/layouts/CoworkLayout.tsx`
 
-## 의존성 분석
+## Phase 2 구현 범위
 
-- `document_viewer`: 구현 완료 — PDF, DOCX, XLSX, CSV, PPTX 지원
-- `markdown_renderer`: 미구현 — 현재 `MarkdownPreviewPanel`이 기본 마크다운 렌더링 제공. Phase 1에서는 기존 코드 활용
-- `code_block`: 미구현 — Phase 1 범위 밖. 마크다운 내 코드블록은 기본 `<pre>` 처리
+리서치 문서(2026-03-26) 기반 Phase 2 타겟:
+1. **ArtifactLibraryContext** — 자동 저장, 대화 독립 생명주기, 유형 필터, 검색, 정렬
+2. **버전 히스토리** — 아티팩트별 버전 추적, 복원
+3. **채팅↔아티팩트 양방향 링크** — messageId 기반 양방향 네비게이션
+4. **ArtifactsSection 확장** — "현재 대화" / "라이브러리" 탭 전환 UI
+5. **ArtifactPanelHeader 확장** — 버전 히스토리 토글 버튼
 
-## 구현 범위 판단
+## QA 테스트 사전 작성
 
-의존성 미충족(`markdown_renderer`, `code_block`)이나 **Phase 1 범위인 탭 관리 + 구조 리팩터링**은 의존성 없이 진행 가능:
-- 탭 관리 (열기/닫기/전환)
-- ArtifactContext 도입으로 props 분리
-- 기존 DocumentViewer, PPT, Dashboard 등 렌더러 활용
-- 키보드 내비게이션
-- 전체화면 토글 개선
+- `ArtifactLibraryContext.qa.test.tsx` — 엣지 케이스 테스트 사전 작성됨
+- `ArtifactLibraryContext.flow.qa.test.tsx` — 플로우 테스트 사전 작성됨
