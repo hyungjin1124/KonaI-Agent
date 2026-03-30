@@ -107,6 +107,11 @@ const config: Config = {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
+        'highlight-fade': {
+          '0%': { ringColor: 'rgb(96 165 250)', backgroundColor: 'rgb(239 246 255 / 0.6)' },
+          '70%': { ringColor: 'rgb(96 165 250)', backgroundColor: 'rgb(239 246 255 / 0.3)' },
+          '100%': { ringColor: 'transparent', backgroundColor: 'transparent' },
+        },
       },
       animation: {
         'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
@@ -119,6 +124,7 @@ const config: Config = {
         'text-appear': 'text-appear 0.3s ease-out',
         'shimmer-text': 'shimmer-text 1.5s linear infinite',
         'skeleton-shimmer': 'skeleton-shimmer 1.8s ease-in-out infinite',
+        'highlight-fade': 'highlight-fade 2s ease-out forwards',
       },
     },
   },

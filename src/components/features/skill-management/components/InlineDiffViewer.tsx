@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { diffLines, type Change } from 'diff';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,10 @@ interface InlineDiffViewerProps {
   onClose: () => void;
   /** Show [Unified | Side-by-side] toggle — only in full-page mode */
   showViewToggle?: boolean;
+  /** Chunk index to scroll-to and highlight (from AI summary click) */
+  highlightChunkIndex?: number | null;
+  /** Called after highlight scroll completes so parent can clear state */
+  onHighlightComplete?: () => void;
 }
 
 type DiffViewMode = 'unified' | 'side-by-side';
@@ -131,10 +135,12 @@ function UnifiedDiffView({
   segments,
   expandedCollapsed,
   onToggleCollapsed,
+  highlightedChunk,
 }: {
   segments: Segment[];
   expandedCollapsed: Set<number>;
   onToggleCollapsed: (idx: number) => void;
+  highlightedChunk?: number | null;
 }) {
   return (
     <div className="font-mono text-xs leading-relaxed">
@@ -162,10 +168,15 @@ function UnifiedDiffView({
           );
         }
 
+        const isHighlighted = seg.chunkIndex !== undefined && seg.chunkIndex === highlightedChunk;
+
         return (
           <div
             key={`seg-${si}`}
             id={seg.chunkIndex !== undefined ? `diff-chunk-${seg.chunkIndex}` : undefined}
+            className={cn(
+              isHighlighted && 'ring-2 ring-blue-400 ring-inset rounded-sm animate-highlight-fade',
+            )}
           >
             {seg.lines.map((line, li) => (
               <div
@@ -279,13 +290,41 @@ export function InlineDiffViewer({
   toVersion,
   onClose,
   showViewToggle = false,
+  highlightChunkIndex,
+  onHighlightComplete,
 }: InlineDiffViewerProps) {
   const [viewMode, setViewMode] = useState<DiffViewMode>('unified');
   const [expandedCollapsed, setExpandedCollapsed] = useState<Set<number>>(new Set());
+  const [activeHighlight, setActiveHighlight] = useState<number | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const changes = useMemo(() => diffLines(oldText, newText), [oldText, newText]);
   const allLines = useMemo(() => changesToLines(changes), [changes]);
   const segments = useMemo(() => buildSegments(allLines), [allLines]);
+
+  // Scroll to highlighted chunk
+  useEffect(() => {
+    if (highlightChunkIndex == null) return;
+    setActiveHighlight(highlightChunkIndex);
+
+    // Wait for DOM to render the chunk
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`diff-chunk-${highlightChunkIndex}`);
+      if (el && scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: el.offsetTop - scrollContainerRef.current.offsetTop - 8,
+          behavior: 'smooth',
+        });
+      }
+    });
+
+    // Clear highlight after animation
+    const timer = setTimeout(() => {
+      setActiveHighlight(null);
+      onHighlightComplete?.();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [highlightChunkIndex, onHighlightComplete]);
 
   // Count stats
   const addedCount = allLines.filter((l) => l.type === 'added').length;
@@ -340,12 +379,13 @@ export function InlineDiffViewer({
       </div>
 
       {/* Diff content */}
-      <div className="max-h-[400px] overflow-y-auto">
+      <div ref={scrollContainerRef} className="max-h-[400px] overflow-y-auto">
         {viewMode === 'unified' ? (
           <UnifiedDiffView
             segments={segments}
             expandedCollapsed={expandedCollapsed}
             onToggleCollapsed={toggleCollapsed}
+            highlightedChunk={activeHighlight}
           />
         ) : (
           <SideBySideDiffView allLines={allLines} />

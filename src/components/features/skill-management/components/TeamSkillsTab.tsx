@@ -1,25 +1,25 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import type { TeamSkill, SkillCategory } from '@/types/skill-management.types';
+import type { TeamSkill, SkillCategory, SkillSourceFilter } from '@/types/skill-management.types';
 import { SKILL_CATEGORIES } from '@/types/skill-management.types';
-import { mockTeamSkills, CURRENT_USER, TEAM_MEMBERS } from '../data/skillMockData';
+import { CURRENT_USER, TEAM_MEMBERS } from '../data/skillMockData';
 import { SkillFilters } from './SkillFilters';
 import { SkillTable } from './SkillTable';
 import { SkillSlidePanel } from './SkillSlidePanel';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface ToastState {
-  msg: string;
-  type: 'success' | 'error' | 'info';
+interface TeamSkillsTabProps {
+  skills: TeamSkill[];
+  onSkillsChange: React.Dispatch<React.SetStateAction<TeamSkill[]>>;
+  showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function TeamSkillsTab() {
+export default function TeamSkillsTab({ skills, onSkillsChange, showToast }: TeamSkillsTabProps) {
   // ── State ──────────────────────────────────────────────────────────────────
-  const [skills, setSkills] = useState<TeamSkill[]>(mockTeamSkills);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -27,7 +27,7 @@ export default function TeamSkillsTab() {
   const [categoryFilter, setCategoryFilter] = useState<SkillCategory | 'all'>('all');
   const [authorFilter, setAuthorFilter] = useState<string>('all');
   const [activeMemberFilter, setActiveMemberFilter] = useState<string>('all');
-  const [toast, setToast] = useState<ToastState | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<SkillSourceFilter>('all');
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const selectedSkill = useMemo(
@@ -51,25 +51,14 @@ export default function TeamSkillsTab() {
       if (categoryFilter !== 'all' && skill.category !== categoryFilter) return false;
       if (authorFilter !== 'all' && skill.authorId !== authorFilter) return false;
       if (activeMemberFilter !== 'all' && !skill.activatedBy.includes(activeMemberFilter)) return false;
+      // 출처 필터 (v11)
+      if (sourceFilter === 'team' && skill.isMarketplaceRef) return false;
+      if (sourceFilter === 'marketplace' && !skill.isMarketplaceRef) return false;
       return true;
     });
-  }, [skills, searchQuery, categoryFilter, authorFilter, activeMemberFilter]);
+  }, [skills, searchQuery, categoryFilter, authorFilter, activeMemberFilter, sourceFilter]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
-
-  const toastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showToast = useCallback((msg: string, type: ToastState['type'] = 'success') => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast({ msg, type });
-    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
-  }, []);
-
-  React.useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    };
-  }, []);
 
   const handleRowClick = useCallback((skillId: string) => {
     setSelectedSkillId(skillId);
@@ -88,7 +77,7 @@ export default function TeamSkillsTab() {
 
   const handleToggleActivation = useCallback(
     (skillId: string) => {
-      setSkills((prev) =>
+      onSkillsChange((prev) =>
         prev.map((s) => {
           if (s.id !== skillId) return s;
           const next = !s.isActivatedByMe;
@@ -99,7 +88,6 @@ export default function TeamSkillsTab() {
               'success',
             );
           }, 0);
-          // Update activatedBy list
           const updatedActivatedBy = next
             ? [...s.activatedBy, CURRENT_USER.id]
             : s.activatedBy.filter((id) => id !== CURRENT_USER.id);
@@ -107,13 +95,12 @@ export default function TeamSkillsTab() {
         }),
       );
     },
-    [showToast],
+    [onSkillsChange, showToast],
   );
 
   /** 자동 넘버링: "{이름} (2)", "(3)"... 동일 작성자 기준 */
   const generateCopyName = useCallback(
     (baseName: string) => {
-      // 기존 "(N)" 접미사 제거하여 원본 이름 추출
       const stripped = baseName.replace(/\s*\(\d+\)$/, '');
       const mySkillNames = new Set(
         skills.filter((s) => s.authorId === CURRENT_USER.id).map((s) => s.name),
@@ -126,14 +113,16 @@ export default function TeamSkillsTab() {
     [skills],
   );
 
+  /** 복사: fromVersion이 있으면 특정 버전 기반 복사 (v11) */
   const handleCopy = useCallback(
-    (skillId: string) => {
+    (skillId: string, fromVersion?: string) => {
       const source = skills.find((s) => s.id === skillId);
       if (!source) return;
 
       const copyName = generateCopyName(source.name);
       const now = new Date();
       const today = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+      const targetVersion = fromVersion ?? source.version;
 
       const newSkill: TeamSkill = {
         ...source,
@@ -148,26 +137,32 @@ export default function TeamSkillsTab() {
         activatedBy: [CURRENT_USER.id],
         isActivatedByMe: true,
         creationSource: 'copied',
+        // 마켓플레이스 필드 초기화 (복사본은 독립 팀 스킬)
+        isMarketplaceRef: undefined,
+        marketplaceRefId: undefined,
+        isPublishedToMarketplace: false,
+        authorTeam: undefined,
         copySource: {
           originalSkillId: source.id,
           originalSkillName: source.name,
           originalAuthor: source.author,
+          baseVersion: fromVersion,
         },
         versionHistory: [
           {
             version: 'v1',
             modifiedAt: today,
             modifiedBy: CURRENT_USER.name,
-            changeEntries: [{ tag: '추가', subject: `${source.author}의 '${source.name}' ${source.version}에서 복사` }],
+            changeEntries: [{ tag: '추가', subject: `${source.author}의 '${source.name}' ${targetVersion}에서 복사` }],
           },
         ],
       };
 
-      setSkills((prev) => [newSkill, ...prev]);
+      onSkillsChange((prev) => [newSkill, ...prev]);
       setSelectedSkillId(newSkill.id);
       showToast(`'${copyName}' 스킬이 생성되었습니다`, 'success');
     },
-    [skills, showToast, generateCopyName],
+    [skills, onSkillsChange, showToast, generateCopyName],
   );
 
   /** 이름 수정: 중복 검증 포함 */
@@ -179,23 +174,42 @@ export default function TeamSkillsTab() {
       const target = skills.find((s) => s.id === skillId);
       if (!target) return '스킬을 찾을 수 없습니다';
 
-      // 동일 작성자의 다른 스킬과 이름 중복 검사
       const isDuplicate = skills.some(
         (s) => s.id !== skillId && s.authorId === target.authorId && s.name === trimmed,
       );
       if (isDuplicate) return '같은 이름의 스킬이 이미 존재합니다';
 
-      setSkills((prev) =>
+      onSkillsChange((prev) =>
         prev.map((s) => (s.id === skillId ? { ...s, name: trimmed } : s)),
       );
-      return null; // 성공
+      return null;
     },
-    [skills],
+    [skills, onSkillsChange],
   );
 
   const handleChatEdit = useCallback(() => {
     showToast('채팅 편집 기능은 준비 중입니다', 'info');
   }, [showToast]);
+
+  /** 전사 공개 토글 (v10) */
+  const handleTogglePublish = useCallback(
+    (skillId: string) => {
+      onSkillsChange((prev) =>
+        prev.map((s) => {
+          if (s.id !== skillId) return s;
+          const next = !s.isPublishedToMarketplace;
+          setTimeout(() => {
+            showToast(
+              `"${s.name}" ${next ? '전사 공개' : '비공개'}로 전환되었습니다`,
+              'success',
+            );
+          }, 0);
+          return { ...s, isPublishedToMarketplace: next };
+        }),
+      );
+    },
+    [onSkillsChange, showToast],
+  );
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -224,6 +238,8 @@ export default function TeamSkillsTab() {
             onCategoryChange={setCategoryFilter}
             onAuthorChange={setAuthorFilter}
             onActiveMemberChange={setActiveMemberFilter}
+            sourceFilter={sourceFilter}
+            onSourceChange={setSourceFilter}
           />
         </div>
 
@@ -248,6 +264,7 @@ export default function TeamSkillsTab() {
                     setCategoryFilter('all');
                     setAuthorFilter('all');
                     setActiveMemberFilter('all');
+                    setSourceFilter('all');
                   }}
                   className="mt-3 text-xs text-gray-400 underline hover:text-gray-600"
                 >
@@ -280,33 +297,11 @@ export default function TeamSkillsTab() {
             onRename={handleRename}
             isExpanded={isExpanded}
             onToggleExpand={handleToggleExpand}
+            onCopyVersion={(version) => handleCopy(selectedSkill.id, version)}
+            onTogglePublish={() => handleTogglePublish(selectedSkill.id)}
           />
         )}
       </div>
-
-      {/* ── Toast ── */}
-      {toast && (
-        <div
-          role="alert"
-          className={[
-            'fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 text-white text-sm rounded-lg shadow-lg animate-fade-in-up',
-            toast.type === 'success'
-              ? 'bg-green-600'
-              : toast.type === 'error'
-              ? 'bg-red-600'
-              : 'bg-gray-700',
-          ].join(' ')}
-        >
-          <span>{toast.msg}</span>
-          <button
-            onClick={() => setToast(null)}
-            className="ml-1 text-white/70 hover:text-white"
-            aria-label="알림 닫기"
-          >
-            ✕
-          </button>
-        </div>
-      )}
     </div>
   );
 }

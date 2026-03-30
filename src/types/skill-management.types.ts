@@ -1,6 +1,6 @@
 // ============================================================================
-// Skill Management Types — v7 Copy-Based Model
-// Based on: design/ia-design/03-skill-ia.md (v7)
+// Skill Management Types — v9 Eval-Based Model
+// Based on: design/ia-design/03-skill-ia.md (v9)
 // ============================================================================
 
 // --- Skill Category (업무 기능 기준) ---
@@ -15,7 +15,7 @@ export const SKILL_CATEGORIES: { id: SkillCategory | 'all'; label: string }[] = 
 ];
 
 // --- Skill Creation Source ---
-export type SkillCreationSource = 'chat' | 'copied';
+export type SkillCreationSource = 'chat' | 'copied' | 'marketplace-ref';
 
 // --- Skill Status ---
 export type SkillStatus = 'active' | 'deprecated';
@@ -31,11 +31,51 @@ export interface ChangeEntry {
   impact?: string;
 }
 
+// --- Quality Eval (v9: Anthropic eval 구조 — expectations+evidence) ---
+export type QualityStatus = 'verified' | 'partial-failure';
+
+export interface EvalExpectation {
+  id: string;
+  /** 사람이 읽을 수 있는 항목명 (예: "차트 형식", "기간 정확성") */
+  label: string;
+  passed: boolean;
+  /** Grader가 판정한 근거 (예: "꺾은선 차트 형태로 출력됨") */
+  evidence: string;
+}
+
+export interface EvalTestPrompt {
+  /** 자연어 테스트 프롬프트 */
+  prompt: string;
+  /** 모든 expectations 통과 시 true */
+  passed: boolean;
+  expectations: EvalExpectation[];
+}
+
+export interface SkillEvalResult {
+  /** 마지막 Eval 실행 시점 (yyyy.mm.dd) */
+  evaluatedAt: string;
+  qualityStatus: QualityStatus;
+  testPrompts: EvalTestPrompt[];
+  /** 💡 참고 — AI 분석 노트 (유의미할 때만 존재) */
+  analysisNote?: string;
+}
+
+// --- Dynamic Version Comparison (비연속 버전 비교) ---
+export interface DynamicComparisonEntry {
+  tag: ChangeTag;
+  subject: string;
+  impact?: string;
+  /** 해당 변경이 발생한 버전 (예: "v3에서 추가") */
+  occurredIn?: string;
+}
+
 // --- Copy Source Metadata ---
 export interface CopySource {
   originalSkillId: string;
   originalSkillName: string;
   originalAuthor: string;
+  /** 특정 버전 복사 시 기록 */
+  baseVersion?: string;
 }
 
 // --- Version Entry ---
@@ -49,6 +89,8 @@ export interface SkillVersionEntry {
   isRestore?: boolean;
   /** 복구 원본 버전 */
   restoredFrom?: string;
+  /** 해당 버전 시점의 프롬프트 스냅샷 (원문 비교용) */
+  promptSnapshot?: string;
 }
 
 // --- Core Skill Interface (Team Skill) ---
@@ -81,6 +123,15 @@ export interface TeamSkill {
 
   // Version history
   versionHistory: SkillVersionEntry[];
+
+  // Eval result (v9: 모든 스킬은 생성·편집 시 자동 검증됨)
+  evalResult: SkillEvalResult;
+
+  // Marketplace fields (v10/v11 — all optional for backward compat)
+  isMarketplaceRef?: boolean;
+  marketplaceRefId?: string;
+  isPublishedToMarketplace?: boolean;
+  authorTeam?: string;
 }
 
 export interface SkillParameter {
@@ -100,8 +151,18 @@ export interface SkillAttachment {
   size: number;
 }
 
+// --- Marketplace Skill (v10/v11) ---
+export interface MarketplaceSkill extends TeamSkill {
+  authorTeam: string;
+  orgCallCount: number;
+  activeTeamCount: number;
+  copyCount: number;
+  isPopular: boolean;
+}
+
 // --- Filter State ---
 export type SkillStatusFilter = 'all' | 'activated' | 'deactivated';
+export type SkillSourceFilter = 'all' | 'team' | 'marketplace';
 
 // --- Team Member ---
 export interface TeamMember {

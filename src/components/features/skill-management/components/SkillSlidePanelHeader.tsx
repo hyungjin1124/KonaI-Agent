@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Maximize2, Minimize2, Copy, MessageSquare, Pencil } from 'lucide-react';
+import { X, Maximize2, Minimize2, Copy, MessageSquare, Pencil, Zap, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { TeamSkill, TeamMember } from '@/types/skill-management.types';
 import { CURRENT_USER } from '../data/skillMockData';
@@ -18,6 +19,12 @@ interface SkillSlidePanelHeaderProps {
   onRename?: (skillId: string, newName: string) => string | null;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
+  /** 마켓플레이스 모드 (v10) */
+  panelMode?: 'team' | 'marketplace';
+  onActivate?: () => void;
+  isAlreadyActivated?: boolean;
+  /** 전사 공개 토글 (v10) */
+  onTogglePublish?: () => void;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -101,6 +108,10 @@ export function SkillSlidePanelHeader({
   onRename,
   isExpanded,
   onToggleExpand,
+  panelMode,
+  onActivate,
+  isAlreadyActivated,
+  onTogglePublish,
 }: SkillSlidePanelHeaderProps) {
   const isActive = skill.isActivatedByMe;
   const isAuthor = skill.authorId === CURRENT_USER.id;
@@ -233,10 +244,10 @@ export function SkillSlidePanelHeader({
         </h2>
       )}
 
-      {/* Description */}
-      {skill.description && (
-        <p className="text-sm xl:text-[15px] text-gray-500 mb-2 leading-snug line-clamp-1">
-          {skill.description}
+      {/* Description — v9: fullDescription, up to 3 lines */}
+      {skill.fullDescription && (
+        <p className="text-sm xl:text-[15px] text-gray-500 mb-2 leading-snug line-clamp-3">
+          {skill.fullDescription}
         </p>
       )}
 
@@ -259,6 +270,12 @@ export function SkillSlidePanelHeader({
       {/* Meta info */}
       <div className="text-xs xl:text-sm text-gray-400 mb-3 leading-relaxed flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
         <span className="text-gray-600 font-medium">{skill.author}</span>
+        {skill.authorTeam && (
+          <>
+            <span>·</span>
+            <span className="text-gray-500">{skill.authorTeam}</span>
+          </>
+        )}
         <span>·</span>
         <span>{skill.version}</span>
         <span>·</span>
@@ -281,6 +298,9 @@ export function SkillSlidePanelHeader({
           복사 출처:{' '}
           <span className="text-gray-600">
             {skill.copySource.originalAuthor}의 &lsquo;{skill.copySource.originalSkillName}&rsquo;
+            {skill.copySource.baseVersion && (
+              <span className="text-gray-400"> ({skill.copySource.baseVersion})</span>
+            )}
           </span>
         </p>
       )}
@@ -298,17 +318,53 @@ export function SkillSlidePanelHeader({
           복사
         </Button>
 
-        {/* 채팅에서 편집 — author only */}
-        {isAuthor && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onChatEdit}
-            className="gap-1.5 text-xs xl:text-sm h-8"
-          >
-            <MessageSquare size={13} />
-            채팅에서 편집
-          </Button>
+        {panelMode === 'marketplace' ? (
+          /* 마켓플레이스 모드: 활성화 버튼 */
+          isAlreadyActivated ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+              className="gap-1.5 text-xs xl:text-sm h-8 text-green-600 border-green-200"
+            >
+              <Check size={13} />
+              활성화됨
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={onActivate}
+              className="gap-1.5 text-xs xl:text-sm h-8 bg-brand-primary hover:bg-red-600 text-white"
+            >
+              <Zap size={13} />
+              활성화
+            </Button>
+          )
+        ) : (
+          /* 팀 모드: 채팅에서 편집 (author only) */
+          isAuthor && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onChatEdit}
+              className="gap-1.5 text-xs xl:text-sm h-8"
+            >
+              <MessageSquare size={13} />
+              채팅에서 편집
+            </Button>
+          )
+        )}
+
+        {/* 전사 공개 토글 — 내 스킬 + 팀 모드일 때만 */}
+        {isAuthor && panelMode !== 'marketplace' && onTogglePublish && (
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-xs text-gray-500">전사 공개</span>
+            <Switch
+              checked={skill.isPublishedToMarketplace ?? false}
+              onCheckedChange={onTogglePublish}
+              className="data-[state=checked]:bg-brand-primary"
+            />
+          </div>
         )}
       </div>
     </div>

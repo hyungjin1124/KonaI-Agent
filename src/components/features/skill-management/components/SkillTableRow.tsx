@@ -221,6 +221,9 @@ export function SkillTableRow({
       {/* ── 이름 column ──────────────────────────────────────────────── */}
       <TableCell className="py-3.5 pl-6 pr-2 min-w-0">
         <div className="flex items-center gap-2 min-w-0">
+          {skill.isMarketplaceRef && (
+            <span className="shrink-0 text-[11px]" title="마켓플레이스 참조">🏪</span>
+          )}
           <span
             className={[
               'text-[13px] xl:text-[15px] font-semibold truncate',
