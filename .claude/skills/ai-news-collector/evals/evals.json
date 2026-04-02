@@ -1,0 +1,23 @@
+{
+  "skill_name": "ai-news-collector",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "어제 AI 관련 뉴스 좀 정리해줘",
+      "expected_output": "카테고리별로 정리된 한국어 마크다운 리포트. 최소 5개 이상의 뉴스 항목, 각각 제목/소스/URL/요약 포함.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "Give me a daily AI briefing for yesterday. I want to know about any new model releases, funding news, and policy updates.",
+      "expected_output": "English markdown report covering at least LLM, Industry, and Policy categories. Each item has title, source URL, and 2-3 sentence summary.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "요즘 AI 업계에서 무슨 일이 일어나고 있는지 빠르게 파악하고 싶어. 전날 주요 뉴스를 모아서 리포트로 만들어줘. 특히 LLM 신모델 출시나 빅테크 동향 위주로.",
+      "expected_output": "한국어 마크다운 리포트. Highlights 섹션에 가장 중요한 뉴스 1개 요약. LLM 카테고리가 가장 상세하게 작성됨. ai-news-YYYY-MM-DD.md 파일로 저장.",
+      "files": []
+    }
+  ]
+}

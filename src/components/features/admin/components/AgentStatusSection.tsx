@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { CheckCircle2, XCircle, Zap, ChevronDown } from 'lucide-react';
+import { CheckCircle2, XCircle, Zap, ChevronDown, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,13 +13,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { KPICard } from '@/components/shared/atoms/KPICard';
-import { ErrorDetailPanel } from './ErrorDetailPanel';
 import { AGENT_STATUS_KPI, AGENT_ERRORS } from '../data/monitoringMockData';
-import type { AgentError } from '../types/admin.types';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
+const MAX_VISIBLE = 50;
 
 const ERROR_TYPE_COLORS: Record<string, string> = {
   Timeout: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -27,22 +26,26 @@ const ERROR_TYPE_COLORS: Record<string, string> = {
   'Tool Error': 'bg-violet-50 text-violet-700 border-violet-200',
 };
 
+const TH = 'text-[10px] font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap';
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function AgentStatusSection() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [selectedError, setSelectedError] = useState<AgentError | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  const capped = Math.min(AGENT_ERRORS.length, MAX_VISIBLE);
 
   const visibleErrors = useMemo(
-    () => AGENT_ERRORS.slice(0, visibleCount),
-    [visibleCount],
+    () => AGENT_ERRORS.slice(0, Math.min(visibleCount, capped)),
+    [visibleCount, capped],
   );
 
-  const canShowMore = visibleCount < AGENT_ERRORS.length;
+  const canShowMore = visibleCount < capped;
 
   const handleShowMore = useCallback(() => {
-    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, AGENT_ERRORS.length));
-  }, []);
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, capped));
+  }, [capped]);
 
   return (
     <section className="space-y-4">
@@ -73,18 +76,22 @@ export function AgentStatusSection() {
         />
       </div>
 
-      {/* Error list + panel overlay container */}
-      <div className="relative">
-        {/* Error table */}
-        <div className="rounded-md border border-gray-200 overflow-hidden">
+      {/* Error table */}
+      <div className="rounded-md border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50/80 hover:bg-gray-50/80">
-                <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider w-[140px]">시간</TableHead>
-                <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider w-[80px]">사용자</TableHead>
-                <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider w-[100px]">에러 타입</TableHead>
-                <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider w-[160px]">실패 단계</TableHead>
-                <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">요약</TableHead>
+                <TableHead className={`${TH} w-[90px]`}>시간</TableHead>
+                <TableHead className={`${TH} w-[64px]`}>사용자</TableHead>
+                <TableHead className={`${TH} w-[120px]`}>요청 요약</TableHead>
+                <TableHead className={`${TH} w-[80px]`}>스킬</TableHead>
+                <TableHead className={`${TH} w-[80px]`}>모델</TableHead>
+                <TableHead className={`${TH} w-[84px]`}>에러 타입</TableHead>
+                <TableHead className={`${TH} w-[80px]`}>실패 단계</TableHead>
+                <TableHead className={`${TH} w-[60px] text-right`}>유사(24h)</TableHead>
+                <TableHead className={`${TH} w-[48px] text-right`}>영향</TableHead>
+                <TableHead className={`${TH} w-[36px]`} />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -93,14 +100,19 @@ export function AgentStatusSection() {
                   key={err.id}
                   className={[
                     'cursor-pointer transition-colors',
-                    selectedError?.id === err.id
+                    highlightedId === err.id
                       ? 'bg-red-50/60 border-l-2 border-l-[#FF3C42]'
                       : 'hover:bg-gray-50/60',
                   ].join(' ')}
-                  onClick={() => setSelectedError(err)}
+                  onClick={() => setHighlightedId(highlightedId === err.id ? null : err.id)}
                 >
-                  <TableCell className="text-xs text-gray-500 tabular-nums">{err.time}</TableCell>
-                  <TableCell className="text-sm text-gray-700 font-medium">{err.userName}</TableCell>
+                  <TableCell className="text-[11px] text-gray-500 tabular-nums">{err.time}</TableCell>
+                  <TableCell className="text-[11px] text-gray-700 font-medium">{err.userName}</TableCell>
+                  <TableCell className="text-[11px] text-gray-600 truncate max-w-[120px]" title={err.requestSummary}>
+                    {err.requestSummary}
+                  </TableCell>
+                  <TableCell className="text-[11px] text-gray-500">{err.skill ?? '—'}</TableCell>
+                  <TableCell className="text-[11px] text-gray-500">{err.model}</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
@@ -109,39 +121,57 @@ export function AgentStatusSection() {
                       {err.errorType}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-gray-600 truncate max-w-[160px]">{err.failedStep}</TableCell>
-                  <TableCell className="text-xs text-gray-600 truncate max-w-[300px]">{err.summary}</TableCell>
+                  <TableCell className="text-[11px] text-gray-600 truncate max-w-[80px]" title={err.failedStep}>
+                    {err.failedStep}
+                  </TableCell>
+                  <TableCell className="text-[11px] text-gray-700 tabular-nums text-right font-medium">
+                    {err.similarErrorCount}건
+                  </TableCell>
+                  <TableCell className="text-[11px] text-gray-700 tabular-nums text-right font-medium">
+                    {err.affectedUserCount}명
+                  </TableCell>
+                  <TableCell className="px-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-gray-400 hover:text-blue-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`https://langfuse.example.com/trace/${err.conversationId}`, '_blank');
+                      }}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-
-          {/* Show more */}
-          {canShowMore && (
-            <div className="border-t border-gray-100 px-4 py-2 text-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-gray-500 hover:text-gray-700 gap-1"
-                onClick={handleShowMore}
-              >
-                더 보기
-                <ChevronDown className="h-3.5 w-3.5" />
-                <span className="text-gray-400 ml-1">
-                  ({visibleCount}/{AGENT_ERRORS.length})
-                </span>
-              </Button>
-            </div>
-          )}
         </div>
 
-        {/* Error detail panel overlay */}
-        {selectedError && (
-          <ErrorDetailPanel
-            error={selectedError}
-            onClose={() => setSelectedError(null)}
-          />
-        )}
+        {/* Show more / limit message */}
+        {canShowMore ? (
+          <div className="border-t border-gray-100 px-4 py-2 text-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-gray-500 hover:text-gray-700 gap-1"
+              onClick={handleShowMore}
+            >
+              더 보기
+              <ChevronDown className="h-3.5 w-3.5" />
+              <span className="text-gray-400 ml-1">
+                ({visibleCount}/{capped})
+              </span>
+            </Button>
+          </div>
+        ) : visibleCount >= MAX_VISIBLE && AGENT_ERRORS.length > MAX_VISIBLE ? (
+          <div className="border-t border-gray-100 px-4 py-2.5 text-center">
+            <p className="text-[11px] text-gray-400">
+              최근 {MAX_VISIBLE}건까지 표시됩니다. 전체 오류를 보려면 <span className="font-medium text-gray-600">대화 이력</span> 탭에서 상태=오류로 필터하세요.
+            </p>
+          </div>
+        ) : null}
       </div>
     </section>
   );

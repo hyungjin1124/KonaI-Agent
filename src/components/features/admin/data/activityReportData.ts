@@ -85,7 +85,7 @@ export const SKILL_USAGE_RECORDS: SkillUsageRecord[] = [
 // ── 그룹 C: 서비스 성과 ─────────────────────────────────────────────────────
 
 export const SERVICE_METRICS: ServiceMetrics = {
-  returnRate: { value: '87.1%' },
+  regularUsageRate: { value: '87.1%' },
   artifactCount: { value: '1,340' },
   skillExecutions: { value: '860' },
 };

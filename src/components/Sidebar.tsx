@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  Settings,
   LayoutDashboard,
   Database,
   UserCog,
@@ -11,10 +10,6 @@ import {
   Bell,
   Cpu,
   MessageSquare,
-  Bot,
-  Sparkles,
-  Clock,
-  Store,
 } from './icons';
 import { ViewType } from '../types';
 import { useNotification, Anomaly } from '../context/NotificationContext';
@@ -26,12 +21,8 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from './ui/tooltip';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from './ui/dropdown-menu';
+
+
 
 // ViewType → pathname mapping
 const VIEW_TO_PATH: Record<string, string> = {
@@ -42,10 +33,6 @@ const VIEW_TO_PATH: Record<string, string> = {
   admin: '/admin',
   history: '/history',
   skills: '/skills',
-  'agent-config': '/settings/agent-config',
-  'prompt-management': '/settings/prompt-management',
-  'scheduled-tasks': '/settings/scheduled-tasks',
-  marketplace: '/settings/marketplace',
 };
 
 // pathname → ViewType mapping for active state
@@ -55,12 +42,7 @@ function pathnameToViewType(pathname: string): ViewType {
   if (pathname === '/data') return 'data';
   if (pathname === '/admin') return 'admin';
   if (pathname === '/history') return 'history';
-  if (pathname === '/settings/agent-config') return 'agent-config';
-  if (pathname === '/settings/prompt-management') return 'prompt-management';
-  if (pathname === '/settings/scheduled-tasks') return 'scheduled-tasks';
-  if (pathname === '/settings/marketplace') return 'marketplace';
   if (pathname === '/skills') return 'skills';
-  if (pathname.startsWith('/settings')) return 'skills';
   if (pathname.startsWith('/agent')) return 'chat';
   return 'dashboard';
 }
@@ -94,7 +76,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
     { id: 'skills', icon: <Cpu size={20} />, label: '스킬' },
     { id: 'data', icon: <Database size={20} />, label: '데이터' },
     { id: 'admin', icon: <UserCog size={20} />, label: '관리자' },
-    { id: 'settings', icon: <Settings size={20} />, label: 'Settings' },
   ];
 
   // Click outside handler for notification popup
@@ -133,47 +114,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onAnomalyClick, onLogout }) => {
                    isActive = currentView === 'data';
                 } else if (item.id === 'admin') {
                    isActive = currentView === 'admin';
-                } else if (item.id === 'settings') {
-                   isActive = currentView === 'agent-config' || currentView === 'prompt-management' || currentView === 'scheduled-tasks' || currentView === 'marketplace';
-                }
-
-                // Settings → DropdownMenu (click-based, replaces hover dropdown)
-                if (item.id === 'settings') {
-                    return (
-                        <DropdownMenu key={item.id}>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={`rounded-lg ${
-                                        isActive
-                                        ? 'text-[#FF3C42] bg-red-50'
-                                        : 'text-[#848383] hover:text-[#FF3C42] hover:bg-gray-50'
-                                    }`}
-                                >
-                                    {item.icon}
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="center">
-                                <DropdownMenuItem onClick={() => navigate('agent-config')}>
-                                    <Bot size={16} />
-                                    에이전트 설정
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => navigate('prompt-management')}>
-                                    <Sparkles size={16} />
-                                    프롬프트 관리
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => navigate('scheduled-tasks')}>
-                                    <Clock size={16} />
-                                    예약 작업
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => navigate('marketplace')}>
-                                    <Store size={16} />
-                                    마켓플레이스
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    );
                 }
 
                 return (

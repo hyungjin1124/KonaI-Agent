@@ -19,9 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { UserActionMenu } from './UserActionMenu';
 import type { AdminUser, SimpleUserRole } from '../types/admin.types';
 import { CURRENT_ADMIN_USER_ID } from '../data/userMockData';
+import { ERP_GROUPS } from '../data/groupMockData';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,8 +31,9 @@ type SortDirection = 'asc' | 'desc';
 interface UserTableProps {
   users: AdminUser[];
   onRoleChange: (userId: string, newRole: SimpleUserRole) => void;
-  onStatusToggle: (userId: string) => void;
-  onOpenAddModal: () => void;
+  onRowClick?: (userId: string) => void;
+  selectedUserId?: string | null;
+  isPanelOpen?: boolean;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ function parseDateForSort(d: string): number {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function UserTable({ users, onRoleChange, onStatusToggle, onOpenAddModal }: UserTableProps) {
+export function UserTable({ users, onRoleChange, onRowClick, selectedUserId, isPanelOpen }: UserTableProps) {
   const [sortField, setSortField] = useState<SortField>('lastActivityDate');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
@@ -53,6 +54,18 @@ export function UserTable({ users, onRoleChange, onStatusToggle, onOpenAddModal 
     () => users.filter((u) => u.role === '관리자').length,
     [users],
   );
+
+  // userId → 소속 ERP 그룹명 목록 사전 계산
+  const userGroupsMap = useMemo<Record<string, string[]>>(() => {
+    const map: Record<string, string[]> = {};
+    for (const group of ERP_GROUPS) {
+      for (const member of group.members) {
+        if (!map[member.userId]) map[member.userId] = [];
+        map[member.userId].push(group.name);
+      }
+    }
+    return map;
+  }, []);
 
   const sorted = useMemo(() => {
     const copy = [...users];
@@ -96,18 +109,11 @@ export function UserTable({ users, onRoleChange, onStatusToggle, onOpenAddModal 
           <Users className="h-8 w-8 text-gray-400" />
         </div>
         <p className="text-sm font-medium text-gray-700 mb-1">
-          팀원을 추가하여 함께 사용해보세요
+          ERP 사용자가 자동으로 동기화됩니다
         </p>
-        <p className="text-xs text-gray-500 mb-4">
-          멤버 디렉토리에서 팀원을 선택하여 추가할 수 있습니다.
+        <p className="text-xs text-gray-500">
+          사용자 목록이 곧 표시됩니다
         </p>
-        <Button
-          size="sm"
-          className="bg-[#FF3C42] hover:bg-[#e63539] text-white"
-          onClick={onOpenAddModal}
-        >
-          사용자 추가
-        </Button>
       </div>
     );
   }
@@ -133,19 +139,23 @@ export function UserTable({ users, onRoleChange, onStatusToggle, onOpenAddModal 
                 팀 <SortIcon field="team" />
               </button>
             </TableHead>
+            {!isPanelOpen && (
             <TableHead className="w-[200px]">
               <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 이메일
               </span>
             </TableHead>
+            )}
+            {!isPanelOpen && (
+            <TableHead className="w-[180px]">
+              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                권한 그룹
+              </span>
+            </TableHead>
+            )}
             <TableHead className="w-[120px]">
               <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 역할
-              </span>
-            </TableHead>
-            <TableHead className="w-[80px]">
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                상태
               </span>
             </TableHead>
             <TableHead className="w-[120px]">
@@ -156,7 +166,6 @@ export function UserTable({ users, onRoleChange, onStatusToggle, onOpenAddModal 
                 최근 활동일 <SortIcon field="lastActivityDate" />
               </button>
             </TableHead>
-            <TableHead className="w-[44px]" />
           </TableRow>
         </TableHeader>
 
@@ -169,7 +178,14 @@ export function UserTable({ users, onRoleChange, onStatusToggle, onOpenAddModal 
             return (
               <TableRow
                 key={user.id}
-                className="group/row hover:bg-gray-50/60 transition-colors"
+                className={[
+                  'group/row transition-colors',
+                  onRowClick ? 'cursor-pointer' : '',
+                  selectedUserId === user.id
+                    ? 'bg-red-50/60 border-l-2 border-l-[#FF3C42]'
+                    : 'hover:bg-gray-50/60',
+                ].join(' ')}
+                onClick={() => onRowClick?.(user.id)}
               >
                 {/* 이름 */}
                 <TableCell>
@@ -200,9 +216,41 @@ export function UserTable({ users, onRoleChange, onStatusToggle, onOpenAddModal 
                 </TableCell>
 
                 {/* 이메일 */}
+                {!isPanelOpen && (
                 <TableCell className="text-sm text-gray-500 truncate font-mono text-[13px]">
                   {user.email}
                 </TableCell>
+                )}
+
+                {/* 권한 그룹 */}
+                {!isPanelOpen && (
+                <TableCell>
+                  {(() => {
+                    const groups = userGroupsMap[user.id] ?? [];
+                    if (groups.length === 0) {
+                      return <span className="text-xs text-gray-400">—</span>;
+                    }
+                    const visible = groups.slice(0, 2);
+                    const extra = groups.length - 2;
+                    return (
+                      <div className="flex flex-wrap gap-1 items-center">
+                        {visible.map((g) => (
+                          <Badge
+                            key={g}
+                            variant="outline"
+                            className="text-[10px] font-normal border-violet-200 text-violet-700 py-0"
+                          >
+                            {g}
+                          </Badge>
+                        ))}
+                        {extra > 0 && (
+                          <span className="text-[11px] text-gray-400">+{extra}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </TableCell>
+                )}
 
                 {/* 역할 — 인라인 Select */}
                 <TableCell>
@@ -236,36 +284,11 @@ export function UserTable({ users, onRoleChange, onStatusToggle, onOpenAddModal 
                   </Select>
                 </TableCell>
 
-                {/* 상태 */}
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={[
-                      'rounded-full text-[11px] font-medium px-2 py-0.5',
-                      user.status === '활성'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-gray-100 text-gray-500 border-gray-200',
-                    ].join(' ')}
-                  >
-                    {user.status}
-                  </Badge>
-                </TableCell>
-
                 {/* 최근 활동일 */}
                 <TableCell className="text-sm text-gray-500 tabular-nums">
                   {user.lastActivityDate}
                 </TableCell>
 
-                {/* 액션 메뉴 */}
-                <TableCell className="px-1">
-                  {!isSelf && (
-                    <UserActionMenu
-                      status={user.status}
-                      userName={user.name}
-                      onToggleStatus={() => onStatusToggle(user.id)}
-                    />
-                  )}
-                </TableCell>
               </TableRow>
             );
           })}

@@ -1,7 +1,6 @@
 // ── 사용자 관리 타입 ────────────────────────────────────────────────────────
 
 export type SimpleUserRole = '일반' | '관리자';
-export type SimpleUserStatus = '활성' | '비활성';
 
 export interface AdminUser {
   id: string;
@@ -9,7 +8,7 @@ export interface AdminUser {
   email: string;
   team: string;
   role: SimpleUserRole;
-  status: SimpleUserStatus;
+  status: '활성' | '비활성'; // ERP 동기화 데이터용, UI에서 미표시 (v6 설계)
   lastActivityDate: string; // yyyy.mm.dd
   avatarColor?: string;
 }
@@ -49,6 +48,7 @@ export interface AgentError {
   time: string;
   userName: string;
   userTeam: string;
+  requestSummary: string; // 사용자 첫 메시지 요약 (최대 20자)
   errorType: AgentErrorType;
   failedStep: string;
   summary: string;
@@ -57,9 +57,9 @@ export interface AgentError {
   skill: string | null;
   retryCount: string;
   conversationId: string;
-  // 판단 가이드
-  similarErrorCount: number;
-  affectedUsers: string;
+  // 판단 가이드 (테이블 컬럼으로 표시)
+  similarErrorCount: number; // 유사(24h): 최근 24시간 동일 에러 타입 건수
+  affectedUserCount: number; // 영향: 동일 오류를 겪은 사용자 수
   estimatedCause: string;
 }
 
@@ -135,7 +135,7 @@ export interface SkillUsageRecord {
 }
 
 export interface ServiceMetrics {
-  returnRate: { value: string };
+  regularUsageRate: { value: string };
   artifactCount: { value: string };
   skillExecutions: { value: string };
 }
@@ -150,6 +150,35 @@ export interface ArtifactDistribution {
 export interface ActiveUserTrend {
   date: string;
   count: number;
+}
+
+// ── 그룹 관리 ─────────────────────────────────────────────────────────────
+
+export type GroupType = 'ERP' | '자체';
+
+export interface ERPGroupMember {
+  userId: string;
+  name: string;
+  department: string;
+  role: SimpleUserRole;
+}
+
+export interface GroupViewAccess {
+  viewId: string;
+  viewName: string;
+  domain: string;
+  secuValue: string;
+  basis: string;
+}
+
+export interface ERPGroup {
+  id: string;
+  name: string;
+  groupType: GroupType;
+  memberCount: number;
+  members: ERPGroupMember[];
+  accessibleViewCount: number;
+  viewAccess: GroupViewAccess[];
 }
 
 // ── 모델 설정 ─────────────────────────────────────────────────────────────

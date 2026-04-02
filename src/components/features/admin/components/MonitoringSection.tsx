@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/select';
 import { AgentStatusSection } from './AgentStatusSection';
 import { CostUsageSection } from './CostUsageSection';
-import { ConversationHistorySection } from './ConversationHistorySection';
 import { ActivityReportSection } from './ActivityReportSection';
 import { ModelSettingsModal } from './ModelSettingsModal';
 import type { MonitoringPeriod } from '../types/admin.types';
@@ -20,7 +19,7 @@ import type { MonitoringPeriod } from '../types/admin.types';
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function MonitoringSection() {
-  const [period, setPeriod] = useState<MonitoringPeriod>('최근 7일');
+  const [period, setPeriod] = useState<MonitoringPeriod>('최근 30일');
   const [isModelSettingsOpen, setIsModelSettingsOpen] = useState(false);
 
   return (
@@ -28,9 +27,9 @@ export function MonitoringSection() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">모니터링</h2>
+          <h2 className="text-lg font-semibold text-gray-900">운영 현황</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            에이전트 실행 상태와 비용을 모니터링합니다.
+            에이전트 실행 상태, 비용, 활동을 한눈에 확인합니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -68,13 +67,7 @@ export function MonitoringSection() {
       {/* Divider */}
       <div className="border-t border-gray-100" />
 
-      {/* §3: Conversation History */}
-      <ConversationHistorySection />
-
-      {/* Divider */}
-      <div className="border-t border-gray-100" />
-
-      {/* §4: Activity Report */}
+      {/* §3: Activity Report */}
       <ActivityReportSection />
 
       {/* Model Settings Modal */}

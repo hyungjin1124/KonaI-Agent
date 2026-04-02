@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ChevronRight, Users, Cpu, BarChart3, RefreshCw, FileText, Zap } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ChevronRight, Users, Cpu, BarChart3, RefreshCw, FileText, Zap, Filter } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -45,16 +45,69 @@ const LEVEL_STYLES: Record<ActivityLevel, string> = {
   '미사용': 'bg-gray-100 text-gray-500 border-gray-200',
 };
 
+// 팀 목록 추출
+const ALL_TEAMS = ['전체', ...Array.from(new Set(USER_ACTIVITIES.map((u) => u.team))).sort()];
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function ActivityReportSection() {
   const [adoptionOpen, setAdoptionOpen] = useState(true);
   const [skillOpen, setSkillOpen] = useState(true);
   const [serviceOpen, setServiceOpen] = useState(true);
+  const [selectedTeam, setSelectedTeam] = useState('전체');
+
+  // 필터링된 데이터
+  const filteredUsers = useMemo(
+    () => selectedTeam === '전체' ? USER_ACTIVITIES : USER_ACTIVITIES.filter((u) => u.team === selectedTeam),
+    [selectedTeam],
+  );
+
+  const filteredSkills = useMemo(
+    () => selectedTeam === '전체' ? SKILL_USAGE_RECORDS : SKILL_USAGE_RECORDS.filter((s) => s.authorTeam === selectedTeam),
+    [selectedTeam],
+  );
+
+  // 필터된 도입 현황 KPI
+  const adoptionKPI = useMemo(() => {
+    if (selectedTeam === '전체') return ADOPTION_KPI;
+    const active = filteredUsers.filter((u) => u.activityLevel !== '미사용').length;
+    const total = filteredUsers.length;
+    const avgDays = total > 0
+      ? (filteredUsers.reduce((sum, u) => sum + u.weeklyConversations, 0) / total).toFixed(1)
+      : '0';
+    return {
+      activeUsers: { value: `${active}/${total}`, subtitle: '활성 사용자 / 전체' },
+      avgWeeklyActiveDays: { value: `${avgDays}일`, subtitle: '주간 대화 수 평균' },
+    };
+  }, [selectedTeam, filteredUsers]);
+
+  // 필터된 스킬 KPI
+  const skillKPI = useMemo(() => {
+    if (selectedTeam === '전체') return SKILL_KPI;
+    return {
+      skillCount: { value: String(filteredSkills.length), subtitle: '생성/수정된 스킬' },
+      creatorCount: { value: String(new Set(filteredSkills.map((s) => s.author)).size), subtitle: '스킬 생성 사용자' },
+    };
+  }, [selectedTeam, filteredSkills]);
 
   return (
     <section className="space-y-4">
-      <h3 className="text-sm font-bold text-gray-900">활동 리포트</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-gray-900">활동 리포트</h3>
+        {/* 팀 필터 */}
+        <div className="flex items-center gap-1.5">
+          <Filter className="h-3.5 w-3.5 text-gray-400" />
+          <select
+            value={selectedTeam}
+            onChange={(e) => setSelectedTeam(e.target.value)}
+            className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300"
+          >
+            {ALL_TEAMS.map((team) => (
+              <option key={team} value={team}>{team}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* ── Group A: 도입 현황 ──────────────────────────────────────────── */}
       <Collapsible open={adoptionOpen} onOpenChange={setAdoptionOpen}>
@@ -68,14 +121,14 @@ export function ActivityReportSection() {
           <div className="grid grid-cols-2 gap-3">
             <KPICard
               title="활성 사용자"
-              value={ADOPTION_KPI.activeUsers.value}
-              subtitle={ADOPTION_KPI.activeUsers.subtitle}
+              value={adoptionKPI.activeUsers.value}
+              subtitle={adoptionKPI.activeUsers.subtitle}
               icon={<Users size={14} />}
             />
             <KPICard
               title="주간 활성일 평균"
-              value={ADOPTION_KPI.avgWeeklyActiveDays.value}
-              subtitle={ADOPTION_KPI.avgWeeklyActiveDays.subtitle}
+              value={adoptionKPI.avgWeeklyActiveDays.value}
+              subtitle={adoptionKPI.avgWeeklyActiveDays.subtitle}
               icon={<BarChart3 size={14} />}
             />
           </div>
@@ -83,43 +136,49 @@ export function ActivityReportSection() {
           {/* Active user trend chart */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">활성 사용자 추이</h4>
-            <div className="h-[180px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={ACTIVE_USER_TREND} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10, fill: '#9CA3AF' }}
-                    axisLine={{ stroke: '#E5E7EB' }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: '#9CA3AF' }}
-                    axisLine={false}
-                    tickLine={false}
-                    domain={[0, 'dataMax + 5']}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      fontSize: 11,
-                      borderRadius: 8,
-                      border: '1px solid #E5E7EB',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                    }}
-                    labelStyle={{ fontWeight: 600 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    name="활성 사용자"
-                    stroke="#FF3C42"
-                    strokeWidth={2}
-                    dot={{ r: 3, strokeWidth: 2 }}
-                    activeDot={{ r: 5, strokeWidth: 2 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {selectedTeam === '전체' ? (
+              <div className="h-[180px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={ACTIVE_USER_TREND} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                      axisLine={{ stroke: '#E5E7EB' }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                      axisLine={false}
+                      tickLine={false}
+                      domain={[0, 'dataMax + 5']}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        fontSize: 11,
+                        borderRadius: 8,
+                        border: '1px solid #E5E7EB',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                      }}
+                      labelStyle={{ fontWeight: 600 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      name="활성 사용자"
+                      stroke="#FF3C42"
+                      strokeWidth={2}
+                      dot={{ r: 3, strokeWidth: 2 }}
+                      activeDot={{ r: 5, strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-[60px] flex items-center justify-center">
+                <p className="text-xs text-gray-400">팀별 추이 데이터는 전체 보기에서 확인할 수 있습니다.</p>
+              </div>
+            )}
           </div>
 
           {/* User activity table */}
@@ -135,7 +194,7 @@ export function ActivityReportSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {USER_ACTIVITIES.map((ua) => (
+                {filteredUsers.map((ua) => (
                   <TableRow key={ua.userName} className="hover:bg-gray-50/60 transition-colors">
                     <TableCell className="text-sm font-medium text-gray-700">{ua.userName}</TableCell>
                     <TableCell className="text-xs text-gray-500">{ua.team}</TableCell>
@@ -171,14 +230,14 @@ export function ActivityReportSection() {
           <div className="grid grid-cols-2 gap-3">
             <KPICard
               title="스킬 생성/수정"
-              value={SKILL_KPI.skillCount.value}
-              subtitle={SKILL_KPI.skillCount.subtitle}
+              value={skillKPI.skillCount.value}
+              subtitle={skillKPI.skillCount.subtitle}
               icon={<Cpu size={14} />}
             />
             <KPICard
               title="스킬 생성 사용자"
-              value={SKILL_KPI.creatorCount.value}
-              subtitle={SKILL_KPI.creatorCount.subtitle}
+              value={skillKPI.creatorCount.value}
+              subtitle={skillKPI.creatorCount.subtitle}
               icon={<Users size={14} />}
             />
           </div>
@@ -196,15 +255,23 @@ export function ActivityReportSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {SKILL_USAGE_RECORDS.map((sr) => (
-                  <TableRow key={sr.skillName} className="hover:bg-gray-50/60 transition-colors">
-                    <TableCell className="text-sm font-medium text-gray-700">{sr.skillName}</TableCell>
-                    <TableCell className="text-xs text-gray-700 tabular-nums text-right font-medium">{sr.callCount}</TableCell>
-                    <TableCell className="text-xs text-gray-700 tabular-nums text-right">{sr.userCount}</TableCell>
-                    <TableCell className="text-xs text-gray-500">{sr.author}</TableCell>
-                    <TableCell className="text-xs text-gray-500">{sr.authorTeam}</TableCell>
+                {filteredSkills.length > 0 ? (
+                  filteredSkills.map((sr) => (
+                    <TableRow key={sr.skillName} className="hover:bg-gray-50/60 transition-colors">
+                      <TableCell className="text-sm font-medium text-gray-700">{sr.skillName}</TableCell>
+                      <TableCell className="text-xs text-gray-700 tabular-nums text-right font-medium">{sr.callCount}</TableCell>
+                      <TableCell className="text-xs text-gray-700 tabular-nums text-right">{sr.userCount}</TableCell>
+                      <TableCell className="text-xs text-gray-500">{sr.author}</TableCell>
+                      <TableCell className="text-xs text-gray-500">{sr.authorTeam}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-xs text-gray-400 text-center py-6">
+                      해당 팀의 스킬 데이터가 없습니다.
+                    </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -222,8 +289,8 @@ export function ActivityReportSection() {
           {/* KPI */}
           <div className="grid grid-cols-3 gap-3">
             <KPICard
-              title="재방문율"
-              value={SERVICE_METRICS.returnRate.value}
+              title="정기 사용 비율"
+              value={SERVICE_METRICS.regularUsageRate.value}
               icon={<RefreshCw size={14} />}
             />
             <KPICard
