@@ -130,18 +130,30 @@ Status 값:
 - `needs_update` — 구현 완료이나 개선 리서치 발견
 - `deprecated` — 더 이상 필요 없음 (대체됨)
 
-### Obsidian Vault (리서치 문서)
+### Obsidian Vault (단일 지식 출처)
 
-리서치 문서는 별도 Obsidian Vault에 관리된다. Catalog의 `obsidian_sources` 필드가
-vault 내 상대 경로를 가리킨다.
+**Karpathy LLM Wiki 원칙**: KonaI-Agent의 모든 비-코드 산출물(설계·기획·결정·참조·리서치)은 Vault에서 단일 출처로 관리하며, 코드 저장소(`docs/`)에는 자동화·QA 산출물(`reports/`), 바이너리 참조(`references/*.{xlsx,docx,html}`), `INDEX.md`만 잔존한다.
 
-- **Vault 경로**: `/Users/hyungjin/Documents/Obsidian Vault/KonaChain/리서치`
-- **패턴 문서**: `Insights/agent-ui/patterns/{topic-slug}.md`
-- **문서 구조**: 경쟁사 분석 → 패턴 트레이드오프 → KonaI-Agent 적용 전략 → Acceptance Criteria
+- **Vault 루트**: `/Users/hyungjin/Documents/Obsidian Vault/KonaChain`
+- **두 대분류**:
+  - `KonaChain/KonaI-Agent/` — 프로젝트 산출물
+    - `설계/` (IA, 와이어프레임 프롬프트, skill creation 프로토콜) + `archive/`
+    - `기획/` (상세 기획서, 데이터 접근 정책, 서비스 플랜)
+    - `ADR/` (`ADR-XXXX-*.md`)
+    - `참조/` (외부 자료, Cowork 슬라이드, 다이어그램) + `archive/`, `admin/`
+    - `_CONTEXT.md` (구조 가이드)
+  - `KonaChain/리서치/Insights/` — 3-Layer 리서치 (raw → synthesis → decision)
+    - 카테고리: `agent-ui/`, `agent-skills/`, `knowledge-data/`, `platform-admin/`, `skill-management-ux/`, `market/`, `open-source/`
+    - 각 카테고리 하위 `sources/`에 raw-research 원문 보관
+    - `agent-ui/patterns/{topic-slug}.md` 형태의 synthesis 문서
+- **catalog 매핑 필드**:
+  - `obsidian_sources` — Vault 루트(`KonaChain`) 기준 상대 경로 (예: `리서치/Insights/agent-ui/patterns/markdown-renderer.md` 또는 `KonaI-Agent/설계/menu-structure.md`)
+  - `last_researched` — 마지막 리서치 일자
+- **synthesis ↔ raw 역참조**: synthesis 문서의 frontmatter `related_raw_sources`로 동일 카테고리 `sources/` 내 원문을 역연결
 
-Claude Code가 obsidian_sources를 참조할 때는 다음 경로에서 읽는다:
+Claude Code가 obsidian_sources를 참조할 때 경로 조립:
 ```
-/Users/hyungjin/Documents/Obsidian Vault/KonaChain/리서치/{obsidian_sources_value}
+/Users/hyungjin/Documents/Obsidian Vault/KonaChain/{obsidian_sources_value}
 ```
 
 ### AGENTS.md (Vault 라우팅 허브)

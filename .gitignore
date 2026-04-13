@@ -70,5 +70,13 @@ temp/
 *.jpg
 *.jpeg
 
+# Credentials / secrets
+06_설정/
+
+# Temporary generated HTML reports
+desc-optimization-report-ai-news.html
+eval-set-review-ai-news.html
+eval-viewer-ai-news.html
+
 # Next.js
 .next/
