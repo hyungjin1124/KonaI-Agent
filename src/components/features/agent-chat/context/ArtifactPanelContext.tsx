@@ -2,8 +2,15 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { ArtifactTab, Artifact, ArtifactPreviewType, Citation } from '../types';
+import type { SkillDraft } from '@/types/skill-draft.types';
 
 const MAX_TABS = 8;
+
+/** skill-draft 렌더러가 호출할 콜백 묶음 */
+export interface SkillDraftPanelHandlers {
+  onSave: () => void;
+  onDiscard: () => void;
+}
 
 interface ArtifactPanelContextValue {
   // 탭 상태
@@ -27,6 +34,9 @@ interface ArtifactPanelContextValue {
   citations?: Citation[];
   markdownContents: Record<string, string>;
   markdownEditingState: 'idle' | 'editing' | 'shimmer';
+  // skill-draft 전용 (GeneralChatView에서 주입)
+  skillDraft?: SkillDraft | null;
+  skillDraftHandlers?: SkillDraftPanelHandlers;
 }
 
 const ArtifactPanelContext = createContext<ArtifactPanelContextValue | null>(null);
@@ -53,6 +63,9 @@ interface ArtifactPanelProviderProps {
   citations?: Citation[];
   markdownContents: Record<string, string>;
   markdownEditingState: 'idle' | 'editing' | 'shimmer';
+  // skill-draft 전용 (GeneralChatView에서 전달)
+  skillDraft?: SkillDraft | null;
+  skillDraftHandlers?: SkillDraftPanelHandlers;
 }
 
 export const ArtifactPanelProvider: React.FC<ArtifactPanelProviderProps> = ({
@@ -64,6 +77,8 @@ export const ArtifactPanelProvider: React.FC<ArtifactPanelProviderProps> = ({
   citations,
   markdownContents,
   markdownEditingState,
+  skillDraft,
+  skillDraftHandlers,
 }) => {
   const [tabs, setTabs] = useState<ArtifactTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -211,6 +226,8 @@ export const ArtifactPanelProvider: React.FC<ArtifactPanelProviderProps> = ({
     citations,
     markdownContents,
     markdownEditingState,
+    skillDraft,
+    skillDraftHandlers,
   };
 
   return (

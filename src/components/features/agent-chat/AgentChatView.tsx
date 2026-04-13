@@ -22,6 +22,14 @@ import { useNLChart, NLChartRenderer } from '../nl-chart';
 import { MultiAgentScenarioRenderer } from '../multi-agent';
 import { extractGenerativeUIFromMessage } from '../generative-ui';
 import type { GenerativeUISpec } from '../generative-ui';
+import { useSkillDraft } from '../skill-draft/hooks/useSkillDraft';
+import { useSkillIntentDetection } from '../skill-draft/hooks/useSkillIntentDetection';
+import { useScriptedSkillScenario } from '../skill-draft/hooks/useScriptedSkillScenario';
+import { skillDraftStore } from '../skill-draft/data/skillDraftStore';
+import type { EvalRun } from '@/types/skill-draft.types';
+
+// Skill Draft 탭 고정 ID — 한 채팅 세션에 1개만 존재
+const SKILL_DRAFT_TAB_ID = 'skill-draft-panel';
 
 // Re-export ChatMessage for external use
 export type { ChatMessage };
@@ -165,6 +173,11 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
 
   // NL-to-Chart
   const { chartResult, processQuery: processChartQuery, changeChartType, clearChart } = useNLChart();
+
+  // Skill Draft (사용자 발화 기반 스킬 생성/편집)
+  const skillDraftHook = useSkillDraft('agent-chat-session');
+  const intentDetection = useSkillIntentDetection();
+  const scenarioRunner = useScriptedSkillScenario();
 
   // Generative UI specs (탭 ID → spec 매핑)
   const [generativeUISpecs, setGenerativeUISpecs] = useState<Record<string, import('../generative-ui').GenerativeUISpec>>({});
@@ -610,6 +623,107 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     }
   }, [anomalyDetectionComplete]);
 
+  // ---------- Skill Draft helpers ----------
+  const openSkillDraftPanel = useCallback(() => {
+    artifactPanelRef.current?.openTab({
+      id: SKILL_DRAFT_TAB_ID,
+      artifact: null,
+      previewType: 'skill-draft',
+      title: '스킬 드래프트',
+    });
+    setShowDashboard(true);
+    setCenterPanelState({ isOpen: true, content: 'dashboard' });
+  }, []);
+
+  const pushSkillAgentText = useCallback((content: string) => {
+    setChatHistory(prev => [
+      ...prev,
+      {
+        id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type: 'agent',
+        content,
+        timestamp: new Date(),
+      },
+    ]);
+  }, []);
+
+  const pushSkillDraftCard = useCallback((draftId: string) => {
+    setChatHistory(prev => [
+      ...prev,
+      {
+        id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type: 'skill-draft-card',
+        content: '',
+        timestamp: new Date(),
+        draftId,
+      },
+    ]);
+  }, []);
+
+  /** PASS / FAIL 시나리오에 따라 자동 평가를 회차별로 진행 */
+  const runSkillEval = useCallback(
+    async (isFirstAttempt: boolean) => {
+      const draft = skillDraftHook.draft;
+      if (!draft) return;
+      const draftId = draft.id;
+
+      skillDraftHook.transitionTo('EVALUATING');
+
+      const { pass } = await scenarioRunner.runEval(
+        draft.scenarioId,
+        isFirstAttempt,
+        (run: EvalRun) => {
+          skillDraftHook.appendEvalRun(run);
+        },
+      );
+
+      if (pass) {
+        skillDraftHook.transitionTo('EVAL_PASS');
+        pushSkillAgentText(
+          '자동 평가 3 / 3 통과했습니다. 채팅에 "저장해줘" 라고 말씀하시면 스킬 라이브러리에 등록할게요.',
+        );
+        pushSkillDraftCard(draftId);
+      } else {
+        skillDraftHook.transitionTo('EVAL_FAIL');
+        const scenario = skillDraftHook.scenario;
+        pushSkillAgentText(
+          scenario?.failRecoveryHint ??
+            '자동 평가 중 실패가 발생했어요. 어떻게 보완할지 말씀해주세요.',
+        );
+        pushSkillDraftCard(draftId);
+      }
+    },
+    [pushSkillAgentText, pushSkillDraftCard, scenarioRunner, skillDraftHook],
+  );
+
+  const handleSkillSave = useCallback(() => {
+    const saved = skillDraftHook.save();
+    if (!saved) {
+      pushSkillAgentText(
+        '아직 저장할 수 없어요. 자동 평가가 모두 통과한 다음에 다시 시도해주세요.',
+      );
+      return;
+    }
+    skillDraftStore.add(saved);
+    pushSkillAgentText(
+      `"${saved.name}" 스킬이 라이브러리에 저장됐어요. /skills 에서 확인할 수 있습니다.`,
+    );
+  }, [pushSkillAgentText, skillDraftHook]);
+
+  const handleSkillDiscard = useCallback(() => {
+    skillDraftHook.discard();
+    pushSkillAgentText('드래프트를 폐기했어요. 새 요청이 있으면 언제든 말씀해주세요.');
+  }, [pushSkillAgentText, skillDraftHook]);
+
+  const getSkillDraftById = useCallback(
+    (id: string) => {
+      const d = skillDraftHook.draft;
+      if (!d) return null;
+      return d.id === id ? d : null;
+    },
+    [skillDraftHook.draft],
+  );
+
   // useCallback으로 핸들러 최적화
   const handleSend = useCallback((text: string, attachedFile?: AttachedFile, immediate: boolean = false) => {
     if (!showDashboard) {
@@ -876,6 +990,150 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
     }
 
     setUserQuery(text);
+
+    // ---------- Skill Draft 의도 분기 (다른 분기보다 우선) ----------
+    if (!attachedFile) {
+      const intent = intentDetection.detect(text, skillDraftHook.draft);
+
+      // 1) 새 드래프트 생성
+      if (intent.isCreateIntent && intent.scenarioId) {
+        const created = skillDraftHook.create({
+          scenarioId: intent.scenarioId,
+          chatSessionId: 'agent-chat-session',
+        });
+        if (created) {
+          const userMsg: ChatMessage = {
+            id: `user-${Date.now()}`,
+            type: 'user',
+            content: text,
+            timestamp: new Date(),
+          };
+          setChatHistory(prev => [...prev, userMsg]);
+          const initialMsg = scenarioRunner.start(intent.scenarioId);
+          setTimeout(() => {
+            pushSkillAgentText(initialMsg);
+            pushSkillDraftCard(created.id);
+            openSkillDraftPanel();
+          }, 300);
+          setInputValue('');
+          return;
+        }
+      }
+
+      // 2) 폐기 의도
+      if (intent.isDiscardIntent) {
+        const userMsg: ChatMessage = {
+          id: `user-${Date.now()}`,
+          type: 'user',
+          content: text,
+          timestamp: new Date(),
+        };
+        setChatHistory(prev => [...prev, userMsg]);
+        const id = skillDraftHook.draft?.id;
+        handleSkillDiscard();
+        if (id) pushSkillDraftCard(id);
+        setInputValue('');
+        return;
+      }
+
+      // 3) 저장 의도 (EVAL_PASS 일 때만)
+      if (intent.isSaveIntent) {
+        const userMsg: ChatMessage = {
+          id: `user-${Date.now()}`,
+          type: 'user',
+          content: text,
+          timestamp: new Date(),
+        };
+        setChatHistory(prev => [...prev, userMsg]);
+        const id = skillDraftHook.draft?.id;
+        handleSkillSave();
+        if (id) pushSkillDraftCard(id);
+        setInputValue('');
+        return;
+      }
+
+      // 4) 진행 의도 → 자동 평가 시작
+      if (intent.isProgressIntent) {
+        const userMsg: ChatMessage = {
+          id: `user-${Date.now()}`,
+          type: 'user',
+          content: text,
+          timestamp: new Date(),
+        };
+        setChatHistory(prev => [...prev, userMsg]);
+        const draftId = skillDraftHook.draft?.id;
+        const isFirstAttempt = (skillDraftHook.draft?.evalRuns.length ?? 0) === 0;
+        setTimeout(() => {
+          pushSkillAgentText('자동 평가를 시작할게요. 회차별로 결과를 표시합니다.');
+          if (draftId) pushSkillDraftCard(draftId);
+          // 비동기 실행 (회차별 결과는 setTimeout 으로 누적)
+          runSkillEval(isFirstAttempt);
+        }, 200);
+        setInputValue('');
+        return;
+      }
+
+      // 5) FAIL 후 회복 발화
+      if (intent.isRecoveryIntent && skillDraftHook.draft) {
+        const recovery = scenarioRunner.applyRecovery(
+          skillDraftHook.draft.scenarioId,
+          text,
+          skillDraftHook.draft,
+        );
+        if (recovery) {
+          const userMsg: ChatMessage = {
+            id: `user-${Date.now()}`,
+            type: 'user',
+            content: text,
+            timestamp: new Date(),
+          };
+          setChatHistory(prev => [...prev, userMsg]);
+          skillDraftHook.applyPatch(recovery.patch);
+          setTimeout(() => {
+            pushSkillAgentText(recovery.acknowledgement);
+            const id = skillDraftHook.draft?.id;
+            if (id) pushSkillDraftCard(id);
+          }, 300);
+          setInputValue('');
+          return;
+        }
+      }
+
+      // 6) CAPTURING 단계 진행 — 활성 드래프트가 있으면 사용자 입력을 6항목에 매핑
+      if (
+        skillDraftHook.draft &&
+        skillDraftHook.draft.status === 'CAPTURING'
+      ) {
+        const userMsg: ChatMessage = {
+          id: `user-${Date.now()}`,
+          type: 'user',
+          content: text,
+          timestamp: new Date(),
+        };
+        setChatHistory(prev => [...prev, userMsg]);
+        const result = scenarioRunner.advance(text, skillDraftHook.draft);
+        // 6항목이 모두 채워진 후 추가 발화는 안내만 보냄 (빈 메시지 방지)
+        if (result.isCaptureComplete && !result.nextAgentMessage) {
+          setTimeout(() => {
+            pushSkillAgentText(
+              '6항목 캡처가 끝났어요. "이대로 진행해줘" 라고 말씀하시면 자동 평가를 시작할게요.',
+            );
+            const id = skillDraftHook.draft?.id;
+            if (id) pushSkillDraftCard(id);
+          }, 300);
+          setInputValue('');
+          return;
+        }
+        skillDraftHook.applyPatch(result.patch);
+        setTimeout(() => {
+          pushSkillAgentText(result.nextAgentMessage);
+          const id = skillDraftHook.draft?.id;
+          if (id) pushSkillDraftCard(id);
+        }, 300);
+        setInputValue('');
+        return;
+      }
+    }
 
     // NL-to-Chart: 차트 쿼리 감지 (시나리오 감지보다 먼저 시도)
     const nlChartResult = processChartQuery(text);
@@ -1211,7 +1469,27 @@ const AgentChatView: React.FC<{ initialQuery?: string; initialContext?: SampleIn
              }, 800);
          }
     }
-  }, [showDashboard, contextData, isOutlineRevisionMode, slideOutlineHITL, markdownContents, setContextItems, setArtifacts, setMarkdownContents, setCenterPanelState, processChartQuery]);
+  }, [
+    showDashboard,
+    contextData,
+    isOutlineRevisionMode,
+    slideOutlineHITL,
+    markdownContents,
+    setContextItems,
+    setArtifacts,
+    setMarkdownContents,
+    setCenterPanelState,
+    processChartQuery,
+    intentDetection,
+    skillDraftHook,
+    scenarioRunner,
+    pushSkillAgentText,
+    pushSkillDraftCard,
+    openSkillDraftPanel,
+    runSkillEval,
+    handleSkillDiscard,
+    handleSkillSave,
+  ]);
 
   const handleReset = useCallback(() => {
     setInputValue('');
@@ -1805,6 +2083,8 @@ setArtifacts([]); // Clear artifacts
               renderAgentResponse={renderAgentResponse}
               onRequestSalesAnalysis={handleRequestSalesAnalysis}
               onOpenCenterPanel={(content) => setCenterPanelState({ isOpen: true, content })}
+              getDraftById={getSkillDraftById}
+              onOpenSkillDraft={openSkillDraftPanel}
             />
           </div>
           <div className="shrink-0">
@@ -1936,6 +2216,8 @@ setArtifacts([]); // Clear artifacts
         csvContent={csvContent}
         markdownContents={markdownContents}
         markdownEditingState={markdownEditingState}
+        skillDraft={skillDraftHook.draft}
+        skillDraftHandlers={{ onSave: handleSkillSave, onDiscard: handleSkillDiscard }}
         onPanelOpenChange={(isOpen) => { if (!isOpen) handleCloseCenterPanel(); }}
       >
         <ArtifactPanelBridge bridgeRef={artifactPanelRef} />
@@ -2024,6 +2306,8 @@ setArtifacts([]); // Clear artifacts
       csvContent={csvContent}
       markdownContents={markdownContents}
       markdownEditingState={markdownEditingState}
+      skillDraft={skillDraftHook.draft}
+      skillDraftHandlers={{ onSave: handleSkillSave, onDiscard: handleSkillDiscard }}
       onPanelOpenChange={(isOpen) => { if (!isOpen) handleCloseCenterPanel(); }}
     >
       <ArtifactPanelBridge bridgeRef={artifactPanelRef} />

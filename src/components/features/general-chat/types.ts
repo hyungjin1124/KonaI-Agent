@@ -6,12 +6,14 @@ import type { Citation } from '../agent-chat/types';
 // Chat message type
 export interface ChatMessage {
   id: string;
-  type: 'user' | 'assistant';
+  type: 'user' | 'assistant' | 'skill-draft-card';
   content: string;
   timestamp: Date;
   citations?: Citation[];
   parentMessageId?: string | null;
   branchId?: string;
+  /** type === 'skill-draft-card' 일 때만 의미 — 카드 클릭 시 이 ID로 패널 재오픈 */
+  draftId?: string;
 }
 
 // Branch metadata

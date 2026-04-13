@@ -77,7 +77,7 @@ export interface StreamingState {
 }
 
 // Artifact Types for generated files
-export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image' | 'slide-outline' | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx';
+export type ArtifactType = 'document' | 'markdown' | 'ppt' | 'chart' | 'image' | 'slide-outline' | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx' | 'skill-draft';
 
 export interface Artifact {
   id: string;
@@ -367,7 +367,8 @@ export type ArtifactPreviewType =
   | 'ppt' | 'dashboard' | 'chart'
   | 'slide-outline' | 'markdown'
   | 'pdf' | 'docx' | 'xlsx' | 'csv' | 'pptx'
-  | 'generative-ui';
+  | 'generative-ui'
+  | 'skill-draft';
 
 // Artifact Tab (탭 관리용)
 export interface ArtifactTab {

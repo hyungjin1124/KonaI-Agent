@@ -4,17 +4,21 @@ import { CenterPanelState, ArtifactPreviewState, Citation } from '../types';
 import ScrollToBottomButton from './ScrollToBottomButton';
 import { PPTDoneResponse } from './AgentResponse';
 import { CitationSourceLink } from './CitationSourceLink';
+import { SkillDraftInlineCard } from '../../skill-draft/components/SkillDraftInlineCard';
+import type { SkillDraft } from '@/types/skill-draft.types';
 
 // ChatMessage interface - extracted from AgentChatView.tsx
 export interface ChatMessage {
   id: string;
-  type: 'user' | 'agent';
+  type: 'user' | 'agent' | 'skill-draft-card';
   content: string;
   timestamp: Date;
   dashboardType?: 'financial' | 'did' | 'ppt';
   dashboardScenario?: string;
   pptStatus?: 'idle' | 'setup' | 'generating' | 'done';
   citations?: Citation[];
+  /** type === 'skill-draft-card' 일 때 — 카드 클릭 시 이 ID로 패널 재오픈 */
+  draftId?: string;
 }
 
 interface ChatHistoryPanelProps {
@@ -33,6 +37,9 @@ interface ChatHistoryPanelProps {
   renderAgentResponse: () => React.ReactNode;
   onRequestSalesAnalysis: () => void;
   onOpenCenterPanel: (content: 'ppt-preview' | 'ppt-result' | 'dashboard' | 'slide-outline' | 'markdown-preview') => void;
+  // Skill Draft (optional — chat 라우트에서만 주입)
+  getDraftById?: (id: string) => SkillDraft | null;
+  onOpenSkillDraft?: () => void;
 }
 
 const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = React.memo(({
@@ -51,6 +58,8 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = React.memo(({
   renderAgentResponse,
   onRequestSalesAnalysis,
   onOpenCenterPanel,
+  getDraftById,
+  onOpenSkillDraft,
 }) => {
   return (
     <div ref={leftPanelRef} className="h-full overflow-y-auto custom-scrollbar scroll-smooth relative">
@@ -68,6 +77,26 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = React.memo(({
             const isSimpleTextMessage = message.type === 'agent' &&
               message.dashboardType === undefined &&
               message.content;
+
+            // Skill Draft 인라인 카드
+            if (message.type === 'skill-draft-card') {
+              const draft = message.draftId ? getDraftById?.(message.draftId) ?? null : null;
+              if (!draft) {
+                return (
+                  <div key={message.id} data-message-id={message.id} className="mb-4">
+                    <div className="text-xs text-gray-400 px-1">스킬 드래프트가 더 이상 활성 상태가 아닙니다.</div>
+                  </div>
+                );
+              }
+              return (
+                <div key={message.id} data-message-id={message.id} className="flex justify-start mb-4">
+                  <SkillDraftInlineCard
+                    draft={draft}
+                    onOpen={() => onOpenSkillDraft?.()}
+                  />
+                </div>
+              );
+            }
 
             return (
               <div key={message.id} data-message-id={message.id}>

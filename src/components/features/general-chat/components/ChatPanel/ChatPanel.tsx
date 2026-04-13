@@ -7,6 +7,8 @@ import { UnifiedChatInput } from '../UnifiedChatInput';
 import type { AttachedFile } from '../../../agent-chat/types';
 import { BranchIndicator } from '../BranchIndicator';
 import { InlineGenerativeUI } from '../../../generative-ui/InlineGenerativeUI';
+import { SkillDraftInlineCard } from '../../../skill-draft/components/SkillDraftInlineCard';
+import type { SkillDraft } from '@/types/skill-draft.types';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -25,6 +27,11 @@ interface ChatPanelProps {
   onDeleteBranch?: (branchId: string) => void;
   getBranchesAtMessage?: (messageId: string) => BranchInfo[];
   activeBranchId?: string;
+  // Skill draft inline card 지원
+  /** draftId → SkillDraft lookup (현재 활성 드래프트만 매칭) */
+  getDraftById?: (draftId: string) => SkillDraft | null;
+  /** 카드 클릭 시 패널 재오픈 */
+  onOpenSkillDraft?: (draftId: string) => void;
 }
 
 const formatTime = (date: Date): string => {
@@ -48,6 +55,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onDeleteBranch,
   getBranchesAtMessage,
   activeBranchId,
+  getDraftById,
+  onOpenSkillDraft,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +103,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     <div className="flex-1 overflow-y-auto px-4 py-6">
       <div className="max-w-3xl mx-auto space-y-6">
         {messages.map((message) => {
+          // skill-draft-card 메시지 — 채팅 흐름에 인라인 카드로 삽입
+          if (message.type === 'skill-draft-card') {
+            const draft = message.draftId ? getDraftById?.(message.draftId) ?? null : null;
+            if (!draft) {
+              // 해당 채팅 세션이 끝나 드래프트가 사라진 경우 → 안내만 노출
+              return (
+                <div key={message.id} className="text-xs text-gray-400 px-1">
+                  스킬 드래프트가 더 이상 활성 상태가 아닙니다.
+                </div>
+              );
+            }
+            return (
+              <div key={message.id} className="flex justify-start">
+                <SkillDraftInlineCard
+                  draft={draft}
+                  onOpen={() =>
+                    message.draftId && onOpenSkillDraft?.(message.draftId)
+                  }
+                />
+              </div>
+            );
+          }
+
           const branchesAtMsg = getBranchesAtMessage?.(message.id) ?? [];
           const hasBranchesHere = branchesAtMsg.length > 0;
 

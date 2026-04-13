@@ -10,6 +10,7 @@ import { MarkdownRenderer } from './renderers/MarkdownRenderer';
 import { SlideOutlineRenderer, SlideOutlineRendererProps } from './renderers/SlideOutlineRenderer';
 import { GenerativeUIRendererAdapter } from './renderers/GenerativeUIRendererAdapter';
 import { ArtifactVersionHistory } from '../ArtifactLibrary/ArtifactVersionHistory';
+import { SkillDraftRenderer } from '../../../skill-draft/components/SkillDraftRenderer';
 import type { GenerativeUISpec } from '../../../generative-ui';
 
 interface ArtifactPreviewPanelProps {
@@ -52,6 +53,8 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
     citations,
     markdownContents,
     markdownEditingState,
+    skillDraft,
+    skillDraftHandlers,
   } = useArtifactPanel();
 
   const library = useArtifactLibraryOptional();
@@ -135,6 +138,22 @@ export const ArtifactPreviewPanel: React.FC<ArtifactPreviewPanelProps> = ({
           <GenerativeUIRendererAdapter
             spec={generativeUISpecs?.[activeTab.id]}
             onClose={handleClosePanel}
+          />
+        );
+
+      case 'skill-draft':
+        if (!skillDraft) {
+          return (
+            <div className="flex-1 flex items-center justify-center text-gray-400">
+              <p>스킬 드래프트를 불러오는 중...</p>
+            </div>
+          );
+        }
+        return (
+          <SkillDraftRenderer
+            draft={skillDraft}
+            onSave={skillDraftHandlers?.onSave ?? (() => {})}
+            onDiscard={skillDraftHandlers?.onDiscard ?? (() => {})}
           />
         );
 

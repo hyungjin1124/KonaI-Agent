@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, FileText, BarChart2, Presentation, FileDown, Table2, File, Image, Layout } from 'lucide-react';
+import { X, FileText, BarChart2, Presentation, FileDown, Table2, File, Image, Layout, Sparkles } from 'lucide-react';
 import { ArtifactTab, ArtifactPreviewType } from '../../types';
 
 interface ArtifactTabBarProps {
@@ -29,6 +29,8 @@ const getTabIcon = (previewType: ArtifactPreviewType) => {
       return <Presentation className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />;
     case 'slide-outline':
       return <Layout className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />;
+    case 'skill-draft':
+      return <Sparkles className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />;
     default:
       return <File className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />;
   }
