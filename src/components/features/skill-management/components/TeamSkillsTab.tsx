@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Sparkles, MessageSquarePlus } from 'lucide-react';
 import type { TeamSkill, SkillCategory, SkillSourceFilter } from '@/types/skill-management.types';
 import { SKILL_CATEGORIES } from '@/types/skill-management.types';
 import { CURRENT_USER, TEAM_MEMBERS } from '../data/skillMockData';
@@ -19,6 +21,8 @@ interface TeamSkillsTabProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function TeamSkillsTab({ skills, onSkillsChange, showToast }: TeamSkillsTabProps) {
+  const router = useRouter();
+
   // ── State ──────────────────────────────────────────────────────────────────
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -187,9 +191,18 @@ export default function TeamSkillsTab({ skills, onSkillsChange, showToast }: Tea
     [skills, onSkillsChange],
   );
 
-  const handleChatEdit = useCallback(() => {
-    showToast('채팅 편집 기능은 준비 중입니다', 'info');
-  }, [showToast]);
+  /** 채팅에서 편집: 새 채팅 세션으로 이동하면서 editSkillId 쿼리로 원본 식별 (D14) */
+  const handleChatEdit = useCallback(
+    (skill: TeamSkill) => {
+      router.push(`/chat?editSkillId=${encodeURIComponent(skill.id)}`);
+    },
+    [router],
+  );
+
+  /** 새 스킬 만들기: 채팅으로 이동 + create 의도 시그널 (D13 빈 상태·인라인 안내 공용) */
+  const handleGoToCreate = useCallback(() => {
+    router.push('/chat?intent=create-skill');
+  }, [router]);
 
   /** 전사 공개 토글 (v10) */
   const handleTogglePublish = useCallback(
@@ -228,51 +241,88 @@ export default function TeamSkillsTab({ skills, onSkillsChange, showToast }: Tea
       >
         {/* Filter bar */}
         <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-3">
-          <SkillFilters
-            searchQuery={searchQuery}
-            categoryFilter={categoryFilter}
-            authorFilter={authorFilter}
-            activeMemberFilter={activeMemberFilter}
-            teamMembers={TEAM_MEMBERS}
-            onSearchChange={setSearchQuery}
-            onCategoryChange={setCategoryFilter}
-            onAuthorChange={setAuthorFilter}
-            onActiveMemberChange={setActiveMemberFilter}
-            sourceFilter={sourceFilter}
-            onSourceChange={setSourceFilter}
-          />
+          <div className="flex items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <SkillFilters
+                searchQuery={searchQuery}
+                categoryFilter={categoryFilter}
+                authorFilter={authorFilter}
+                activeMemberFilter={activeMemberFilter}
+                teamMembers={TEAM_MEMBERS}
+                onSearchChange={setSearchQuery}
+                onCategoryChange={setCategoryFilter}
+                onAuthorChange={setAuthorFilter}
+                onActiveMemberChange={setActiveMemberFilter}
+                sourceFilter={sourceFilter}
+                onSourceChange={setSourceFilter}
+              />
+            </div>
+            {/* D13 — 우측 인라인 안내 라인 */}
+            <button
+              type="button"
+              onClick={handleGoToCreate}
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors"
+            >
+              <Sparkles size={14} className="text-amber-500" />
+              <span>새 스킬은 AI 채팅에서 만들 수 있어요</span>
+            </button>
+          </div>
         </div>
 
         {/* Skill table */}
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <SkillTable
-              skills={filteredSkills}
-              selectedId={selectedSkillId}
-              isPanelOpen={isPanelOpen}
-              teamMembers={TEAM_MEMBERS}
-              onRowClick={handleRowClick}
-              onToggleActivation={handleToggleActivation}
-            />
-
-            {filteredSkills.length === 0 && skills.length > 0 && (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <p className="text-sm text-gray-500">조건에 맞는 스킬이 없습니다.</p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setCategoryFilter('all');
-                    setAuthorFilter('all');
-                    setActiveMemberFilter('all');
-                    setSourceFilter('all');
-                  }}
-                  className="mt-3 text-xs text-gray-400 underline hover:text-gray-600"
-                >
-                  필터 초기화
-                </button>
+          {skills.length === 0 ? (
+            // D13 — 0 스킬 빈 상태: AI 채팅으로 유도
+            <div className="bg-white rounded-xl border border-dashed border-gray-300 shadow-sm flex flex-col items-center justify-center py-24 px-6 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
+                <Sparkles size={26} className="text-amber-500" />
               </div>
-            )}
-          </div>
+              <h3 className="text-base font-semibold text-gray-900">
+                아직 등록된 스킬이 없어요
+              </h3>
+              <p className="mt-2 text-sm text-gray-500 max-w-sm">
+                새 스킬은 AI 채팅에서 만들 수 있어요. 어떤 작업을 자동화하고
+                싶은지 말씀해주시면 함께 정리해드릴게요.
+              </p>
+              <button
+                type="button"
+                onClick={handleGoToCreate}
+                className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                <MessageSquarePlus size={16} />
+                AI 채팅으로 가기
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <SkillTable
+                skills={filteredSkills}
+                selectedId={selectedSkillId}
+                isPanelOpen={isPanelOpen}
+                teamMembers={TEAM_MEMBERS}
+                onRowClick={handleRowClick}
+                onToggleActivation={handleToggleActivation}
+              />
+
+              {filteredSkills.length === 0 && skills.length > 0 && (
+                <div className="flex flex-col items-center justify-center py-24 text-center">
+                  <p className="text-sm text-gray-500">조건에 맞는 스킬이 없습니다.</p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setCategoryFilter('all');
+                      setAuthorFilter('all');
+                      setActiveMemberFilter('all');
+                      setSourceFilter('all');
+                    }}
+                    className="mt-3 text-xs text-gray-400 underline hover:text-gray-600"
+                  >
+                    필터 초기화
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -292,7 +342,7 @@ export default function TeamSkillsTab({ skills, onSkillsChange, showToast }: Tea
             teamMembers={TEAM_MEMBERS}
             onClose={handleClosePanel}
             onCopy={() => handleCopy(selectedSkill.id)}
-            onChatEdit={handleChatEdit}
+            onChatEdit={() => handleChatEdit(selectedSkill)}
             onToggleActivation={() => handleToggleActivation(selectedSkill.id)}
             onRename={handleRename}
             isExpanded={isExpanded}

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { TeamSkill, MarketplaceSkill } from '@/types/skill-management.types';
 import { mockTeamSkills, CURRENT_USER } from './data/skillMockData';
+import { skillDraftStore } from '../skill-draft/data/skillDraftStore';
 import TeamSkillsTab from './components/TeamSkillsTab';
 import MarketplaceTab from './components/MarketplaceTab';
 
@@ -18,8 +19,29 @@ interface ToastState {
 
 export default function SkillsPageView() {
   const [activeTab, setActiveTab] = useState<'team' | 'marketplace'>('team');
-  const [skills, setSkills] = useState<TeamSkill[]>(mockTeamSkills);
+  // 채팅에서 저장된 스킬을 mock 데이터 위에 합쳐 보여준다 (S8 - skillDraftStore 통합)
+  const [skills, setSkills] = useState<TeamSkill[]>(() => [
+    ...skillDraftStore.getAll(),
+    ...mockTeamSkills,
+  ]);
   const [toast, setToast] = useState<ToastState | null>(null);
+
+  // 채팅에서 새 스킬이 저장되면 store 의 변경 알림을 받아 합쳐진 목록을 갱신한다.
+  // 합치는 키는 id 기준 — store 항목이 우선한다.
+  useEffect(() => {
+    const merge = () => {
+      const storeItems = skillDraftStore.getAll();
+      setSkills((prev) => {
+        const storeIds = new Set(storeItems.map((s) => s.id));
+        const survivors = prev.filter(
+          (s) => !storeIds.has(s.id) && !s.id.startsWith('chat-skill-'),
+        );
+        return [...storeItems, ...survivors];
+      });
+    };
+    const unsubscribe = skillDraftStore.subscribe(merge);
+    return unsubscribe;
+  }, []);
 
   // ── Toast helper ────────────────────────────────────────────────────────────
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info') => {

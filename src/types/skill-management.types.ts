@@ -1,6 +1,6 @@
 // ============================================================================
 // Skill Management Types — v9 Eval-Based Model
-// Based on: design/ia-design/03-skill-ia.md (v9)
+// Based on: design/ia-design/skill-ia.md (v9)
 // ============================================================================
 
 // --- Skill Category (업무 기능 기준) ---
