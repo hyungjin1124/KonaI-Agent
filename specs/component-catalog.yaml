@@ -459,7 +459,10 @@ categories:
         source_files:
           - "src/components/features/liveboard/LiveboardView.tsx"
           - "src/constants/widgets.ts"
-        notes: "구현 완료. LiveboardView가 84KB로 거대하므로 분리 리팩토링 고려."
+        obsidian_sources:
+          - "Insights/agent-ui/home-dashboard-liveboard-ia-patterns.md"
+        last_researched: "2026-04-07"
+        notes: "구현 완료. LiveboardView가 84KB로 거대하므로 분리 리팩토링 고려. 2026-04-07 home-dashboard-liveboard IA 패턴 synthesis와 연결."
 
       - id: drill_down
         name: "Drill-Down Interaction"
@@ -474,7 +477,9 @@ categories:
           - "src/components/features/dashboard/data/drillDownData.ts"
         obsidian_sources:
           - "Insights/agent-ui/patterns/drilldown-interaction-design.md"
-        notes: "구현 완료. 3단계 드릴다운, 브레드크럼, 깊이 제한 알림 포함."
+          - "Insights/agent-ui/home-dashboard-liveboard-ia-patterns.md"
+        last_researched: "2026-04-07"
+        notes: "구현 완료. 3단계 드릴다운, 브레드크럼, 깊이 제한 알림 포함. 2026-04-07 home-dashboard-liveboard IA synthesis에서 드릴다운 패턴(D-1~D-4) 재검토."
 
       - id: kpi_card
         name: "KPI Card"
@@ -605,6 +610,35 @@ categories:
         complexity: complex
         contexts: [liveboard]
         source_files: []
+
+      - id: liveboard_home
+        name: "Liveboard Home / Dashboard IA"
+        description: "홈-대시보드-라이브보드 IA 관계 (진입점, 랜딩 레이아웃, 홈-대시보드 매핑 패턴)"
+        status: partial
+        priority: high
+        complexity: complex
+        contexts: [liveboard, chat_view]
+        source_files:
+          - "src/components/features/liveboard/LiveboardView.tsx"
+          - "src/constants/navigation.ts"
+        obsidian_sources:
+          - "Insights/agent-ui/home-dashboard-liveboard-ia-patterns.md"
+          - "Insights/agent-ui/sources/01-dashboard-ia-research.md"
+        last_researched: "2026-04-07"
+        notes: "리서치만 존재 (confidence: medium). KonaI-Agent 적용 전략 미수립 — H-A/H-B 패턴 중 선택, R-A~R-D 관계 모델, 4단계 커스터마이징 스펙트럼 결정 필요. 후속 /research → /implement 파이프라인 예정."
+
+      - id: chat_to_dashboard_pin
+        name: "Chat → Dashboard Pin"
+        description: "채팅 대화 결과(차트, KPI, 분석)를 대시보드에 핀하여 지속 모니터링 대상으로 전환"
+        status: not_implemented
+        priority: high
+        complexity: complex
+        contexts: [chat_view, liveboard, artifact_panel]
+        source_files: []
+        obsidian_sources:
+          - "Insights/agent-ui/home-dashboard-liveboard-ia-patterns.md"
+        last_researched: "2026-04-07"
+        notes: "신규 발견 패턴. synthesis의 S-A/S-B/S-C 3가지 Pin 플로우 (즉시 pin, 편집 후 pin, 임시 조사 저장) 참고. ThoughtSpot SpotIQ Pin, Databricks Genie Dashboard Add 참조."
 
       - id: nl_to_chart
         name: "Natural Language to Chart"

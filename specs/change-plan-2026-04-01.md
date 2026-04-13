@@ -2,7 +2,7 @@
 
 > **작성일**: 2026-04-01
 > **근거**: 피드백 5건 + 추가 논의 결과
-> **대상 파일**: `design/ia-design/data-ia.md`, `docs/planning/service-plan.md`, `docs/planning/data-access-policy.md`, `docs/design/ia-design/05-admin-ia.md`
+> **대상 파일**: `design/ia-design/data-ia.md`, `docs/planning/service-plan.md`, `docs/planning/data-access-policy.md`, `docs/design/ia-design/admin-ia.md`
 
 ---
 
@@ -313,13 +313,13 @@ resolve_custom(userseq, view_id):
 
 ---
 
-## 4. 05-admin-ia.md 변경 상세
+## 4. admin-ia.md 변경 상세
 
-> 파일 위치: `docs/design/ia-design/05-admin-ia.md`
+> 파일 위치: `docs/design/ia-design/admin-ia.md`
 
 ### 4.1 사용자 추가 버튼 제거 (피드백 5)
 
-05-admin-ia.md에는 `[+ 사용자 추가]` 버튼이 깊이 설계되어 있다. 다음 위치를 모두 수정한다.
+admin-ia.md에는 `[+ 사용자 추가]` 버튼이 깊이 설계되어 있다. 다음 위치를 모두 수정한다.
 
 **(a) 사용자 관리 와이어프레임 (67행 부근):**
 - `[+ 사용자 추가]` 버튼을 와이어프레임에서 제거
@@ -348,7 +348,7 @@ resolve_custom(userseq, view_id):
 
 ### 4.2 그룹 탭 관련 — 변경 없음
 
-05-admin-ia.md에는 그룹 탭 관련 기술이 없다. 그룹 탭은 data-ia.md 4절에서만 정의되었으므로 이 문서에는 영향 없음.
+admin-ia.md에는 그룹 탭 관련 기술이 없다. 그룹 탭은 data-ia.md 4절에서만 정의되었으므로 이 문서에는 영향 없음.
 
 ---
 
@@ -362,7 +362,7 @@ resolve_custom(userseq, view_id):
 | 4 | agent_view_access 테이블이 data-ia.md에서 참조될 때 policy 문서와 일관적인지 | data-ia.md ↔ policy | agent_view_access 명칭 통일 |
 | 5 | resolve_erp_pgm() Step 6에 _TCAOrgDeptSecu가 이미 반영되어 있는지 | policy 5.3절 | 이미 반영됨 ✅ |
 | 6 | 비ERP 등록 다이얼로그의 source_type과 auth_type 자동 매핑이 policy 6절과 일관적인지 | data-ia.md 3절 ↔ policy 6절 | 동기화 필요 |
-| 7 | 05-admin-ia.md의 사용자 추가 관련 7개소 제거가 일관적인지 | 05-admin-ia.md | 이번 범위 포함 ✅ |
+| 7 | admin-ia.md의 사용자 추가 관련 7개소 제거가 일관적인지 | admin-ia.md | 이번 범위 포함 ✅ |
 
 ---
 
@@ -373,4 +373,4 @@ resolve_custom(userseq, view_id):
 | data-ia.md | 비ERP 접근 권한 편집 (2.8절 내) | 1, 2.3, 2.5, 2.8, 3 (전면 재설계), 4.1, 4.2, 5.1, 6 | 4.3 (전체), 5.3 (전체), 3.4 (미리보기) |
 | service-plan.md | — | 3.4 (목적·하위구성·기능표), 3.5 (하위구성·기능표) | 그룹 탭 단락, 사용자 추가 행 |
 | data-access-policy.md | agent_view_access 테이블 (4절), 비ERP resolve 패턴 (5절) | 1절 (원칙 추가), 2절 (용어), 6절 (확장 가이드), 8절 (관리 화면) | — |
-| 05-admin-ia.md | — | 온보딩 시나리오 (빈 상태 문구 변경) | 사용자 추가 버튼 (와이어프레임, 액션표, 전용 섹션, 흐름도, 인터랙션 6.1절, 설계 근거 행) |
+| admin-ia.md | — | 온보딩 시나리오 (빈 상태 문구 변경) | 사용자 추가 버튼 (와이어프레임, 액션표, 전용 섹션, 흐름도, 인터랙션 6.1절, 설계 근거 행) |
